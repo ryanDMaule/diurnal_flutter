@@ -2,6 +2,17 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:home_widget/home_widget.dart';
+
+Future<void> updateWidget(String word, String definition) async {
+  await HomeWidget.saveWidgetData<String>('word', word);
+  await HomeWidget.saveWidgetData<String>('definition', definition);
+  await HomeWidget.updateWidget(
+    name: 'HomeWidgetProvider',
+    androidName: 'HomeWidgetProvider',
+    iOSName: 'HomeWidget',
+  );
+}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,35 +72,45 @@ class _WordScreenState extends State<WordScreen> {
   }
 
   Future<void> fetchWordOfTheDay() async {
-    const apiUrl = 'https://diurnal-api-7zz8.onrender.com/word';
+  const apiUrl = 'https://diurnal-api-7zz8.onrender.com/word';
 
-    try {
-      final response = await http.get(Uri.parse(apiUrl));
+  try {
+    final response = await http.get(Uri.parse(apiUrl));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          wordData = data;
-          isLoading = false;
-          isOffline = false;
-        });
-      } else {
-        debugPrint('⚠️ API returned ${response.statusCode}. Using fallback word.');
-        setState(() {
-          wordData = fallbackWord;
-          isLoading = false;
-          isOffline = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('❌ Error fetching word: $e');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        wordData = data;
+        isLoading = false;
+        isOffline = false;
+      });
+
+      // ✅ Update home widget
+      await updateWidget(wordData['word'], wordData['definition']);
+    } else {
+      debugPrint('⚠️ API returned ${response.statusCode}. Using fallback word.');
       setState(() {
         wordData = fallbackWord;
         isLoading = false;
         isOffline = true;
       });
+
+      // ✅ Push fallback to widget as well
+      await updateWidget(wordData['word'], wordData['definition']);
     }
+  } catch (e) {
+    debugPrint('❌ Error fetching word: $e');
+    setState(() {
+      wordData = fallbackWord;
+      isLoading = false;
+      isOffline = true;
+    });
+
+    // ✅ Ensure widget still shows something
+    await updateWidget(wordData['word'], wordData['definition']);
   }
+}
+
 
   // Future<void> playPronunciation() async {
   //   try {
