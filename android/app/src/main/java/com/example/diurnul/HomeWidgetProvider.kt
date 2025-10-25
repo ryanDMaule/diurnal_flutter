@@ -12,7 +12,6 @@ import es.antonborri.home_widget.HomeWidgetProvider
 import java.util.Calendar
 import android.util.Log
 
-
 class HomeWidgetProvider : HomeWidgetProvider() {
 
     override fun onUpdate(
@@ -21,29 +20,30 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences
     ) {
-        Log.d("HomeWidgetProvider", "WOOHOOO onUpdate() called from AlarmManager")
+        Log.d("HomeWidgetProvider", "✅ onUpdate() triggered")
 
-        // --- your existing update logic ---
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
             val word = widgetData.getString("word", "Loading...") ?: "Loading..."
-            val definition = widgetData.getString("definition", "Fetching definition...") ?: "Fetching definition..."
+            val definition =
+                widgetData.getString("definition", "Fetching definition...") ?: "Fetching definition..."
 
+            // Update text content
             views.setTextViewText(R.id.widget_word, word)
             views.setTextViewText(R.id.widget_definition, definition)
 
-            // Tap to open main Flutter activity
+            // ✅ Add click-to-open app on entire widget
             val launchIntent = HomeWidgetLaunchIntent.getActivity(
                 context,
                 MainActivity::class.java
             )
-            views.setOnClickPendingIntent(R.id.widget_word, launchIntent)
+            views.setOnClickPendingIntent(R.id.widget_root, launchIntent)
 
             appWidgetManager.updateAppWidget(widgetId, views)
         }
 
-        // --- NEW: schedule a daily refresh ---
+        // ✅ Schedule daily refresh (you can tune interval for testing/production)
         scheduleDailyUpdate(context)
     }
 
@@ -53,8 +53,7 @@ class HomeWidgetProvider : HomeWidgetProvider() {
     }
 
     /**
-     * Sets up a repeating alarm that will trigger the widget to refresh every day
-     * a few seconds after midnight.
+     * Sets up a repeating alarm to trigger widget refresh.
      */
     private fun scheduleDailyUpdate(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -69,16 +68,10 @@ class HomeWidgetProvider : HomeWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // For testing — trigger every 1 minute
+        // Every 1 minute for testing (change later)
         val triggerTime = System.currentTimeMillis() + 60 * 1000L
-        val interval = 60 * 1000L // 1 minute interval for testing
+        val interval = 60 * 1000L
 
-        // --- Uncomment for production daily updates ---
-        // val triggerTime = System.currentTimeMillis() + AlarmManager.INTERVAL_DAY
-        // val interval = AlarmManager.INTERVAL_DAY // 24 hours
-        // ------------------------------------------------
-
-        // Use inexact repeating alarm — no special permissions required
         alarmManager.setInexactRepeating(
             AlarmManager.RTC_WAKEUP,
             triggerTime,
@@ -86,10 +79,6 @@ class HomeWidgetProvider : HomeWidgetProvider() {
             pendingIntent
         )
 
-        // Log each time this is scheduled (for debugging)
-        android.util.Log.d("HomeWidgetProvider", "Widget update scheduled every ${interval / 1000} seconds.")
+        Log.d("HomeWidgetProvider", "⏰ Widget update scheduled every ${interval / 1000}s")
     }
-
-
-    
 }

@@ -12,6 +12,7 @@ Future<void> updateWidget(String word, String definition) async {
     name: 'HomeWidgetProvider',
     androidName: 'HomeWidgetProvider',
     iOSName: 'HomeWidget',
+    qualifiedAndroidName: 'com.example.HomeWidgetProvider',
   );
 }
 
@@ -124,244 +125,237 @@ class _WordScreenState extends State<WordScreen> {
   //   }
   // }
 
-Widget getContent() {
-  switch (selectedTab) {
-    case 'usage':
-      return Text(
-        wordData['usage'],
-        key: const ValueKey('usage'),
-        textAlign: TextAlign.start,
-        style: const TextStyle(
-          fontSize: 16,
-          height: 1.6,
-          color: AppColors.textPrimary,
-          fontFamily: 'Figtree',
-          fontWeight: FontWeight.w300,
-        ),
-      );
+  Widget getContent() {
+    switch (selectedTab) {
+      case 'usage':
+        return Text(
+          wordData['usage'],
+          key: const ValueKey('usage'),
+          textAlign: TextAlign.start,
+          style: const TextStyle(
+            fontSize: 16,
+            height: 1.6,
+            color: AppColors.textPrimary,
+            fontFamily: 'Figtree',
+            fontWeight: FontWeight.w300,
+          ),
+        );
 
-    case 'synonyms':
-      final synonyms = (wordData['synonyms'] as List<dynamic>).cast<String>();
-      return Column(
-        key: const ValueKey('synonyms'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final synonym in synonyms)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                "• $synonym",
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.6,
-                  color: AppColors.textPrimary,
-                  fontFamily: 'Figtree',
-                  fontWeight: FontWeight.w300,
+      case 'synonyms':
+        final synonyms = (wordData['synonyms'] as List<dynamic>).cast<String>();
+        return Column(
+          key: const ValueKey('synonyms'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final synonym in synonyms)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  "• $synonym",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.6,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Figtree',
+                    fontWeight: FontWeight.w300,
+                  ),
                 ),
               ),
-            ),
-        ],
-      );
+          ],
+        );
 
-    default:
-      return Text(
-        wordData['definition'],
-        key: const ValueKey('definition'),
-        textAlign: TextAlign.start,
-        style: const TextStyle(
-          fontSize: 16,
-          height: 1.6,
-          color: AppColors.textPrimary,
-          fontFamily: 'Figtree',
-          fontWeight: FontWeight.w300,
-        ),
-      );
+      default:
+        return Text(
+          wordData['definition'],
+          key: const ValueKey('definition'),
+          textAlign: TextAlign.start,
+          style: const TextStyle(
+            fontSize: 16,
+            height: 1.6,
+            color: AppColors.textPrimary,
+            fontFamily: 'Figtree',
+            fontWeight: FontWeight.w300,
+          ),
+        );
+    }
   }
-}
-
 
   @override
-Widget build(BuildContext context) {
-  final double screenHeight = MediaQuery.of(context).size.height;
+  Widget build(BuildContext context) {
+    final double screenHeight = MediaQuery.of(context).size.height;
 
-  if (isLoading) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-  }
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
-  final wordType = wordData['type'];
-  final word = wordData['word'];
-  final phonetic = wordData['phonetic'];
+    final wordType = wordData['type'];
+    final word = wordData['word'];
+    final phonetic = wordData['phonetic'];
 
-  return Scaffold(
-    backgroundColor: Colors.black,
-    body: Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/background.png'),
-          fit: BoxFit.cover,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+          ),
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 🧭 Push content to start halfway down the screen
-              SizedBox(height: screenHeight * 0.4),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 🧭 Push content to start halfway down the screen
+                SizedBox(height: screenHeight * 0.4),
 
-              // ✅ Offline banner
-              if (isOffline)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    "⚠️ Offline mode — showing default word",
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontFamily: 'Figtree',
-                      fontWeight: FontWeight.w400,
+                // ✅ Offline banner
+                if (isOffline)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      "⚠️ Offline mode — showing default word",
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontFamily: 'Figtree',
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
+                  ),
+
+                // Word Type
+                Text(
+                  wordType.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Figtree',
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 1.2,
                   ),
                 ),
 
-              // Word Type
-              Text(
-                wordType.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                  fontFamily: 'Figtree',
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 1.2,
+                // Word
+                Text(
+                  word,
+                  style: const TextStyle(
+                    fontSize: 54,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'NotoSerifJP',
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
 
-              // Word
-              Text(
-                word,
-                style: const TextStyle(
-                  fontSize: 54,
-                  color: AppColors.textPrimary,
-                  fontFamily: 'NotoSerifJP',
-                  fontWeight: FontWeight.w400,
+                // Phonetic
+                Text(
+                  phonetic,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Figtree',
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
 
-              // Phonetic
-              Text(
-                phonetic,
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: AppColors.textPrimary,
-                  fontFamily: 'Figtree',
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
+                const SizedBox(height: 32),
 
-              const SizedBox(height: 32),
-
-              // Pills row
-              Row(
-                children: [
-                  for (final label in ['definition', 'usage', 'synonyms'])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: GestureDetector(
-                        onTapDown: (_) => setState(() => _isPressed = label),
-                        onTapUp: (_) {
-                          setState(() {
-                            _isPressed = null;
-                            selectedTab = label;
-                          });
-                        },
-                        onTapCancel: () => setState(() => _isPressed = null),
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 150),
-                          opacity: _isPressed == label ? 0.6 : 1.0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: selectedTab == label
-                                    ? AppColors.textPrimary.withOpacity(1.0)
-                                    : AppColors.textPrimary.withOpacity(0.3),
-                                width: 1,
+                // Pills row
+                Row(
+                  children: [
+                    for (final label in ['definition', 'usage', 'synonyms'])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: GestureDetector(
+                          onTapDown: (_) => setState(() => _isPressed = label),
+                          onTapUp: (_) {
+                            setState(() {
+                              _isPressed = null;
+                              selectedTab = label;
+                            });
+                          },
+                          onTapCancel: () => setState(() => _isPressed = null),
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 150),
+                            opacity: _isPressed == label ? 0.6 : 1.0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
                               ),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                color: selectedTab == label
-                                    ? AppColors.textPrimary.withOpacity(1.0)
-                                    : AppColors.textPrimary.withOpacity(0.4),
-                                fontFamily: 'Figtree',
-                                fontWeight: FontWeight.w400,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: selectedTab == label
+                                      ? AppColors.textPrimary.withOpacity(1.0)
+                                      : AppColors.textPrimary.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                label,
+                                style: TextStyle(
+                                  color: selectedTab == label
+                                      ? AppColors.textPrimary.withOpacity(1.0)
+                                      : AppColors.textPrimary.withOpacity(0.4),
+                                  fontFamily: 'Figtree',
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
+                  ],
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // 📝 Description area — now wraps its content
-AnimatedSwitcher(
-  duration: const Duration(milliseconds: 600),
-  switchInCurve: Curves.easeOutCubic,
-  switchOutCurve: Curves.easeInCubic,
-  transitionBuilder: (Widget child, Animation<double> animation) {
-    final fadeIn = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOut,
-    );
+                // 📝 Description area — now wraps its content
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 600),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        final fadeIn = CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        );
 
-    final scaleIn = Tween<double>(
-      begin: 0.98,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutBack,
-      ),
-    );
+                        final scaleIn = Tween<double>(begin: 0.98, end: 1.0)
+                            .animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutBack,
+                              ),
+                            );
 
-    return FadeTransition(
-      opacity: fadeIn,
-      child: ScaleTransition(
-        scale: scaleIn,
-        child: child,
-      ),
-    );
-  },
-  layoutBuilder: (currentChild, previousChildren) {
-    // Keeps previous child in the tree during fade-out
-    return Stack(
-      alignment: Alignment.topLeft,
-      children: [
-        ...previousChildren,
-        if (currentChild != null) currentChild,
-      ],
-    );
-  },
-  child: getContent(),
-),
+                        return FadeTransition(
+                          opacity: fadeIn,
+                          child: ScaleTransition(scale: scaleIn, child: child),
+                        );
+                      },
+                  layoutBuilder: (currentChild, previousChildren) {
+                    // Keeps previous child in the tree during fade-out
+                    return Stack(
+                      alignment: Alignment.topLeft,
+                      children: [
+                        ...previousChildren,
+                        if (currentChild != null) currentChild,
+                      ],
+                    );
+                  },
+                  child: getContent(),
+                ),
 
-
-
-              const Spacer(),
-            ],
+                const Spacer(),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
