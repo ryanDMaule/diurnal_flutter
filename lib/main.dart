@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
+import 'theme/colors.dart';
 
 Future<void> updateWidget(String word, String definition) async {
   await HomeWidget.saveWidgetData<String>('word', word);
@@ -41,10 +42,9 @@ class WordScreen extends StatefulWidget {
   State<WordScreen> createState() => _WordScreenState();
 }
 
-
 class _WordScreenState extends State<WordScreen> {
   final player = AudioPlayer();
-  String selectedTab = 'Definition';
+  String selectedTab = 'definition';
   bool isLoading = true;
   bool isOffline = false;
 
@@ -61,8 +61,11 @@ class _WordScreenState extends State<WordScreen> {
         "Occurring or active during the daytime; relating to or happening once every day.",
     "usage":
         "Unlike nocturnal creatures, diurnal animals such as squirrels and hawks are active during the day.",
-    "synonyms": ["Daily", "Daytime", "Circadian"]
+    "synonyms": ["Daily", "Daytime", "Circadian"],
   };
+
+  // Local variable to track pressed pill
+  String? _isPressed;
 
   @override
   void initState() {
@@ -72,45 +75,46 @@ class _WordScreenState extends State<WordScreen> {
   }
 
   Future<void> fetchWordOfTheDay() async {
-  const apiUrl = 'https://diurnal-api-7zz8.onrender.com/word';
+    const apiUrl = 'https://diurnal-api-7zz8.onrender.com/word';
 
-  try {
-    final response = await http.get(Uri.parse(apiUrl));
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        wordData = data;
-        isLoading = false;
-        isOffline = false;
-      });
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          wordData = data;
+          isLoading = false;
+          isOffline = false;
+        });
 
-      // ✅ Update home widget
-      await updateWidget(wordData['word'], wordData['definition']);
-    } else {
-      debugPrint('⚠️ API returned ${response.statusCode}. Using fallback word.');
+        // ✅ Update home widget
+        await updateWidget(wordData['word'], wordData['definition']);
+      } else {
+        debugPrint(
+          '⚠️ API returned ${response.statusCode}. Using fallback word.',
+        );
+        setState(() {
+          wordData = fallbackWord;
+          isLoading = false;
+          isOffline = true;
+        });
+
+        // ✅ Push fallback to widget as well
+        await updateWidget(wordData['word'], wordData['definition']);
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching word: $e');
       setState(() {
         wordData = fallbackWord;
         isLoading = false;
         isOffline = true;
       });
 
-      // ✅ Push fallback to widget as well
+      // ✅ Ensure widget still shows something
       await updateWidget(wordData['word'], wordData['definition']);
     }
-  } catch (e) {
-    debugPrint('❌ Error fetching word: $e');
-    setState(() {
-      wordData = fallbackWord;
-      isLoading = false;
-      isOffline = true;
-    });
-
-    // ✅ Ensure widget still shows something
-    await updateWidget(wordData['word'], wordData['definition']);
   }
-}
-
 
   // Future<void> playPronunciation() async {
   //   try {
@@ -120,40 +124,91 @@ class _WordScreenState extends State<WordScreen> {
   //   }
   // }
 
-  String getContent() {
-    switch (selectedTab) {
-      case 'Usage':
-        return wordData['usage'];
-      case 'Synonyms':
-        return (wordData['synonyms'] as List<dynamic>).join(', ');
-      default:
-        return wordData['definition'];
-    }
+Widget getContent() {
+  switch (selectedTab) {
+    case 'usage':
+      return Text(
+        wordData['usage'],
+        key: const ValueKey('usage'),
+        textAlign: TextAlign.start,
+        style: const TextStyle(
+          fontSize: 16,
+          height: 1.6,
+          color: AppColors.textPrimary,
+          fontFamily: 'Figtree',
+          fontWeight: FontWeight.w300,
+        ),
+      );
+
+    case 'synonyms':
+      final synonyms = (wordData['synonyms'] as List<dynamic>).cast<String>();
+      return Column(
+        key: const ValueKey('synonyms'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final synonym in synonyms)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                "• $synonym",
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.6,
+                  color: AppColors.textPrimary,
+                  fontFamily: 'Figtree',
+                  fontWeight: FontWeight.w300,
+                ),
+              ),
+            ),
+        ],
+      );
+
+    default:
+      return Text(
+        wordData['definition'],
+        key: const ValueKey('definition'),
+        textAlign: TextAlign.start,
+        style: const TextStyle(
+          fontSize: 16,
+          height: 1.6,
+          color: AppColors.textPrimary,
+          fontFamily: 'Figtree',
+          fontWeight: FontWeight.w300,
+        ),
+      );
   }
+}
+
 
   @override
-  Widget build(BuildContext context) {
-    final double descriptionHeight = MediaQuery.of(context).size.height * 0.25;
+Widget build(BuildContext context) {
+  final double screenHeight = MediaQuery.of(context).size.height;
 
-    if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+  if (isLoading) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
 
-    final wordType = wordData['type'];
-    final word = wordData['word'];
-    final phonetic = wordData['phonetic'];
+  final wordType = wordData['type'];
+  final word = wordData['word'];
+  final phonetic = wordData['phonetic'];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      body: SafeArea(
+  return Scaffold(
+    backgroundColor: Colors.black,
+    body: Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 80),
+              // 🧭 Push content to start halfway down the screen
+              SizedBox(height: screenHeight * 0.4),
 
               // ✅ Offline banner
               if (isOffline)
@@ -161,97 +216,95 @@ class _WordScreenState extends State<WordScreen> {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Text(
                     "⚠️ Offline mode — showing default word",
-                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontFamily: 'Figtree',
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
 
               // Word Type
               Text(
                 wordType.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.indigo[400],
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                  fontFamily: 'Figtree',
+                  fontWeight: FontWeight.w300,
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 8),
 
               // Word
               Text(
                 word,
                 style: const TextStyle(
                   fontSize: 54,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary,
                   fontFamily: 'NotoSerifJP',
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 8),
 
-              // // Phonetic + Speaker Icon Row
-              // Row(
-              //   crossAxisAlignment: CrossAxisAlignment.center,
-              //   children: [
-              //     Text(
-              //       phonetic,
-              //       style: TextStyle(
-              //         fontFamily: 'NotoSerifJP',
-              //         fontSize: 18,
-              //         fontStyle: FontStyle.italic,
-              //         color: Colors.grey[700],
-              //       ),
-              //     ),
-              //     const SizedBox(width: 8),
-              //     IconButton(
-              //       icon: const Icon(Icons.volume_up_rounded),
-              //       color: Colors.indigo[400],
-              //       iconSize: 24,
-              //       onPressed: playPronunciation,
-              //       tooltip: 'Hear pronunciation',
-              //     ),
-              //   ],
-              // ),
-
-              // Phonetic only
+              // Phonetic
               Text(
                 phonetic,
-                style: TextStyle(
-                  fontFamily: 'NotoSerifJP',
+                style: const TextStyle(
                   fontSize: 18,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey[700],
+                  color: AppColors.textPrimary,
+                  fontFamily: 'Figtree',
+                  fontWeight: FontWeight.w400,
                 ),
               ),
 
+              const SizedBox(height: 32),
 
               // Pills row
               Row(
                 children: [
-                  for (final label in ['Definition', 'Usage', 'Synonyms'])
+                  for (final label in ['definition', 'usage', 'synonyms'])
                     Padding(
                       padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(label),
-                        labelStyle: TextStyle(
-                          color: selectedTab == label
-                              ? Colors.white
-                              : Colors.indigo[400],
-                          fontWeight: FontWeight.w600,
-                        ),
-                        selected: selectedTab == label,
-                        selectedColor: Colors.indigo[400],
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: Colors.indigo[200]!,
-                            width: 1,
+                      child: GestureDetector(
+                        onTapDown: (_) => setState(() => _isPressed = label),
+                        onTapUp: (_) {
+                          setState(() {
+                            _isPressed = null;
+                            selectedTab = label;
+                          });
+                        },
+                        onTapCancel: () => setState(() => _isPressed = null),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 150),
+                          opacity: _isPressed == label ? 0.6 : 1.0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: selectedTab == label
+                                    ? AppColors.textPrimary.withOpacity(1.0)
+                                    : AppColors.textPrimary.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: selectedTab == label
+                                    ? AppColors.textPrimary.withOpacity(1.0)
+                                    : AppColors.textPrimary.withOpacity(0.4),
+                                fontFamily: 'Figtree',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
                           ),
                         ),
-                        onSelected: (_) {
-                          setState(() => selectedTab = label);
-                        },
                       ),
                     ),
                 ],
@@ -259,29 +312,56 @@ class _WordScreenState extends State<WordScreen> {
 
               const SizedBox(height: 16),
 
-              // Fixed-height area for description
-              SizedBox(
-                height: descriptionHeight,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: Text(
-                    getContent(),
-                    key: ValueKey(selectedTab),
-                    textAlign: TextAlign.start,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.6,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ),
+              // 📝 Description area — now wraps its content
+AnimatedSwitcher(
+  duration: const Duration(milliseconds: 600),
+  switchInCurve: Curves.easeOutCubic,
+  switchOutCurve: Curves.easeInCubic,
+  transitionBuilder: (Widget child, Animation<double> animation) {
+    final fadeIn = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOut,
+    );
+
+    final scaleIn = Tween<double>(
+      begin: 0.98,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    return FadeTransition(
+      opacity: fadeIn,
+      child: ScaleTransition(
+        scale: scaleIn,
+        child: child,
+      ),
+    );
+  },
+  layoutBuilder: (currentChild, previousChildren) {
+    // Keeps previous child in the tree during fade-out
+    return Stack(
+      alignment: Alignment.topLeft,
+      children: [
+        ...previousChildren,
+        if (currentChild != null) currentChild,
+      ],
+    );
+  },
+  child: getContent(),
+),
+
+
 
               const Spacer(),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
