@@ -181,181 +181,195 @@ class _WordScreenState extends State<WordScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final double screenHeight = MediaQuery.of(context).size.height;
+Widget build(BuildContext context) {
+  final double screenHeight = MediaQuery.of(context).size.height;
 
-    if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+  final wordType = wordData['type'];
+  final word = wordData['word'];
+  final phonetic = wordData['phonetic'];
 
-    final wordType = wordData['type'];
-    final word = wordData['word'];
-    final phonetic = wordData['phonetic'];
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-          ),
+  return Scaffold(
+    backgroundColor: Colors.black,
+    body: Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 🧭 Push content to start halfway down the screen
-                SizedBox(height: screenHeight * 0.4),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 🧭 Push content to start halfway down the screen
+                  SizedBox(height: screenHeight * 0.4),
 
-                // ✅ Offline banner
-                if (isOffline)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Text(
-                      "⚠️ Offline mode — showing default word",
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                        fontFamily: 'Figtree',
-                        fontWeight: FontWeight.w400,
+                  // ✅ Offline banner
+                  if (isOffline)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        "⚠️ Offline mode — showing default word",
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontFamily: 'Figtree',
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
+                    ),
+
+                  // Word Type
+                  Text(
+                    wordType.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                      fontFamily: 'Figtree',
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 1.2,
                     ),
                   ),
 
-                // Word Type
-                Text(
-                  wordType.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                    fontFamily: 'Figtree',
-                    fontWeight: FontWeight.w300,
-                    letterSpacing: 1.2,
+                  // Word
+                  Text(
+                    word,
+                    style: const TextStyle(
+                      fontSize: 54,
+                      color: AppColors.textPrimary,
+                      fontFamily: 'NotoSerifJP',
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
 
-                // Word
-                Text(
-                  word,
-                  style: const TextStyle(
-                    fontSize: 54,
-                    color: AppColors.textPrimary,
-                    fontFamily: 'NotoSerifJP',
-                    fontWeight: FontWeight.w400,
+                  // Phonetic
+                  Text(
+                    phonetic,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: AppColors.textPrimary,
+                      fontFamily: 'Figtree',
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
 
-                // Phonetic
-                Text(
-                  phonetic,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: AppColors.textPrimary,
-                    fontFamily: 'Figtree',
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
+                  const SizedBox(height: 32),
 
-                const SizedBox(height: 32),
-
-                // Pills row
-                Row(
-                  children: [
-                    for (final label in ['definition', 'usage', 'synonyms'])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: GestureDetector(
-                          onTapDown: (_) => setState(() => _isPressed = label),
-                          onTapUp: (_) {
-                            setState(() {
-                              _isPressed = null;
-                              selectedTab = label;
-                            });
-                          },
-                          onTapCancel: () => setState(() => _isPressed = null),
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 150),
-                            opacity: _isPressed == label ? 0.6 : 1.0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: selectedTab == label
-                                      ? AppColors.textPrimary.withOpacity(1.0)
-                                      : AppColors.textPrimary.withOpacity(0.3),
-                                  width: 1,
+                  // Pills row
+                  Row(
+                    children: [
+                      for (final label in ['definition', 'usage', 'synonyms'])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: GestureDetector(
+                            onTapDown: (_) => setState(() => _isPressed = label),
+                            onTapUp: (_) {
+                              setState(() {
+                                _isPressed = null;
+                                selectedTab = label;
+                              });
+                            },
+                            onTapCancel: () => setState(() => _isPressed = null),
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 150),
+                              opacity: _isPressed == label ? 0.6 : 1.0,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
-                              ),
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  color: selectedTab == label
-                                      ? AppColors.textPrimary.withOpacity(1.0)
-                                      : AppColors.textPrimary.withOpacity(0.4),
-                                  fontFamily: 'Figtree',
-                                  fontWeight: FontWeight.w400,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selectedTab == label
+                                        ? AppColors.textPrimary.withOpacity(1.0)
+                                        : AppColors.textPrimary.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    color: selectedTab == label
+                                        ? AppColors.textPrimary.withOpacity(1.0)
+                                        : AppColors.textPrimary.withOpacity(0.4),
+                                    fontFamily: 'Figtree',
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // 📝 Description area — now wraps its content
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 600),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder:
-                      (Widget child, Animation<double> animation) {
-                        final fadeIn = CurvedAnimation(
+                  // 📝 Description area — now wraps its content
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 600),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      final fadeIn = CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOut,
+                      );
+
+                      final scaleIn = Tween<double>(begin: 0.98, end: 1.0).animate(
+                        CurvedAnimation(
                           parent: animation,
-                          curve: Curves.easeOut,
-                        );
+                          curve: Curves.easeOutBack,
+                        ),
+                      );
 
-                        final scaleIn = Tween<double>(begin: 0.98, end: 1.0)
-                            .animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOutBack,
-                              ),
-                            );
+                      return FadeTransition(
+                        opacity: fadeIn,
+                        child: ScaleTransition(scale: scaleIn, child: child),
+                      );
+                    },
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        alignment: Alignment.topLeft,
+                        children: [
+                          ...previousChildren,
+                          if (currentChild != null) currentChild,
+                        ],
+                      );
+                    },
+                    child: getContent(),
+                  ),
 
-                        return FadeTransition(
-                          opacity: fadeIn,
-                          child: ScaleTransition(scale: scaleIn, child: child),
-                        );
-                      },
-                  layoutBuilder: (currentChild, previousChildren) {
-                    // Keeps previous child in the tree during fade-out
-                    return Stack(
-                      alignment: Alignment.topLeft,
-                      children: [
-                        ...previousChildren,
-                        if (currentChild != null) currentChild,
-                      ],
-                    );
-                  },
-                  child: getContent(),
+                  const Spacer(),
+                ],
+              ),
+
+              // 🌀 Small corner loading indicator (top-right)
+              if (isLoading)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation(AppColors.textPrimary),
+                    ),
+                  ),
                 ),
-
-                const Spacer(),
-              ],
-            ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
