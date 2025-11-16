@@ -12,7 +12,7 @@ Future<void> updateWidget(String word, String definition) async {
     name: 'HomeWidgetProvider',
     androidName: 'HomeWidgetProvider',
     iOSName: 'HomeWidget',
-    qualifiedAndroidName: 'com.example.HomeWidgetProvider',
+    qualifiedAndroidName: 'com.example.diurnul.HomeWidgetProvider',
   );
 }
 

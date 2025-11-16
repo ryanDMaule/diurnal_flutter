@@ -37,6 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   home_widget: ^0.8.0
   http: ^1.1.0
+  flutter_native_splash: ^2.4.7
   
 dev_dependencies:
   flutter_test:
@@ -48,7 +49,22 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/images/app_icon.png"
+  # adaptive_icon_background: "assets/images/icon_bg.png" # optional background color for Android adaptive icons
+  # adaptive_icon_foreground: "assets/images/icon_fg.png" # recommended for Android 8.0+
 
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  background_image: "assets/images/background_image.png"
+  image: "assets/images/app_icon.png"
+  branding: "assets/images/branding.png"
+
+  android_12:
+    color: "#000000"
+    image: "assets/images/app_icon.png"
+    # branding: "assets/images/branding.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
