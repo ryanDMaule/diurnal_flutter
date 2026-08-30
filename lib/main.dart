@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
 import 'theme/colors.dart';
+import 'package:flutter/cupertino.dart';
 
 Future<void> updateWidget(String word, String definition) async {
   await HomeWidget.saveWidgetData<String>('word', word);
@@ -22,6 +23,8 @@ void main() {
 }
 
 class DiurnalApp extends StatelessWidget {
+  const DiurnalApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -350,21 +353,37 @@ Widget build(BuildContext context) {
                 ],
               ),
 
+              Positioned(
+  top: 4,
+  right: 0,
+  child: IconButton(
+    onPressed: () {
+      // Side menu comes next
+    },
+    icon: const Icon(
+      CupertinoIcons.bars,
+      size: 26,
+      color: AppColors.textPrimary,
+    ),
+  ),
+),
+
               // 🌀 Small corner loading indicator (top-right)
-              if (isLoading)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                          AlwaysStoppedAnimation(AppColors.textPrimary),
-                    ),
-                  ),
-                ),
+            if (isLoading)
+  Positioned(
+    top: 12,
+    left: 12,
+    child: SizedBox(
+      width: 20,
+      height: 20,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        valueColor: AlwaysStoppedAnimation(
+          AppColors.textPrimary,
+        ),
+      ),
+    ),
+  ),
             ],
           ),
         ),
