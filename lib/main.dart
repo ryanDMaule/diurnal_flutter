@@ -68,8 +68,24 @@ class _WordScreenState extends State<WordScreen> {
     "synonyms": ["Daily", "Daytime", "Circadian"],
   };
 
-  // // Local variable to track pressed pill
-  // String? _isPressed;
+  String formatDate(DateTime date) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
 
   @override
   void initState() {
@@ -262,55 +278,6 @@ class _WordScreenState extends State<WordScreen> {
 
                     const SizedBox(height: 32),
 
-                    // Pills row
-                    // Row(
-                    //   children: [
-                    //     for (final label in ['definition', 'usage', 'synonyms'])
-                    //       Padding(
-                    //         padding: const EdgeInsets.only(right: 8.0),
-                    //         child: GestureDetector(
-                    //           onTapDown: (_) => setState(() => _isPressed = label),
-                    //           onTapUp: (_) {
-                    //             setState(() {
-                    //               _isPressed = null;
-                    //               selectedTab = label;
-                    //             });
-                    //           },
-                    //           onTapCancel: () => setState(() => _isPressed = null),
-                    //           child: AnimatedOpacity(
-                    //             duration: const Duration(milliseconds: 150),
-                    //             opacity: _isPressed == label ? 0.6 : 1.0,
-                    //             child: Container(
-                    //               padding: const EdgeInsets.symmetric(
-                    //                 horizontal: 12,
-                    //                 vertical: 6,
-                    //               ),
-                    //               decoration: BoxDecoration(
-                    //                 borderRadius: BorderRadius.circular(20),
-                    //                 border: Border.all(
-                    //                   color: selectedTab == label
-                    //                       ? AppColors.textPrimary.withOpacity(1.0)
-                    //                       : AppColors.textPrimary.withOpacity(0.3),
-                    //                   width: 1,
-                    //                 ),
-                    //               ),
-                    //               child: Text(
-                    //                 label,
-                    //                 style: TextStyle(
-                    //                   color: selectedTab == label
-                    //                       ? AppColors.textPrimary.withOpacity(1.0)
-                    //                       : AppColors.textPrimary.withOpacity(0.4),
-                    //                   fontFamily: 'Figtree',
-                    //                   fontWeight: FontWeight.w400,
-                    //                 ),
-                    //               ),
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ),
-                    //   ],
-                    // ),
-
                     // Definition / Usage / Synonyms tabs
                     Row(
                       children: [
@@ -417,6 +384,48 @@ class _WordScreenState extends State<WordScreen> {
 
                     const Spacer(),
                   ],
+                ),
+
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 18,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          formatDate(DateTime.now()),
+                          style: TextStyle(
+                            color: AppColors.textPrimary.withOpacity(0.65),
+                            fontFamily: 'Figtree',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ),
+
+                      Icon(
+                        CupertinoIcons.bookmark,
+                        size: 20,
+                        color: AppColors.textPrimary.withOpacity(0.65),
+                      ),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '#153',
+                          style: TextStyle(
+                            color: AppColors.textPrimary.withOpacity(0.65),
+                            fontFamily: 'Figtree',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
                 Positioned(
