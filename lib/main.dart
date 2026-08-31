@@ -246,11 +246,11 @@ class _WordScreenState extends State<WordScreen> {
                     Text(
                       wordType.toUpperCase(),
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: AppColors.textPrimary,
-                        fontFamily: 'Figtree',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w300,
-                        letterSpacing: 1.2,
+                        letterSpacing: 1,
                       ),
                     ),
 
@@ -269,7 +269,7 @@ class _WordScreenState extends State<WordScreen> {
                     Text(
                       phonetic,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         color: AppColors.textPrimary,
                         fontFamily: 'Figtree',
                         fontWeight: FontWeight.w400,
@@ -305,13 +305,13 @@ class _WordScreenState extends State<WordScreen> {
                                       ),
                                       opacity: selectedTab == label
                                           ? 1.0
-                                          : 0.45,
+                                          : 0.5,
                                       child: Text(
                                         '${label[0].toUpperCase()}${label.substring(1)}',
                                         style: TextStyle(
                                           color: AppColors.textPrimary,
                                           fontFamily: 'Figtree',
-                                          fontSize: 15,
+                                          fontSize: 16,
                                           fontWeight: selectedTab == label
                                               ? FontWeight.w600
                                               : FontWeight.w400,
@@ -398,9 +398,9 @@ class _WordScreenState extends State<WordScreen> {
                         child: Text(
                           formatDate(DateTime.now()),
                           style: TextStyle(
-                            color: AppColors.textPrimary.withOpacity(0.65),
+                            color: AppColors.textSecondary.withOpacity(0.8),
                             fontFamily: 'Figtree',
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w300,
                           ),
                         ),
@@ -408,8 +408,8 @@ class _WordScreenState extends State<WordScreen> {
 
                       Icon(
                         CupertinoIcons.bookmark,
-                        size: 20,
-                        color: AppColors.textPrimary.withOpacity(0.65),
+                        size: 30,
+                        color: AppColors.textPrimary.withOpacity(0.6),
                       ),
 
                       Align(
@@ -417,9 +417,9 @@ class _WordScreenState extends State<WordScreen> {
                         child: Text(
                           '#153',
                           style: TextStyle(
-                            color: AppColors.textPrimary.withOpacity(0.65),
+                            color: AppColors.textSecondary.withOpacity(0.8),
                             fontFamily: 'Figtree',
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w300,
                           ),
                         ),
@@ -429,8 +429,8 @@ class _WordScreenState extends State<WordScreen> {
                 ),
 
                 Positioned(
-                  top: 4,
-                  right: 0,
+                  top: -4,
+                  right: -8,
                   child: IconButton(
                     onPressed: () {
                       // Side menu comes next

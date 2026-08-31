@@ -106,6 +106,14 @@ flutter:
           weight: 300
         - asset: assets/fonts/Figtree-Regular.ttf
           weight: 400
+    - family: Inter
+      fonts: 
+        - asset: assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 500
 
   #
   # For details regarding fonts from package dependencies,
