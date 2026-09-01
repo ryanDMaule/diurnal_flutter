@@ -29,6 +29,21 @@ void main() {
     expect(publication.synonyms, ['Daily', 'Daytime', 'Circadian']);
   });
 
+  test('serializes and deserializes a complete publication snapshot', () {
+    final publication = DailyPublication.fromJson(response);
+    final restored = DailyPublication.fromJson(publication.toJson());
+
+    expect(restored.id, publication.id);
+    expect(restored.sequence, publication.sequence);
+    expect(restored.publicationDate, publication.publicationDate);
+    expect(restored.word, publication.word);
+    expect(restored.type, publication.type);
+    expect(restored.phonetic, publication.phonetic);
+    expect(restored.definition, publication.definition);
+    expect(restored.usage, publication.usage);
+    expect(restored.synonyms, publication.synonyms);
+  });
+
   test('rejects an invalid publication date', () {
     expect(
       () => DailyPublication.fromJson({
@@ -44,5 +59,6 @@ void main() {
     expect(DailyPublication.localFallback.sequence, isNull);
     expect(DailyPublication.localFallback.publicationDate, isNull);
     expect(DailyPublication.localFallback.word, 'Diurnal');
+    expect(DailyPublication.localFallback.toJson, throwsStateError);
   });
 }

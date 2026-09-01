@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
 import '../models/daily_publication.dart';
+import '../services/bookmark_service.dart';
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
 import 'package:flutter/cupertino.dart';
@@ -28,9 +29,12 @@ class TodayScreen extends StatefulWidget {
 }
 
 class _TodayScreenState extends State<TodayScreen> {
+  final BookmarkService _bookmarkService = BookmarkService();
   String selectedTab = 'definition';
   bool isLoading = true;
   bool isOffline = false;
+  bool isBookmarked = false;
+  bool isBookmarkUpdating = false;
 
   late DailyPublication publication;
 
@@ -77,7 +81,10 @@ class _TodayScreenState extends State<TodayScreen> {
           publication = fetchedPublication;
           isLoading = false;
           isOffline = false;
+          isBookmarked = false;
         });
+
+        await _restoreBookmarkState(fetchedPublication);
 
         // ✅ Update home widget
         await updateWidget(
@@ -93,6 +100,7 @@ class _TodayScreenState extends State<TodayScreen> {
           publication = DailyPublication.localFallback;
           isLoading = false;
           isOffline = true;
+          isBookmarked = false;
         });
 
         // ✅ Push fallback to widget as well
@@ -105,10 +113,56 @@ class _TodayScreenState extends State<TodayScreen> {
         publication = DailyPublication.localFallback;
         isLoading = false;
         isOffline = true;
+        isBookmarked = false;
       });
 
       // ✅ Ensure widget still shows something
       await updateWidget(publication.word, publication.definition);
+    }
+  }
+
+  Future<void> _restoreBookmarkState(DailyPublication current) async {
+    try {
+      final saved = await _bookmarkService.isSaved(current.id);
+      if (!mounted || publication.id != current.id) return;
+      setState(() {
+        isBookmarked = saved;
+      });
+    } catch (error) {
+      debugPrint('Error loading bookmark state: $error');
+    }
+  }
+
+  Future<void> _toggleBookmark() async {
+    final current = publication;
+    final publicationId = current.id;
+    if (publicationId == null || isBookmarkUpdating) return;
+
+    final wasBookmarked = isBookmarked;
+    setState(() {
+      isBookmarked = !wasBookmarked;
+      isBookmarkUpdating = true;
+    });
+
+    try {
+      if (wasBookmarked) {
+        await _bookmarkService.remove(publicationId);
+      } else {
+        await _bookmarkService.save(current);
+      }
+    } catch (error) {
+      debugPrint('Error updating bookmark: $error');
+      if (mounted && publication.id == publicationId) {
+        setState(() {
+          isBookmarked = wasBookmarked;
+        });
+      }
+    } finally {
+      if (mounted && publication.id == publicationId) {
+        setState(() {
+          isBookmarkUpdating = false;
+        });
+      }
     }
   }
 
@@ -379,10 +433,43 @@ class _TodayScreenState extends State<TodayScreen> {
                         ),
                       ),
 
-                      Icon(
-                        CupertinoIcons.bookmark,
-                        size: 30,
-                        color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      Semantics(
+                        button: true,
+                        enabled: publication.id != null && !isBookmarkUpdating,
+                        label: isBookmarked
+                            ? 'Remove bookmark'
+                            : 'Save bookmark',
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: publication.id == null || isBookmarkUpdating
+                              ? null
+                              : _toggleBookmark,
+                          child: SizedBox.square(
+                            dimension: 30,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 130),
+                              transitionBuilder: (child, animation) =>
+                                  ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  ),
+                              child: Icon(
+                                isBookmarked
+                                    ? CupertinoIcons.bookmark_fill
+                                    : CupertinoIcons.bookmark,
+                                key: ValueKey(isBookmarked),
+                                size: 30,
+                                color: isBookmarked
+                                    ? AppColors.textSecondary
+                                    : AppColors.textPrimary.withValues(
+                                        alpha: publication.id == null
+                                            ? 0.25
+                                            : 0.6,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
 
                       Align(

@@ -37,6 +37,27 @@ class DailyPublication {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    final publicationId = id;
+    final publicationSequence = sequence;
+    final date = publicationDate;
+    if (publicationId == null || publicationSequence == null || date == null) {
+      throw StateError('Local fallback content cannot be serialized.');
+    }
+
+    return {
+      'id': publicationId,
+      'sequence': publicationSequence,
+      'publicationDate': _formatPublicationDate(date),
+      'word': word,
+      'type': type,
+      'phonetic': phonetic,
+      'definition': definition,
+      'usage': usage,
+      'synonyms': synonyms,
+    };
+  }
+
   static const localFallback = DailyPublication(
     id: null,
     sequence: null,
@@ -86,4 +107,11 @@ DateTime _parsePublicationDate(String value) {
   }
 
   return date;
+}
+
+String _formatPublicationDate(DateTime date) {
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
 }
