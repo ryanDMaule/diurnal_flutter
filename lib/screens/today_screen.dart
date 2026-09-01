@@ -3,7 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
 import '../theme/colors.dart';
+import '../widgets/morphing_menu_button.dart';
 import 'package:flutter/cupertino.dart';
+
+import 'menu_screen.dart';
 
 const Map<String, dynamic> fallbackWord = {
   "date": "2025-10-05",
@@ -401,17 +404,40 @@ class _TodayScreenState extends State<TodayScreen> {
                 ),
 
                 Positioned(
-                  top: -4,
-                  right: -8,
-                  child: IconButton(
+                  top: 20,
+                  right: 4,
+                  child: MorphingMenuButton(
+                    isOpen: false,
+                    tooltip: 'Open menu',
                     onPressed: () {
-                      // Side menu comes next
+                      final reduceMotion = MediaQuery.of(
+                        context,
+                      ).disableAnimations;
+                      Navigator.of(context).push(
+                        PageRouteBuilder<void>(
+                          transitionDuration: reduceMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 250),
+                          reverseTransitionDuration: reduceMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 250),
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  const MenuScreen(),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
+                                return FadeTransition(
+                                  opacity: CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeOut,
+                                    reverseCurve: Curves.easeIn,
+                                  ),
+                                  child: child,
+                                );
+                              },
+                        ),
+                      );
                     },
-                    icon: const Icon(
-                      CupertinoIcons.bars,
-                      size: 26,
-                      color: AppColors.textPrimary,
-                    ),
                   ),
                 ),
 
