@@ -2,23 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:home_widget/home_widget.dart';
+import '../models/daily_publication.dart';
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'menu_screen.dart';
-
-const Map<String, dynamic> fallbackWord = {
-  "date": "2025-10-05",
-  "word": "Diurnal",
-  "type": "Adjective",
-  "phonetic": "di·​ur·​nal",
-  "definition":
-      "Occurring or active during the daytime; relating to or happening once every day.",
-  "usage":
-      "Unlike nocturnal creatures, diurnal animals such as squirrels and hawks are active during the day.",
-  "synonyms": ["Daily", "Daytime", "Circadian"],
-};
 
 Future<void> updateWidget(String word, String definition) async {
   await HomeWidget.saveWidgetData<String>('word', word);
@@ -43,8 +32,7 @@ class _TodayScreenState extends State<TodayScreen> {
   bool isLoading = true;
   bool isOffline = false;
 
-  // ✅ Word data (can be overridden by API)
-  late Map<String, dynamic> wordData;
+  late DailyPublication publication;
 
   String formatDate(DateTime date) {
     const months = [
@@ -68,7 +56,7 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   void initState() {
     super.initState();
-    wordData = fallbackWord; // Initialize with default
+    publication = DailyPublication.localFallback;
     fetchWordOfTheDay();
   }
 
@@ -80,40 +68,47 @@ class _TodayScreenState extends State<TodayScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (data is! Map<String, dynamic>) {
+          throw const FormatException('Invalid publication response.');
+        }
+        final fetchedPublication = DailyPublication.fromJson(data);
         if (!mounted) return;
         setState(() {
-          wordData = data;
+          publication = fetchedPublication;
           isLoading = false;
           isOffline = false;
         });
 
         // ✅ Update home widget
-        await updateWidget(wordData['word'], wordData['definition']);
+        await updateWidget(
+          fetchedPublication.word,
+          fetchedPublication.definition,
+        );
       } else {
         debugPrint(
           '⚠️ API returned ${response.statusCode}. Using fallback word.',
         );
         if (!mounted) return;
         setState(() {
-          wordData = fallbackWord;
+          publication = DailyPublication.localFallback;
           isLoading = false;
           isOffline = true;
         });
 
         // ✅ Push fallback to widget as well
-        await updateWidget(wordData['word'], wordData['definition']);
+        await updateWidget(publication.word, publication.definition);
       }
     } catch (e) {
       debugPrint('❌ Error fetching word: $e');
       if (!mounted) return;
       setState(() {
-        wordData = fallbackWord;
+        publication = DailyPublication.localFallback;
         isLoading = false;
         isOffline = true;
       });
 
       // ✅ Ensure widget still shows something
-      await updateWidget(wordData['word'], wordData['definition']);
+      await updateWidget(publication.word, publication.definition);
     }
   }
 
@@ -121,7 +116,7 @@ class _TodayScreenState extends State<TodayScreen> {
     switch (selectedTab) {
       case 'usage':
         return Text(
-          wordData['usage'],
+          publication.usage,
           key: const ValueKey('usage'),
           textAlign: TextAlign.start,
           style: const TextStyle(
@@ -134,12 +129,11 @@ class _TodayScreenState extends State<TodayScreen> {
         );
 
       case 'synonyms':
-        final synonyms = (wordData['synonyms'] as List<dynamic>).cast<String>();
         return Column(
           key: const ValueKey('synonyms'),
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final synonym in synonyms)
+            for (final synonym in publication.synonyms)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
@@ -158,7 +152,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
       default:
         return Text(
-          wordData['definition'],
+          publication.definition,
           key: const ValueKey('definition'),
           textAlign: TextAlign.start,
           style: const TextStyle(
@@ -176,9 +170,15 @@ class _TodayScreenState extends State<TodayScreen> {
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
 
-    final wordType = wordData['type'];
-    final word = wordData['word'];
-    final phonetic = wordData['phonetic'];
+    final wordType = publication.type;
+    final word = publication.word;
+    final phonetic = publication.phonetic;
+    final footerDate = publication.publicationDate == null
+        ? 'Date unavailable'
+        : formatDate(publication.publicationDate!);
+    final footerSequence = publication.sequence == null
+        ? '#—'
+        : '#${publication.sequence}';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -367,7 +367,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          formatDate(DateTime.now()),
+                          footerDate,
                           style: TextStyle(
                             color: AppColors.textSecondary.withValues(
                               alpha: 0.8,
@@ -388,7 +388,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Text(
-                          '#153',
+                          footerSequence,
                           style: TextStyle(
                             color: AppColors.textSecondary.withValues(
                               alpha: 0.8,
