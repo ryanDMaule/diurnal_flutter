@@ -9,6 +9,7 @@ import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
+import 'about_screen.dart';
 import 'archive_screen.dart';
 import 'appearance_screen.dart';
 import 'my_lexicon_screen.dart';
@@ -139,7 +140,11 @@ class MenuScreen extends StatelessWidget {
                     _MenuItem(
                       icon: CupertinoIcons.info_circle,
                       title: 'About Diurnus',
-                      onTap: () => _openDestination(context, 'About Diurnus'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => const AboutScreen(),
+                        ),
+                      ),
                     ),
                   ],
                 ),
