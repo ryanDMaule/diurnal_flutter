@@ -1,14 +1,27 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../services/bookmark_service.dart';
+import '../services/edition_service.dart';
+import '../services/publication_api_service.dart';
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
+import 'archive_screen.dart';
 import 'appearance_screen.dart';
 import 'my_lexicon_screen.dart';
 import 'placeholder_screen.dart';
 
 class MenuScreen extends StatelessWidget {
-  const MenuScreen({super.key});
+  const MenuScreen({
+    this.archiveApiService,
+    this.bookmarkService,
+    this.editionService,
+    super.key,
+  });
+
+  final PublicationApiService? archiveApiService;
+  final BookmarkService? bookmarkService;
+  final EditionService? editionService;
 
   void _openDestination(BuildContext context, String title) {
     Navigator.of(context).push(
@@ -51,6 +64,21 @@ class MenuScreen extends StatelessWidget {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (context) => MyLexiconScreen(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _MenuItem(
+                      icon: CupertinoIcons.archivebox,
+                      title: 'Archive',
+                      subtitle: 'Every word, every day',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => ArchiveScreen(
+                            apiService: archiveApiService,
+                            bookmarkService: bookmarkService,
+                            editionService: editionService,
+                          ),
                         ),
                       ),
                     ),

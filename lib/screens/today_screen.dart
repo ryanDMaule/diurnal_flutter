@@ -8,6 +8,7 @@ import '../models/daily_publication.dart';
 import '../models/edition.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
+import '../services/publication_api_service.dart';
 import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
 import 'menu_screen.dart';
@@ -48,9 +49,8 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> fetchWordOfTheDay() async {
-    const apiUrl = 'https://diurnal-api-7zz8.onrender.com/word';
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.get(PublicationApiService.wordOfTheDayUri);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data is! Map<String, dynamic>) {
