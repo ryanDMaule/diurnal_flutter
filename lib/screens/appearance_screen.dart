@@ -46,57 +46,64 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       backgroundColor: AppColors.menuBackground,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 24, 0),
-              child: IconButton(
-                tooltip: 'Back to menu',
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
-                  CupertinoIcons.back,
-                  color: AppColors.textPrimary,
-                  size: 26,
-                ),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(28, 20, 28, 0),
-              child: Text(
-                'Appearance',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontFamily: 'NotoSerifJP',
-                  fontSize: 40,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 5, 28, 24),
-              child: Text(
-                'Choose a Diurnus Edition',
-                style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.56),
-                  fontFamily: 'Figtree',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w300,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+              child: SizedBox(
+                height: 74,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        tooltip: 'Back to menu',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(
+                          CupertinoIcons.back,
+                          color: AppColors.textPrimary,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                    const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Appearance',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontFamily: 'NotoSerifJP',
+                            fontSize: 31,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Choose your Diurnus Edition',
+                          style: TextStyle(
+                            color: Color(0x8FD4D4D4),
+                            fontFamily: 'Figtree',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 30),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 20,
-                  childAspectRatio: 0.72,
-                ),
+              child: ListView.separated(
+                key: const Key('appearance-edition-list'),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
                 itemCount: Editions.all.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final edition = Editions.all[index];
-                  return _EditionPreview(
+                  return _EditionCard(
                     edition: edition,
                     selected: selectedEdition.id == edition.id,
                     onTap: () => _select(edition),
@@ -111,8 +118,8 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   }
 }
 
-class _EditionPreview extends StatelessWidget {
-  const _EditionPreview({
+class _EditionCard extends StatelessWidget {
+  const _EditionCard({
     required this.edition,
     required this.selected,
     required this.onTap,
@@ -130,79 +137,116 @@ class _EditionPreview extends StatelessWidget {
       label: '${edition.name} Edition',
       child: GestureDetector(
         key: Key('edition-${edition.id}'),
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: selected
-                        ? edition.accentColor
-                        : AppColors.menuDivider,
-                    width: selected ? 2 : 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 122,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B332A),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected
+                  ? edition.accentColor.withValues(alpha: 0.68)
+                  : AppColors.menuDivider.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(13),
+                ),
+                child: SizedBox(
+                  width: 122,
+                  height: 122,
+                  child: EditionBackground(
+                    edition: edition,
+                    child: const SizedBox.expand(),
                   ),
                 ),
-                child: EditionBackground(
-                  edition: edition,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Container(
-                        width: 22,
-                        height: 2,
-                        color: edition.accentColor,
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      edition.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontFamily: 'NotoSerifJP',
+                        fontSize: 22,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 9),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    edition.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: selected
-                          ? edition.accentColor
-                          : AppColors.textPrimary,
-                      fontFamily: 'NotoSerifJP',
-                      fontSize: 17,
+                    const SizedBox(height: 7),
+                    Text(
+                      edition.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textPrimary.withValues(alpha: 0.48),
+                        fontFamily: 'Figtree',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w300,
+                        height: 1.3,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                if (selected)
-                  Icon(
-                    CupertinoIcons.check_mark_circled_solid,
-                    size: 16,
-                    color: edition.accentColor,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              edition.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.textPrimary.withValues(alpha: 0.48),
-                fontFamily: 'Figtree',
-                fontSize: 11,
-                height: 1.25,
               ),
-            ),
-          ],
+              const SizedBox(width: 14),
+              _SelectionIndicator(
+                key: Key('edition-selection-${edition.id}'),
+                selected: selected,
+                accentColor: edition.accentColor,
+              ),
+              const SizedBox(width: 18),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _SelectionIndicator extends StatelessWidget {
+  const _SelectionIndicator({
+    required this.selected,
+    required this.accentColor,
+    super.key,
+  });
+
+  final bool selected;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? accentColor : Colors.transparent,
+        border: Border.all(
+          color: selected
+              ? accentColor
+              : AppColors.textPrimary.withValues(alpha: 0.42),
+          width: 1.5,
+        ),
+      ),
+      child: selected
+          ? const Icon(
+              CupertinoIcons.check_mark,
+              color: AppColors.menuBackground,
+              size: 18,
+            )
+          : null,
     );
   }
 }
