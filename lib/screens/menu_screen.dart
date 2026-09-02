@@ -4,24 +4,28 @@ import 'package:flutter/material.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/publication_api_service.dart';
+import '../services/recall_progress_service.dart';
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
 import 'archive_screen.dart';
 import 'appearance_screen.dart';
 import 'my_lexicon_screen.dart';
 import 'placeholder_screen.dart';
+import 'recall_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({
     this.archiveApiService,
     this.bookmarkService,
     this.editionService,
+    this.recallProgressService,
     super.key,
   });
 
   final PublicationApiService? archiveApiService;
   final BookmarkService? bookmarkService;
   final EditionService? editionService;
+  final RecallProgressService? recallProgressService;
 
   void _openDestination(BuildContext context, String title) {
     Navigator.of(context).push(
@@ -78,6 +82,21 @@ class MenuScreen extends StatelessWidget {
                             apiService: archiveApiService,
                             bookmarkService: bookmarkService,
                             editionService: editionService,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _MenuItem(
+                      icon: CupertinoIcons.arrow_2_circlepath,
+                      title: 'Recall',
+                      subtitle: 'Words worth remembering',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => RecallScreen(
+                            apiService: archiveApiService,
+                            bookmarkService: bookmarkService,
+                            progressService: recallProgressService,
                           ),
                         ),
                       ),
