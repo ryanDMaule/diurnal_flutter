@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -5,7 +7,7 @@ import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/publication_api_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'archive_calendar_screen.dart';
 import 'saved_publication_screen.dart';
 
@@ -18,7 +20,7 @@ List<DailyPublication> sortArchivePublications(
 }
 
 String archiveMonthHeading(DateTime date) {
-  const months = [
+  final months = [
     'JANUARY',
     'FEBRUARY',
     'MARCH',
@@ -54,7 +56,7 @@ class ArchiveScreen extends StatefulWidget {
 }
 
 class _ArchiveScreenState extends State<ArchiveScreen> {
-  List<DailyPublication> _publications = const [];
+  List<DailyPublication> _publications = [];
   bool _isLoading = true;
   Object? _error;
 
@@ -117,45 +119,47 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
                 tooltip: 'Back to menu',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
+                icon: Icon(
                   CupertinoIcons.back,
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   size: 26,
                 ),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Archive',
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).primary,
                             fontFamily: 'NotoSerifJP',
                             fontSize: 40,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        SizedBox(height: 5),
                         Text(
                           'Every word, every day',
                           style: TextStyle(
-                            color: AppColors.textPrimary.withValues(
-                              alpha: 0.56,
-                            ),
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).primary.withValues(alpha: 0.56),
                             fontFamily: 'Figtree',
                             fontSize: 15,
                             fontWeight: FontWeight.w300,
@@ -166,18 +170,20 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                   ),
                   if (!_isLoading && _error == null && _publications.isNotEmpty)
                     IconButton(
-                      key: const Key('open-archive-calendar'),
+                      key: Key('open-archive-calendar'),
                       tooltip: 'Open Archive calendar',
                       onPressed: _openCalendar,
-                      icon: const Icon(
+                      icon: Icon(
                         CupertinoIcons.calendar,
-                        color: AppColors.textSecondary,
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).accent,
                         size: 23,
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Expanded(child: _body()),
             ],
           ),
@@ -188,12 +194,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   Widget _body() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: SizedBox.square(
           dimension: 22,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: AppColors.textSecondary,
+            color: InterfaceThemeScope.maybePaletteOf(context).accent,
           ),
         ),
       );
@@ -204,13 +210,15 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         message: 'Please check your connection and try again.',
         action: TextButton(
           onPressed: _loadPublications,
-          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
-          child: const Text('Retry'),
+          style: TextButton.styleFrom(
+            foregroundColor: InterfaceThemeScope.maybePaletteOf(context).accent,
+          ),
+          child: Text('Retry'),
         ),
       );
     }
     if (_publications.isEmpty) {
-      return const _ArchiveMessage(
+      return _ArchiveMessage(
         title: 'Nothing here yet',
         message: 'Published words will appear here as they become available.',
       );
@@ -223,17 +231,17 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
 
     return ListView(
-      key: const Key('archive-list'),
-      padding: const EdgeInsets.only(bottom: 24),
+      key: Key('archive-list'),
+      padding: EdgeInsets.only(bottom: 24),
       children: [
         for (final section in sections.entries) ...[
           Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            padding: EdgeInsets.only(top: 12, bottom: 8),
             child: Text(
               section.key,
               key: Key('archive-month-${section.key}'),
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: InterfaceThemeScope.maybePaletteOf(context).accent,
                 fontFamily: 'Figtree',
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -246,7 +254,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               publication: publication,
               onTap: () => _openPublication(publication),
             ),
-          const SizedBox(height: 22),
+          SizedBox(height: 22),
         ],
       ],
     );
@@ -254,9 +262,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 }
 
 class _ArchiveRow extends StatelessWidget {
-  const _ArchiveRow({required this.publication, required this.onTap});
+  _ArchiveRow({required this.publication, required this.onTap});
 
-  static const double height = 118;
+  static double height = 118;
 
   final DailyPublication publication;
   final VoidCallback onTap;
@@ -264,7 +272,7 @@ class _ArchiveRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = publication.publicationDate!;
-    const months = [
+    final months = [
       'JAN',
       'FEB',
       'MAR',
@@ -288,8 +296,12 @@ class _ArchiveRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.menuDivider)),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: InterfaceThemeScope.maybePaletteOf(context).divider,
+              ),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -298,8 +310,8 @@ class _ArchiveRow extends StatelessWidget {
                 width: 66,
                 child: Text(
                   dateLabel,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: InterfaceThemeScope.maybePaletteOf(context).accent,
                     fontFamily: 'Figtree',
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -316,34 +328,40 @@ class _ArchiveRow extends StatelessWidget {
                       publication.word,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
                         fontFamily: 'NotoSerifJP',
                         fontSize: 23,
                         height: 1.15,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       publication.type.toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.5),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.5),
                         fontFamily: 'Figtree',
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 1.1,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    SizedBox(height: 5),
                     Text(
                       publication.definition,
                       key: Key('archive-definition-${publication.id}'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.58),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.58),
                         fontFamily: 'Figtree',
                         fontSize: 13,
                         fontWeight: FontWeight.w300,
@@ -362,11 +380,7 @@ class _ArchiveRow extends StatelessWidget {
 }
 
 class _ArchiveMessage extends StatelessWidget {
-  const _ArchiveMessage({
-    required this.title,
-    required this.message,
-    this.action,
-  });
+  _ArchiveMessage({required this.title, required this.message, this.action});
 
   final String title;
   final String message;
@@ -381,25 +395,27 @@ class _ArchiveMessage extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: InterfaceThemeScope.maybePaletteOf(context).primary,
               fontFamily: 'NotoSerifJP',
               fontSize: 25,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textPrimary.withValues(alpha: 0.55),
+              color: InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).primary.withValues(alpha: 0.55),
               fontFamily: 'Figtree',
               fontSize: 14,
               fontWeight: FontWeight.w300,
               height: 1.45,
             ),
           ),
-          if (action != null) ...[const SizedBox(height: 14), action!],
+          if (action != null) ...[SizedBox(height: 14), action!],
         ],
       ),
     );

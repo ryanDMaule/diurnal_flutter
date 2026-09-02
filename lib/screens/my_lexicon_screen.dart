@@ -1,10 +1,12 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'saved_publication_screen.dart';
 
 List<DailyPublication> sortLexiconPublications(
@@ -115,7 +117,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
     if (sectionContext != null) {
       Scrollable.ensureVisible(
         sectionContext,
-        duration: const Duration(milliseconds: 220),
+        duration: Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
     }
@@ -124,44 +126,46 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 18, 20),
+          padding: EdgeInsets.fromLTRB(24, 16, 18, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
                 tooltip: 'Back to menu',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
+                icon: Icon(
                   CupertinoIcons.back,
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   size: 26,
                 ),
               ),
-              const SizedBox(height: 22),
-              const Text(
+              SizedBox(height: 22),
+              Text(
                 'My Lexicon',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   fontFamily: 'NotoSerifJP',
                   fontSize: 40,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 5),
+              SizedBox(height: 5),
               Text(
                 collectedWordsLabel(_publications.length),
-                key: const Key('lexicon-count'),
+                key: Key('lexicon-count'),
                 style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.56),
+                  color: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.56),
                   fontFamily: 'Figtree',
                   fontSize: 15,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Expanded(child: _body()),
             ],
           ),
@@ -172,10 +176,10 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
 
   Widget _body() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          color: AppColors.textSecondary,
+          color: InterfaceThemeScope.maybePaletteOf(context).accent,
         ),
       );
     }
@@ -197,36 +201,44 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
         TextField(
           controller: _searchController,
           onChanged: (_) => setState(() {}),
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: InterfaceThemeScope.maybePaletteOf(context).primary,
             fontFamily: 'Figtree',
           ),
           decoration: InputDecoration(
             hintText: 'Search lexicon...',
             hintStyle: TextStyle(
-              color: AppColors.textPrimary.withValues(alpha: 0.42),
+              color: InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).primary.withValues(alpha: 0.42),
               fontFamily: 'Figtree',
             ),
             prefixIcon: Icon(
               CupertinoIcons.search,
-              color: AppColors.textPrimary.withValues(alpha: 0.5),
+              color: InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).primary.withValues(alpha: 0.5),
               size: 20,
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.menuDivider),
+              borderSide: BorderSide(
+                color: InterfaceThemeScope.maybePaletteOf(context).divider,
+              ),
             ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.textSecondary),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(
+                color: InterfaceThemeScope.maybePaletteOf(context).accent,
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18),
         Expanded(
           child: Stack(
             children: [
               ListView(
                 controller: _scrollController,
-                padding: const EdgeInsets.only(right: 38, bottom: 24),
+                padding: EdgeInsets.only(right: 38, bottom: 24),
                 children: [
                   for (final entry in grouped.entries)
                     _section(entry.key, entry.value),
@@ -252,11 +264,11 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          padding: EdgeInsets.only(top: 12, bottom: 8),
           child: Text(
             letter,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: InterfaceThemeScope.maybePaletteOf(context).accent,
               fontFamily: 'Figtree',
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -278,42 +290,48 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             CupertinoIcons.bookmark,
-            color: AppColors.textSecondary,
+            color: InterfaceThemeScope.maybePaletteOf(context).accent,
             size: 72,
           ),
-          const SizedBox(height: 28),
-          const Text(
+          SizedBox(height: 28),
+          Text(
             'No words saved yet',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: InterfaceThemeScope.maybePaletteOf(context).primary,
               fontFamily: 'NotoSerifJP',
               fontSize: 27,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             'Tap the bookmark on a word\nto add it to your lexicon.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textPrimary.withValues(alpha: 0.55),
+              color: InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).primary.withValues(alpha: 0.55),
               fontFamily: 'Figtree',
               fontSize: 15,
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 30),
+          SizedBox(height: 30),
           OutlinedButton.icon(
             onPressed: () =>
                 Navigator.of(context).popUntil((route) => route.isFirst),
-            icon: const Icon(CupertinoIcons.bookmark, size: 17),
-            label: const Text("Discover today's word"),
+            icon: Icon(CupertinoIcons.bookmark, size: 17),
+            label: Text("Discover today's word"),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              side: const BorderSide(color: AppColors.textSecondary),
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              textStyle: const TextStyle(
+              foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).accent,
+              side: BorderSide(
+                color: InterfaceThemeScope.maybePaletteOf(context).accent,
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              textStyle: TextStyle(
                 fontFamily: 'Figtree',
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
@@ -327,7 +345,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
 }
 
 class _LexiconRow extends StatelessWidget {
-  const _LexiconRow({
+  _LexiconRow({
     required this.publication,
     required this.onOpen,
     required this.onRemove,
@@ -340,14 +358,18 @@ class _LexiconRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.menuDivider)),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: InterfaceThemeScope.maybePaletteOf(context).divider,
+          ),
+        ),
       ),
       child: InkWell(
         key: Key('lexicon-row-${publication.id}'),
         onTap: onOpen,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
+          padding: EdgeInsets.symmetric(vertical: 15),
           child: Row(
             children: [
               Expanded(
@@ -356,19 +378,23 @@ class _LexiconRow extends StatelessWidget {
                   children: [
                     Text(
                       publication.word,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
                         fontFamily: 'NotoSerifJP',
                         fontSize: 24,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    SizedBox(height: 5),
                     Text(
                       publication.definition,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.55),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.55),
                         fontFamily: 'Figtree',
                         fontSize: 14,
                         height: 1.35,
@@ -377,14 +403,14 @@ class _LexiconRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               IconButton(
                 key: Key('remove-bookmark-${publication.id}'),
                 tooltip: 'Remove ${publication.word}',
                 onPressed: onRemove,
-                icon: const Icon(
+                icon: Icon(
                   CupertinoIcons.bookmark_fill,
-                  color: AppColors.textSecondary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
                   size: 24,
                 ),
               ),
@@ -397,7 +423,7 @@ class _LexiconRow extends StatelessWidget {
 }
 
 class _AlphabetRail extends StatelessWidget {
-  const _AlphabetRail({required this.activeLetters, required this.onLetterTap});
+  _AlphabetRail({required this.activeLetters, required this.onLetterTap});
 
   final Set<String> activeLetters;
   final ValueChanged<String> onLetterTap;
@@ -414,15 +440,16 @@ class _AlphabetRail extends StatelessWidget {
                 ? () => onLetterTap(String.fromCharCode(code))
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              padding: EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               child: Text(
                 String.fromCharCode(code),
                 style: TextStyle(
-                  color: AppColors.textSecondary.withValues(
-                    alpha: activeLetters.contains(String.fromCharCode(code))
-                        ? 0.9
-                        : 0.25,
-                  ),
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent
+                      .withValues(
+                        alpha: activeLetters.contains(String.fromCharCode(code))
+                            ? 0.9
+                            : 0.25,
+                      ),
                   fontFamily: 'Figtree',
                   fontSize: 10,
                   height: 1.05,

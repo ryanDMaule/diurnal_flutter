@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
@@ -8,11 +10,11 @@ import '../models/daily_publication.dart';
 import '../models/recall_question.dart';
 import '../services/endless_recall_service.dart';
 import '../services/recall_progress_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'endless_recall_result_screen.dart';
 
 class EndlessRecallSessionScreen extends StatefulWidget {
-  const EndlessRecallSessionScreen({
+  EndlessRecallSessionScreen({
     required this.archive,
     required this.generator,
     required this.progressService,
@@ -108,10 +110,10 @@ class _EndlessRecallSessionScreenState
   Widget build(BuildContext context) {
     final hasAnswered = _selectedAnswer != null;
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             children: [
               Row(
@@ -119,19 +121,23 @@ class _EndlessRecallSessionScreenState
                   IconButton(
                     tooltip: 'Exit Endless Recall',
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.back,
-                      color: AppColors.textPrimary,
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
                       size: 26,
                     ),
                   ),
                   Expanded(
                     child: Text(
                       '$_questionNumber'.padLeft(2, '0'),
-                      key: const Key('endless-question-counter'),
+                      key: Key('endless-question-counter'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.75),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.75),
                         fontFamily: 'Figtree',
                         fontSize: 15,
                         fontWeight: FontWeight.w300,
@@ -139,10 +145,10 @@ class _EndlessRecallSessionScreenState
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  SizedBox(width: 48),
                 ],
               ),
-              const SizedBox(height: 50),
+              SizedBox(height: 50),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -150,9 +156,11 @@ class _EndlessRecallSessionScreenState
                     children: [
                       Text(
                         _question.content,
-                        key: const Key('endless-question-content'),
+                        key: Key('endless-question-content'),
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary,
                           fontFamily: 'NotoSerifJP',
                           fontSize:
                               _question.type ==
@@ -163,18 +171,20 @@ class _EndlessRecallSessionScreenState
                           height: 1.35,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       Text(
                         _question.prompt,
                         style: TextStyle(
-                          color: AppColors.textPrimary.withValues(alpha: 0.7),
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary.withValues(alpha: 0.7),
                           fontFamily: 'Figtree',
                           fontSize: 16,
                           fontWeight: FontWeight.w300,
                           height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 26),
+                      SizedBox(height: 26),
                       for (
                         var index = 0;
                         index < _question.answers.length;
@@ -191,32 +201,33 @@ class _EndlessRecallSessionScreenState
                           hasAnswered: hasAnswered,
                           onTap: () => _selectAnswer(_question.answers[index]),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                       ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  key: const Key('endless-continue'),
+                  key: Key('endless-continue'),
                   onPressed: hasAnswered ? _continue : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.textSecondary,
-                    disabledBackgroundColor: AppColors.menuDivider.withValues(
-                      alpha: 0.45,
-                    ),
-                    foregroundColor: AppColors.menuBackground,
-                    disabledForegroundColor: AppColors.textPrimary.withValues(
-                      alpha: 0.35,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Figtree',
-                      fontSize: 16,
-                    ),
+                    backgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).accent,
+                    disabledBackgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).divider.withValues(alpha: 0.45),
+                    foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).background,
+                    disabledForegroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: 0.35),
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    textStyle: TextStyle(fontFamily: 'Figtree', fontSize: 16),
                   ),
                   child: Text(
                     hasAnswered && !_answerWasCorrect
@@ -234,7 +245,7 @@ class _EndlessRecallSessionScreenState
 }
 
 class _EndlessAnswerChoice extends StatelessWidget {
-  const _EndlessAnswerChoice({
+  _EndlessAnswerChoice({
     required this.answer,
     required this.isSelected,
     required this.isCorrect,
@@ -259,18 +270,18 @@ class _EndlessAnswerChoice extends StatelessWidget {
       onTap: hasAnswered ? null : onTap,
       borderRadius: BorderRadius.circular(9),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        constraints: const BoxConstraints(minHeight: 66),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        duration: Duration(milliseconds: 140),
+        constraints: BoxConstraints(minHeight: 66),
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF0B332A),
+          color: InterfaceThemeScope.maybePaletteOf(context).surface,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
             color: showCorrect
                 ? correctColor
                 : showIncorrect
                 ? incorrectColor
-                : AppColors.menuDivider,
+                : InterfaceThemeScope.maybePaletteOf(context).divider,
             width: 1.4,
           ),
         ),
@@ -279,8 +290,8 @@ class _EndlessAnswerChoice extends StatelessWidget {
             Expanded(
               child: Text(
                 answer,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   fontFamily: 'Figtree',
                   fontSize: 15,
                   fontWeight: FontWeight.w300,
@@ -288,16 +299,16 @@ class _EndlessAnswerChoice extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             if (showCorrect)
-              const Icon(
+              Icon(
                 CupertinoIcons.check_mark_circled_solid,
                 key: Key('endless-correct-feedback'),
                 color: correctColor,
                 size: 22,
               )
             else if (showIncorrect)
-              const Icon(
+              Icon(
                 CupertinoIcons.xmark_circle_fill,
                 key: Key('endless-incorrect-feedback'),
                 color: incorrectColor,
@@ -306,7 +317,9 @@ class _EndlessAnswerChoice extends StatelessWidget {
             else
               Icon(
                 CupertinoIcons.circle,
-                color: AppColors.textPrimary.withValues(alpha: 0.38),
+                color: InterfaceThemeScope.maybePaletteOf(
+                  context,
+                ).primary.withValues(alpha: 0.38),
                 size: 20,
               ),
           ],

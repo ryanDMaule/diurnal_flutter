@@ -61,6 +61,8 @@ class BookmarkService {
     }
   }
 
+  Future<void> clearAll() => _writeBookmarks({});
+
   Future<Map<String, DailyPublication>> _readBookmarks() async {
     final storedValue = await _storage.read(_storageKey);
     if (storedValue == null || storedValue.isEmpty) return {};

@@ -37,7 +37,7 @@ void main() {
   ) async {
     await tester.binding.setSurfaceSize(const Size(360, 540));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(const MaterialApp(home: AboutScreen()));
+    await tester.pumpWidget(MaterialApp(home: AboutScreen()));
 
     expect(find.byKey(const Key('about-scroll-view')), findsOneWidget);
     await tester.scrollUntilVisible(

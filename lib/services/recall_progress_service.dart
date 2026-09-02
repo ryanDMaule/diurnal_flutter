@@ -101,6 +101,11 @@ class RecallProgressService {
     }
   }
 
+  Future<void> clear() async {
+    await _writeIds(_attemptedStorageKey, {});
+    await _writeIds(_storageKey, {});
+  }
+
   Future<RecallProgressSummary> summaryFor(
     Iterable<DailyPublication> publications,
   ) async {

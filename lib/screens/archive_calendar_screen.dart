@@ -1,14 +1,16 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'saved_publication_screen.dart';
 
 class ArchiveCalendarScreen extends StatefulWidget {
-  const ArchiveCalendarScreen({
+  ArchiveCalendarScreen({
     required this.publications,
     required this.bookmarkService,
     required this.editionService,
@@ -90,10 +92,10 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
     ).day;
 
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -102,18 +104,18 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
                 child: IconButton(
                   tooltip: 'Back to Archive',
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
+                  icon: Icon(
                     CupertinoIcons.back,
-                    color: AppColors.textPrimary,
+                    color: InterfaceThemeScope.maybePaletteOf(context).primary,
                     size: 26,
                   ),
                 ),
               ),
-              const SizedBox(height: 42),
+              SizedBox(height: 42),
               Row(
                 children: [
                   _MonthButton(
-                    buttonKey: const Key('previous-month'),
+                    buttonKey: Key('previous-month'),
                     tooltip: 'Previous month',
                     icon: CupertinoIcons.chevron_left,
                     onPressed: _canGoPrevious ? _showPreviousMonth : null,
@@ -121,10 +123,12 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
                   Expanded(
                     child: Text(
                       _monthHeading(_visibleMonth),
-                      key: const Key('calendar-month-heading'),
+                      key: Key('calendar-month-heading'),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
                         fontFamily: 'NotoSerifJP',
                         fontSize: 25,
                         fontWeight: FontWeight.w400,
@@ -133,14 +137,14 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
                     ),
                   ),
                   _MonthButton(
-                    buttonKey: const Key('next-month'),
+                    buttonKey: Key('next-month'),
                     tooltip: 'Next month',
                     icon: CupertinoIcons.chevron_right,
                     onPressed: _canGoNext ? _showNextMonth : null,
                   ),
                 ],
               ),
-              const SizedBox(height: 36),
+              SizedBox(height: 36),
               Row(
                 children: [
                   for (final weekday in ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
@@ -148,8 +152,10 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
                       child: Text(
                         weekday,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0x8FD4D4D4),
+                        style: TextStyle(
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).secondary,
                           fontFamily: 'Figtree',
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -159,18 +165,18 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               GridView.builder(
-                key: const Key('archive-calendar-grid'),
+                key: Key('archive-calendar-grid'),
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 7,
                   childAspectRatio: 1,
                 ),
                 itemCount: leadingBlankDays + daysInMonth,
                 itemBuilder: (context, index) {
-                  if (index < leadingBlankDays) return const SizedBox.shrink();
+                  if (index < leadingBlankDays) return SizedBox.shrink();
                   final day = index - leadingBlankDays + 1;
                   final date = DateTime.utc(
                     _visibleMonth.year,
@@ -196,7 +202,7 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
 }
 
 class _MonthButton extends StatelessWidget {
-  const _MonthButton({
+  _MonthButton({
     required this.buttonKey,
     required this.tooltip,
     required this.icon,
@@ -215,14 +221,16 @@ class _MonthButton extends StatelessWidget {
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon, size: 18),
-      color: AppColors.textSecondary,
-      disabledColor: AppColors.textPrimary.withValues(alpha: 0.2),
+      color: InterfaceThemeScope.maybePaletteOf(context).accent,
+      disabledColor: InterfaceThemeScope.maybePaletteOf(
+        context,
+      ).primary.withValues(alpha: 0.2),
     );
   }
 }
 
 class _CalendarDay extends StatelessWidget {
-  const _CalendarDay({
+  _CalendarDay({
     required this.date,
     required this.publication,
     required this.onTap,
@@ -242,15 +250,15 @@ class _CalendarDay extends StatelessWidget {
           Text(
             '${date.day}',
             style: TextStyle(
-              color: AppColors.textPrimary.withValues(
-                alpha: publication == null ? 0.32 : 0.9,
-              ),
+              color: InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).primary.withValues(alpha: publication == null ? 0.32 : 0.9),
               fontFamily: 'Figtree',
               fontSize: 15,
               fontWeight: FontWeight.w300,
             ),
           ),
-          const SizedBox(height: 5),
+          SizedBox(height: 5),
           SizedBox(
             height: 4,
             child: publication == null
@@ -259,8 +267,8 @@ class _CalendarDay extends StatelessWidget {
                     key: Key('publication-indicator-$dateId'),
                     width: 4,
                     height: 4,
-                    decoration: const BoxDecoration(
-                      color: AppColors.textSecondary,
+                    decoration: BoxDecoration(
+                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -283,7 +291,7 @@ class _CalendarDay extends StatelessWidget {
       child: InkWell(
         key: Key('calendar-day-$dateId'),
         onTap: onTap,
-        customBorder: const CircleBorder(),
+        customBorder: CircleBorder(),
         child: content,
       ),
     );
@@ -302,7 +310,7 @@ String _dateId(DateTime date) =>
 String _monthHeading(DateTime date) =>
     '${_spokenMonth(date.month).toUpperCase()} ${date.year}';
 
-String _spokenMonth(int month) => const [
+String _spokenMonth(int month) => [
   'January',
   'February',
   'March',

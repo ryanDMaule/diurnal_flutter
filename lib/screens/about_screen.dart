@@ -1,21 +1,23 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 
 class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
+  AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: CustomScrollView(
-          key: const Key('about-scroll-view'),
+          key: Key('about-scroll-view'),
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 36),
               sliver: SliverList.list(
                 children: [
                   Align(
@@ -23,36 +25,40 @@ class AboutScreen extends StatelessWidget {
                     child: IconButton(
                       tooltip: 'Back to menu',
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(
+                      icon: Icon(
                         CupertinoIcons.back,
-                        color: AppColors.textPrimary,
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
                         size: 26,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
+                  SizedBox(height: 24),
+                  Text(
                     'About Diurnus',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
                       fontFamily: 'NotoSerifJP',
                       fontSize: 38,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  const Text(
+                  SizedBox(height: 18),
+                  Text(
                     'One remarkable word, every day.',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
                       fontFamily: 'NotoSerifJP',
                       fontSize: 20,
                       fontWeight: FontWeight.w300,
                       height: 1.45,
                     ),
                   ),
-                  const SizedBox(height: 34),
-                  const Text(
+                  SizedBox(height: 34),
+                  Text(
                     'Diurnus is a quiet place for remarkable words.\n\n'
                     'Each day brings a single word to discover — its meaning, '
                     'its use, and a little more of the language around it.\n\n'
@@ -62,45 +68,56 @@ class AboutScreen extends StatelessWidget {
                     'knowing.',
                     key: Key('about-main-copy'),
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
                       fontFamily: 'Figtree',
                       fontSize: 17,
                       fontWeight: FontWeight.w300,
                       height: 1.65,
                     ),
                   ),
-                  const SizedBox(height: 44),
-                  const Divider(color: AppColors.menuDivider, height: 1),
-                  const SizedBox(height: 25),
-                  const Text(
+                  SizedBox(height: 44),
+                  Divider(
+                    color: InterfaceThemeScope.maybePaletteOf(context).divider,
+                    height: 1,
+                  ),
+                  SizedBox(height: 25),
+                  Text(
                     'Diurnus',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
                       fontFamily: 'NotoSerifJP',
                       fontSize: 22,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  const SizedBox(height: 7),
+                  SizedBox(height: 7),
                   Text(
                     'Version unavailable',
                     semanticsLabel: 'Application version unavailable',
                     style: TextStyle(
-                      color: AppColors.textPrimary.withValues(alpha: 0.5),
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary.withValues(alpha: 0.5),
                       fontFamily: 'Figtree',
                       fontSize: 14,
                       fontWeight: FontWeight.w300,
                     ),
                   ),
-                  const SizedBox(height: 28),
-                  const _InactiveInformationRow(label: 'Privacy Policy'),
-                  const _InactiveInformationRow(label: 'Terms of Use'),
-                  const _InactiveInformationRow(label: 'Acknowledgements'),
-                  const SizedBox(height: 48),
+                  SizedBox(height: 28),
+                  _InactiveInformationRow(label: 'Privacy Policy'),
+                  _InactiveInformationRow(label: 'Terms of Use'),
+                  _InactiveInformationRow(label: 'Acknowledgements'),
+                  SizedBox(height: 48),
                   Text(
                     'Made for the curious.',
                     style: TextStyle(
-                      color: AppColors.textSecondary.withValues(alpha: 0.68),
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).accent.withValues(alpha: 0.68),
                       fontFamily: 'NotoSerifJP',
                       fontSize: 15,
                       fontWeight: FontWeight.w300,
@@ -117,7 +134,7 @@ class AboutScreen extends StatelessWidget {
 }
 
 class _InactiveInformationRow extends StatelessWidget {
-  const _InactiveInformationRow({required this.label});
+  _InactiveInformationRow({required this.label});
 
   final String label;
 
@@ -129,9 +146,13 @@ class _InactiveInformationRow extends StatelessWidget {
       enabled: false,
       child: ExcludeSemantics(
         child: Container(
-          constraints: const BoxConstraints(minHeight: 58),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.menuDivider)),
+          constraints: BoxConstraints(minHeight: 58),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: InterfaceThemeScope.maybePaletteOf(context).divider,
+              ),
+            ),
           ),
           child: Row(
             children: [
@@ -139,7 +160,9 @@ class _InactiveInformationRow extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.textPrimary.withValues(alpha: 0.72),
+                    color: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: 0.72),
                     fontFamily: 'Figtree',
                     fontSize: 15,
                     fontWeight: FontWeight.w300,
@@ -149,7 +172,9 @@ class _InactiveInformationRow extends StatelessWidget {
               Text(
                 'Not yet available',
                 style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.36),
+                  color: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.36),
                   fontFamily: 'Figtree',
                   fontSize: 12,
                   fontWeight: FontWeight.w300,

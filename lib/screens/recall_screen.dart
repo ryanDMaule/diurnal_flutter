@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -9,7 +11,7 @@ import '../services/endless_recall_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'endless_recall_session_screen.dart';
 import 'recall_session_screen.dart';
 import 'recall_settings_screen.dart';
@@ -180,7 +182,7 @@ class _RecallScreenState extends State<RecallScreen> {
             enabledTypes: settings.enabledQuestionTypes,
             avoidSubjectIds: avoidSubjectIds,
           );
-      final questions = generate(const {});
+      final questions = generate({});
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (questions.isEmpty) {
@@ -275,30 +277,32 @@ class _RecallScreenState extends State<RecallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
                 tooltip: 'Back to menu',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
+                icon: Icon(
                   CupertinoIcons.back,
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   size: 26,
                 ),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Recall',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
                         fontFamily: 'NotoSerifJP',
                         fontSize: 40,
                         fontWeight: FontWeight.w400,
@@ -306,58 +310,60 @@ class _RecallScreenState extends State<RecallScreen> {
                     ),
                   ),
                   IconButton(
-                    key: const Key('recall-settings'),
+                    key: Key('recall-settings'),
                     tooltip: 'Recall Settings',
                     onPressed: _openSettings,
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.slider_horizontal_3,
-                      color: AppColors.textSecondary,
+                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
                       size: 23,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'Words worth remembering.',
                 style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.58),
+                  color: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.58),
                   fontFamily: 'Figtree',
                   fontSize: 15,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(height: 38),
+              SizedBox(height: 38),
               _RecallCard(
-                key: const Key('normal-recall'),
+                key: Key('normal-recall'),
                 icon: CupertinoIcons.book,
                 title: 'Recall',
                 description: 'A short session from your selected word pool.',
                 onTap: _start,
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: 18),
               _RecallCard(
-                key: const Key('endless-recall'),
+                key: Key('endless-recall'),
                 icon: CupertinoIcons.infinite,
                 title: 'Endless Recall',
                 description: 'Keep going until you miss one.',
                 footer: 'Best · ${_endlessBest ?? '—'}',
                 onTap: _startEndless,
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               _WordProgressSection(
                 summary: _progressSummary,
                 isLoading: _isProgressLoading,
                 isUnavailable: _progressUnavailable,
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               if (_isLoading)
-                const Center(
+                Center(
                   child: SizedBox.square(
                     dimension: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.textSecondary,
+                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
                     ),
                   ),
                 )
@@ -368,34 +374,40 @@ class _RecallScreenState extends State<RecallScreen> {
                       Text(
                         _messageTitle!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary,
                           fontFamily: 'NotoSerifJP',
                           fontSize: 22,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         _messageBody!,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: AppColors.textPrimary.withValues(alpha: 0.55),
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary.withValues(alpha: 0.55),
                           fontFamily: 'Figtree',
                           fontSize: 14,
                           fontWeight: FontWeight.w300,
                         ),
                       ),
                       if (_canRetry) ...[
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10),
                         TextButton(
-                          key: const Key('retry-recall'),
+                          key: Key('retry-recall'),
                           onPressed: _retryStartsEndless
                               ? _startEndless
                               : _start,
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.textSecondary,
+                            foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).accent,
                           ),
-                          child: const Text('Retry'),
+                          child: Text('Retry'),
                         ),
                       ],
                     ],
@@ -410,7 +422,7 @@ class _RecallScreenState extends State<RecallScreen> {
 }
 
 class _RecallCard extends StatelessWidget {
-  const _RecallCard({
+  _RecallCard({
     required this.icon,
     required this.title,
     required this.description,
@@ -431,11 +443,13 @@ class _RecallCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 22),
         decoration: BoxDecoration(
-          color: const Color(0xFF0B332A),
+          color: InterfaceThemeScope.maybePaletteOf(context).surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.menuDivider),
+          border: Border.all(
+            color: InterfaceThemeScope.maybePaletteOf(context).divider,
+          ),
         ),
         child: Row(
           children: [
@@ -444,28 +458,38 @@ class _RecallCard extends StatelessWidget {
               height: 46,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.textSecondary),
+                border: Border.all(
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                ),
               ),
-              child: Icon(icon, color: AppColors.textSecondary, size: 23),
+              child: Icon(
+                icon,
+                color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                size: 23,
+              ),
             ),
-            const SizedBox(width: 18),
+            SizedBox(width: 18),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
                       fontFamily: 'NotoSerifJP',
                       fontSize: 22,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     description,
                     style: TextStyle(
-                      color: AppColors.textPrimary.withValues(alpha: 0.56),
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary.withValues(alpha: 0.56),
                       fontFamily: 'Figtree',
                       fontSize: 14,
                       fontWeight: FontWeight.w300,
@@ -473,11 +497,13 @@ class _RecallCard extends StatelessWidget {
                     ),
                   ),
                   if (footer != null) ...[
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       footer!,
                       style: TextStyle(
-                        color: AppColors.textSecondary.withValues(alpha: 0.7),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).accent.withValues(alpha: 0.7),
                         fontFamily: 'Figtree',
                         fontSize: 12,
                         fontWeight: FontWeight.w300,
@@ -488,10 +514,12 @@ class _RecallCard extends StatelessWidget {
               ),
             ),
             if (onTap != null) ...[
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Icon(
                 CupertinoIcons.chevron_right,
-                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                color: InterfaceThemeScope.maybePaletteOf(
+                  context,
+                ).primary.withValues(alpha: 0.6),
                 size: 18,
               ),
             ],
@@ -503,7 +531,7 @@ class _RecallCard extends StatelessWidget {
 }
 
 class _WordProgressSection extends StatelessWidget {
-  const _WordProgressSection({
+  _WordProgressSection({
     required this.summary,
     required this.isLoading,
     required this.isUnavailable,
@@ -516,36 +544,36 @@ class _WordProgressSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      key: const Key('recall-word-progress'),
+      key: Key('recall-word-progress'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Word progress',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: InterfaceThemeScope.maybePaletteOf(context).primary,
             fontFamily: 'NotoSerifJP',
             fontSize: 20,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         if (isLoading)
-          Text('Loading…', style: _progressDetailStyle())
+          Text('Loading…', style: _progressDetailStyle(context))
         else if (isUnavailable || summary == null)
-          Text('Progress unavailable', style: _progressDetailStyle())
+          Text('Progress unavailable', style: _progressDetailStyle(context))
         else ...[
           Text(
             recallProgressHeadline(summary!),
-            key: const Key('recall-progress-headline'),
-            style: _progressDetailStyle(),
+            key: Key('recall-progress-headline'),
+            style: _progressDetailStyle(context),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _SegmentedProgressBar(summary: summary!),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             'Unseen ${summary!.unseen} · Revisit ${summary!.revisit} · '
             'Recalled ${summary!.recalled}',
-            key: const Key('recall-progress-legend'),
-            style: _progressDetailStyle(fontSize: 13),
+            key: Key('recall-progress-legend'),
+            style: _progressDetailStyle(context, fontSize: 13),
           ),
         ],
       ],
@@ -554,20 +582,24 @@ class _WordProgressSection extends StatelessWidget {
 }
 
 class _SegmentedProgressBar extends StatelessWidget {
-  const _SegmentedProgressBar({required this.summary});
+  _SegmentedProgressBar({required this.summary});
 
   final RecallProgressSummary summary;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      key: const Key('recall-segmented-progress'),
+      key: Key('recall-segmented-progress'),
       width: double.infinity,
       height: 6,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(3),
         child: summary.total == 0
-            ? ColoredBox(color: AppColors.menuDivider.withValues(alpha: 0.45))
+            ? ColoredBox(
+                color: InterfaceThemeScope.maybePaletteOf(
+                  context,
+                ).divider.withValues(alpha: 0.45),
+              )
             : LayoutBuilder(
                 builder: (context, constraints) {
                   final trackWidth = constraints.maxWidth;
@@ -587,10 +619,10 @@ class _SegmentedProgressBar extends StatelessWidget {
                           top: 0,
                           bottom: 0,
                           child: ColoredBox(
-                            key: const Key('recall-progress-unseen'),
-                            color: AppColors.menuDivider.withValues(
-                              alpha: 0.55,
-                            ),
+                            key: Key('recall-progress-unseen'),
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).divider.withValues(alpha: 0.55),
                           ),
                         ),
                       if (summary.revisit > 0)
@@ -599,9 +631,11 @@ class _SegmentedProgressBar extends StatelessWidget {
                           width: revisitWidth,
                           top: 0,
                           bottom: 0,
-                          child: const ColoredBox(
+                          child: ColoredBox(
                             key: Key('recall-progress-revisit'),
-                            color: AppColors.textSecondary,
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).accent,
                           ),
                         ),
                       if (summary.recalled > 0)
@@ -610,7 +644,7 @@ class _SegmentedProgressBar extends StatelessWidget {
                           width: recalledWidth,
                           top: 0,
                           bottom: 0,
-                          child: const ColoredBox(
+                          child: ColoredBox(
                             key: Key('recall-progress-recalled'),
                             color: Color(0xFF4C8B62),
                           ),
@@ -627,12 +661,15 @@ class _SegmentedProgressBar extends StatelessWidget {
 String recallProgressHeadline(RecallProgressSummary summary) =>
     '${summary.recalled} of ${summary.total} recalled';
 
-TextStyle _progressDetailStyle({double fontSize = 14}) => TextStyle(
-  color: AppColors.textPrimary.withValues(alpha: 0.56),
-  fontFamily: 'Figtree',
-  fontSize: fontSize,
-  fontWeight: FontWeight.w300,
-);
+TextStyle _progressDetailStyle(BuildContext context, {double fontSize = 14}) =>
+    TextStyle(
+      color: InterfaceThemeScope.maybePaletteOf(
+        context,
+      ).primary.withValues(alpha: 0.56),
+      fontFamily: 'Figtree',
+      fontSize: fontSize,
+      fontWeight: FontWeight.w300,
+    );
 
 (String, String) _emptyPoolMessage(RecallWordPool pool) => switch (pool) {
   RecallWordPool.archive => (

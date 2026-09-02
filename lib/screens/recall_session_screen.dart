@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
@@ -6,11 +8,11 @@ import 'package:flutter/services.dart';
 
 import '../models/recall_question.dart';
 import '../services/recall_progress_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'recall_result_screen.dart';
 
 class RecallSessionScreen extends StatefulWidget {
-  const RecallSessionScreen({
+  RecallSessionScreen({
     required this.questions,
     required this.progressService,
     required this.onRecallAgain,
@@ -86,10 +88,10 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
     final hasAnswered = _selectedAnswer != null;
 
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             children: [
               Row(
@@ -97,9 +99,11 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                   IconButton(
                     tooltip: 'Exit Recall',
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.back,
-                      color: AppColors.textPrimary,
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
                       size: 26,
                     ),
                   ),
@@ -107,10 +111,12 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                     child: Text(
                       '${questionNumber.toString().padLeft(2, '0')} / '
                       '${total.toString().padLeft(2, '0')}',
-                      key: const Key('recall-question-counter'),
+                      key: Key('recall-question-counter'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.75),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.75),
                         fontFamily: 'Figtree',
                         fontSize: 15,
                         fontWeight: FontWeight.w300,
@@ -118,32 +124,32 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  SizedBox(width: 48),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TweenAnimationBuilder<double>(
                 duration: MediaQuery.disableAnimationsOf(context)
                     ? Duration.zero
-                    : const Duration(milliseconds: 250),
+                    : Duration(milliseconds: 250),
                 curve: Curves.easeInOut,
                 tween: Tween(end: recallProgressValue(questionNumber, total)),
                 builder: (context, value, child) => ClipRRect(
                   borderRadius: BorderRadius.circular(2),
                   child: LinearProgressIndicator(
-                    key: const Key('recall-progress'),
+                    key: Key('recall-progress'),
                     value: value,
                     minHeight: 4,
-                    backgroundColor: AppColors.menuDivider.withValues(
-                      alpha: 0.5,
-                    ),
-                    valueColor: const AlwaysStoppedAnimation(
-                      AppColors.textSecondary,
+                    backgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).divider.withValues(alpha: 0.5),
+                    valueColor: AlwaysStoppedAnimation(
+                      InterfaceThemeScope.maybePaletteOf(context).accent,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 34),
+              SizedBox(height: 34),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -151,9 +157,11 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                     children: [
                       Text(
                         _question.content,
-                        key: const Key('recall-question-content'),
+                        key: Key('recall-question-content'),
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary,
                           fontFamily: 'NotoSerifJP',
                           fontSize:
                               _question.type ==
@@ -164,18 +172,20 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                           height: 1.35,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       Text(
                         _question.prompt,
                         style: TextStyle(
-                          color: AppColors.textPrimary.withValues(alpha: 0.7),
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary.withValues(alpha: 0.7),
                           fontFamily: 'Figtree',
                           fontSize: 16,
                           fontWeight: FontWeight.w300,
                           height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 26),
+                      SizedBox(height: 26),
                       for (
                         var index = 0;
                         index < _question.answers.length;
@@ -192,34 +202,35 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                           hasAnswered: hasAnswered,
                           onTap: () => _selectAnswer(_question.answers[index]),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                       ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  key: const Key('recall-continue'),
+                  key: Key('recall-continue'),
                   onPressed: hasAnswered ? _continue : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.textSecondary,
-                    disabledBackgroundColor: AppColors.menuDivider.withValues(
-                      alpha: 0.45,
-                    ),
-                    foregroundColor: AppColors.menuBackground,
-                    disabledForegroundColor: AppColors.textPrimary.withValues(
-                      alpha: 0.35,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Figtree',
-                      fontSize: 16,
-                    ),
+                    backgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).accent,
+                    disabledBackgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).divider.withValues(alpha: 0.45),
+                    foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).background,
+                    disabledForegroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: 0.35),
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    textStyle: TextStyle(fontFamily: 'Figtree', fontSize: 16),
                   ),
-                  child: const Text('Continue'),
+                  child: Text('Continue'),
                 ),
               ),
             ],
@@ -234,7 +245,7 @@ double recallProgressValue(int questionNumber, int questionCount) =>
     questionNumber / questionCount;
 
 class _AnswerChoice extends StatelessWidget {
-  const _AnswerChoice({
+  _AnswerChoice({
     required this.answer,
     required this.isSelected,
     required this.isCorrect,
@@ -260,7 +271,7 @@ class _AnswerChoice extends StatelessWidget {
         ? correctColor
         : showIncorrect
         ? incorrectColor
-        : AppColors.menuDivider;
+        : InterfaceThemeScope.maybePaletteOf(context).divider;
 
     return Semantics(
       button: true,
@@ -269,11 +280,11 @@ class _AnswerChoice extends StatelessWidget {
         onTap: hasAnswered ? null : onTap,
         borderRadius: BorderRadius.circular(9),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          constraints: const BoxConstraints(minHeight: 66),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          duration: Duration(milliseconds: 140),
+          constraints: BoxConstraints(minHeight: 66),
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFF0B332A),
+            color: InterfaceThemeScope.maybePaletteOf(context).surface,
             borderRadius: BorderRadius.circular(9),
             border: Border.all(color: borderColor, width: 1.4),
           ),
@@ -282,8 +293,8 @@ class _AnswerChoice extends StatelessWidget {
               Expanded(
                 child: Text(
                   answer,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: InterfaceThemeScope.maybePaletteOf(context).primary,
                     fontFamily: 'Figtree',
                     fontSize: 15,
                     fontWeight: FontWeight.w300,
@@ -291,18 +302,18 @@ class _AnswerChoice extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 140),
+                duration: Duration(milliseconds: 140),
                 child: showCorrect
-                    ? const Icon(
+                    ? Icon(
                         CupertinoIcons.check_mark_circled_solid,
                         key: Key('correct-feedback'),
                         color: correctColor,
                         size: 22,
                       )
                     : showIncorrect
-                    ? const Icon(
+                    ? Icon(
                         CupertinoIcons.xmark_circle_fill,
                         key: Key('incorrect-feedback'),
                         color: incorrectColor,
@@ -310,7 +321,9 @@ class _AnswerChoice extends StatelessWidget {
                       )
                     : Icon(
                         CupertinoIcons.circle,
-                        color: AppColors.textPrimary.withValues(alpha: 0.38),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.38),
                         size: 20,
                       ),
               ),

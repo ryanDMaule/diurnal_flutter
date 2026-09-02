@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
+import '../theme/interface_theme.dart';
 import 'edition_background.dart';
 
 class PublicationView extends StatefulWidget {
@@ -17,6 +18,7 @@ class PublicationView extends StatefulWidget {
     this.isOffline = false,
     this.topLeftControl,
     this.topRightControl,
+    this.interfaceStyled = false,
     super.key,
   });
 
@@ -29,6 +31,7 @@ class PublicationView extends StatefulWidget {
   final VoidCallback? onBookmarkToggle;
   final Widget? topLeftControl;
   final Widget? topRightControl;
+  final bool interfaceStyled;
 
   @override
   State<PublicationView> createState() => _PublicationViewState();
@@ -56,10 +59,13 @@ class _PublicationViewState extends State<PublicationView> {
   }
 
   Widget _content() {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     final style = TextStyle(
       fontSize: 16,
       height: 1.6,
-      color: widget.edition.primaryTextColor,
+      color: widget.interfaceStyled
+          ? palette.primary
+          : widget.edition.primaryTextColor,
       fontFamily: 'Figtree',
       fontWeight: FontWeight.w300,
     );
@@ -97,6 +103,24 @@ class _PublicationViewState extends State<PublicationView> {
   Widget build(BuildContext context) {
     final publication = widget.publication;
     final edition = widget.edition;
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    final primary = widget.interfaceStyled
+        ? palette.primary
+        : edition.primaryTextColor;
+    final secondary = widget.interfaceStyled
+        ? palette.secondary
+        : edition.secondaryTextColor;
+    final muted = widget.interfaceStyled
+        ? palette.secondary
+        : edition.mutedTextColor;
+    final accent = widget.interfaceStyled
+        ? palette.accent
+        : edition.accentColor;
+    final iconBrightness = widget.interfaceStyled
+        ? (palette == InterfacePalette.light
+              ? Brightness.dark
+              : Brightness.light)
+        : edition.systemUiIconBrightness;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final footerDate = publication.publicationDate == null
         ? 'Date unavailable'
@@ -106,13 +130,17 @@ class _PublicationViewState extends State<PublicationView> {
         : '#${publication.sequence}';
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: widget.interfaceStyled
+          ? palette.background
+          : Colors.black,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle(
-          statusBarIconBrightness: edition.systemUiIconBrightness,
-          systemNavigationBarIconBrightness: edition.systemUiIconBrightness,
+          statusBarIconBrightness: iconBrightness,
+          systemNavigationBarIconBrightness: iconBrightness,
         ),
-        child: EditionBackground(
+        child: _PublicationBackground(
+          interfaceStyled: widget.interfaceStyled,
+          palette: palette,
           edition: edition,
           child: SafeArea(
             child: Padding(
@@ -129,7 +157,7 @@ class _PublicationViewState extends State<PublicationView> {
                           child: Text(
                             '⚠️ Offline mode — showing default word',
                             style: TextStyle(
-                              color: edition.primaryTextColor,
+                              color: primary,
                               fontSize: 14,
                               fontFamily: 'Figtree',
                               fontWeight: FontWeight.w400,
@@ -140,7 +168,7 @@ class _PublicationViewState extends State<PublicationView> {
                         publication.type.toUpperCase(),
                         style: TextStyle(
                           fontSize: 12,
-                          color: edition.primaryTextColor,
+                          color: primary,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w300,
                           letterSpacing: 1,
@@ -150,7 +178,7 @@ class _PublicationViewState extends State<PublicationView> {
                         publication.word,
                         style: TextStyle(
                           fontSize: 54,
-                          color: edition.primaryTextColor,
+                          color: primary,
                           fontFamily: 'NotoSerifJP',
                           fontWeight: FontWeight.w400,
                         ),
@@ -159,7 +187,7 @@ class _PublicationViewState extends State<PublicationView> {
                         publication.phonetic,
                         style: TextStyle(
                           fontSize: 16,
-                          color: edition.secondaryTextColor,
+                          color: secondary,
                           fontFamily: 'Figtree',
                           fontWeight: FontWeight.w400,
                         ),
@@ -196,8 +224,8 @@ class _PublicationViewState extends State<PublicationView> {
                                           '${label[0].toUpperCase()}${label.substring(1)}',
                                           style: TextStyle(
                                             color: selectedTab == label
-                                                ? edition.primaryTextColor
-                                                : edition.mutedTextColor,
+                                                ? primary
+                                                : muted,
                                             fontFamily: 'Figtree',
                                             fontSize: 16,
                                             fontWeight: selectedTab == label
@@ -214,7 +242,7 @@ class _PublicationViewState extends State<PublicationView> {
                                         width: selectedTab == label ? 22 : 0,
                                         height: 2,
                                         decoration: BoxDecoration(
-                                          color: edition.accentColor,
+                                          color: accent,
                                           borderRadius: BorderRadius.circular(
                                             2,
                                           ),
@@ -269,7 +297,7 @@ class _PublicationViewState extends State<PublicationView> {
                       children: [
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: Text(footerDate, style: _footerStyle(edition)),
+                          child: Text(footerDate, style: _footerStyle(accent)),
                         ),
                         Semantics(
                           button: true,
@@ -300,8 +328,8 @@ class _PublicationViewState extends State<PublicationView> {
                                   key: ValueKey(widget.isBookmarked),
                                   size: 30,
                                   color: widget.isBookmarked
-                                      ? edition.accentColor
-                                      : edition.mutedTextColor.withValues(
+                                      ? accent
+                                      : muted.withValues(
                                           alpha: widget.onBookmarkToggle == null
                                               ? 0.45
                                               : 1,
@@ -315,7 +343,7 @@ class _PublicationViewState extends State<PublicationView> {
                           alignment: Alignment.centerRight,
                           child: Text(
                             footerSequence,
-                            style: _footerStyle(edition),
+                            style: _footerStyle(accent),
                           ),
                         ),
                       ],
@@ -337,9 +365,7 @@ class _PublicationViewState extends State<PublicationView> {
                         dimension: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(
-                            edition.primaryTextColor,
-                          ),
+                          valueColor: AlwaysStoppedAnimation(primary),
                         ),
                       ),
                     ),
@@ -353,9 +379,27 @@ class _PublicationViewState extends State<PublicationView> {
   }
 }
 
-TextStyle _footerStyle(Edition edition) => TextStyle(
-  color: edition.accentColor.withValues(alpha: 0.8),
+TextStyle _footerStyle(Color accent) => TextStyle(
+  color: accent.withValues(alpha: 0.8),
   fontFamily: 'Figtree',
   fontSize: 14,
   fontWeight: FontWeight.w300,
 );
+
+class _PublicationBackground extends StatelessWidget {
+  const _PublicationBackground({
+    required this.interfaceStyled,
+    required this.palette,
+    required this.edition,
+    required this.child,
+  });
+  final bool interfaceStyled;
+  final InterfacePalette palette;
+  final Edition edition;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => interfaceStyled
+      ? ColoredBox(color: palette.background, child: child)
+      : EditionBackground(edition: edition, child: child);
+}

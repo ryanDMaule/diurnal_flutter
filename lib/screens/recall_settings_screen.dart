@@ -1,13 +1,15 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
 import '../services/recall_settings_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 
 class RecallSettingsScreen extends StatefulWidget {
-  const RecallSettingsScreen({required this.settingsService, super.key});
+  RecallSettingsScreen({required this.settingsService, super.key});
 
   final RecallSettingsService settingsService;
 
@@ -59,57 +61,61 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
                 tooltip: 'Back to Recall',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
+                icon: Icon(
                   CupertinoIcons.back,
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   size: 26,
                 ),
               ),
-              const SizedBox(height: 22),
-              const Text(
+              SizedBox(height: 22),
+              Text(
                 'Recall Settings',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   fontFamily: 'NotoSerifJP',
                   fontSize: 36,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 5),
+              SizedBox(height: 5),
               Text(
                 'Shape your regular Recall sessions.',
                 style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.56),
+                  color: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.56),
                   fontFamily: 'Figtree',
                   fontSize: 14,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               Expanded(
                 child: _isLoading
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.textSecondary,
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).accent,
                         ),
                       )
                     : ListView(
-                        key: const Key('recall-settings-list'),
+                        key: Key('recall-settings-list'),
                         children: [
-                          const _SectionHeading('Word pool'),
+                          _SectionHeading('Word pool'),
                           _SingleOption(
-                            key: const Key('pool-archive'),
+                            key: Key('pool-archive'),
                             title: 'Archive',
                             subtitle: 'All published Diurnus words.',
                             selected:
@@ -121,7 +127,7 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             ),
                           ),
                           _SingleOption(
-                            key: const Key('pool-myLexicon'),
+                            key: Key('pool-myLexicon'),
                             title: 'My Lexicon',
                             subtitle: 'Only words you\'ve chosen to keep.',
                             selected:
@@ -133,7 +139,7 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             ),
                           ),
                           _SingleOption(
-                            key: const Key('pool-unrecalled'),
+                            key: Key('pool-unrecalled'),
                             title: 'Unrecalled',
                             subtitle: 'Words you\'ve yet to recall correctly.',
                             selected:
@@ -145,7 +151,7 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             ),
                           ),
                           _SingleOption(
-                            key: const Key('pool-revisit'),
+                            key: Key('pool-revisit'),
                             title: 'To Revisit',
                             subtitle: 'Words you\'ve previously missed.',
                             selected:
@@ -156,8 +162,8 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 28),
-                          const _SectionHeading('Questions per session'),
+                          SizedBox(height: 28),
+                          _SectionHeading('Questions per session'),
                           Row(
                             children: [
                               for (final count in [5, 10, 20]) ...[
@@ -171,14 +177,14 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                                     ),
                                   ),
                                 ),
-                                if (count != 20) const SizedBox(width: 10),
+                                if (count != 20) SizedBox(width: 10),
                               ],
                             ],
                           ),
-                          const SizedBox(height: 28),
-                          const _SectionHeading('Question types'),
+                          SizedBox(height: 28),
+                          _SectionHeading('Question types'),
                           _ToggleOption(
-                            key: const Key('type-wordToDefinition'),
+                            key: Key('type-wordToDefinition'),
                             title: 'Word → Definition',
                             selected: _settings.enabledQuestionTypes.contains(
                               RecallQuestionType.wordToDefinition,
@@ -188,7 +194,7 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             ),
                           ),
                           _ToggleOption(
-                            key: const Key('type-definitionToWord'),
+                            key: Key('type-definitionToWord'),
                             title: 'Definition → Word',
                             selected: _settings.enabledQuestionTypes.contains(
                               RecallQuestionType.definitionToWord,
@@ -198,7 +204,7 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             ),
                           ),
                           _ToggleOption(
-                            key: const Key('type-wordToSynonym'),
+                            key: Key('type-wordToSynonym'),
                             title: 'Word → Synonym',
                             selected: _settings.enabledQuestionTypes.contains(
                               RecallQuestionType.wordToSynonym,
@@ -218,16 +224,16 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
 }
 
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading(this.text);
+  _SectionHeading(this.text);
   final String text;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: EdgeInsets.only(bottom: 8),
     child: Text(
       text,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
+      style: TextStyle(
+        color: InterfaceThemeScope.maybePaletteOf(context).accent,
         fontFamily: 'Figtree',
         fontSize: 12,
         fontWeight: FontWeight.w500,
@@ -238,7 +244,7 @@ class _SectionHeading extends StatelessWidget {
 }
 
 class _SingleOption extends StatelessWidget {
-  const _SingleOption({
+  _SingleOption({
     required this.title,
     required this.subtitle,
     required this.selected,
@@ -255,18 +261,18 @@ class _SingleOption extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
     child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
+      padding: EdgeInsets.symmetric(vertical: 11),
       child: Row(
         children: [
           _SelectionMark(selected: selected),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: _optionTitleStyle),
-                const SizedBox(height: 3),
-                Text(subtitle, style: _optionSubtitleStyle),
+                Text(title, style: _optionTitleStyle(context)),
+                SizedBox(height: 3),
+                Text(subtitle, style: _optionSubtitleStyle(context)),
               ],
             ),
           ),
@@ -277,7 +283,7 @@ class _SingleOption extends StatelessWidget {
 }
 
 class _CountOption extends StatelessWidget {
-  const _CountOption({
+  _CountOption({
     required this.count,
     required this.selected,
     required this.onTap,
@@ -292,18 +298,22 @@ class _CountOption extends StatelessWidget {
     onTap: onTap,
     borderRadius: BorderRadius.circular(8),
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: selected ? AppColors.textSecondary : AppColors.menuDivider,
+          color: selected
+              ? InterfaceThemeScope.maybePaletteOf(context).accent
+              : InterfaceThemeScope.maybePaletteOf(context).divider,
         ),
       ),
       child: Text(
         '$count',
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: selected ? AppColors.textSecondary : AppColors.textPrimary,
+          color: selected
+              ? InterfaceThemeScope.maybePaletteOf(context).accent
+              : InterfaceThemeScope.maybePaletteOf(context).primary,
           fontFamily: 'Figtree',
           fontSize: 15,
         ),
@@ -313,7 +323,7 @@ class _CountOption extends StatelessWidget {
 }
 
 class _ToggleOption extends StatelessWidget {
-  const _ToggleOption({
+  _ToggleOption({
     required this.title,
     required this.selected,
     required this.onTap,
@@ -327,10 +337,10 @@ class _ToggleOption extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
     child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: _optionTitleStyle)),
+          Expanded(child: Text(title, style: _optionTitleStyle(context))),
           _SelectionMark(selected: selected, multiple: true),
         ],
       ),
@@ -339,44 +349,50 @@ class _ToggleOption extends StatelessWidget {
 }
 
 class _SelectionMark extends StatelessWidget {
-  const _SelectionMark({required this.selected, this.multiple = false});
+  _SelectionMark({required this.selected, this.multiple = false});
   final bool selected;
   final bool multiple;
 
   @override
   Widget build(BuildContext context) => AnimatedContainer(
-    duration: const Duration(milliseconds: 140),
+    duration: Duration(milliseconds: 140),
     width: 22,
     height: 22,
     decoration: BoxDecoration(
       shape: multiple ? BoxShape.rectangle : BoxShape.circle,
       borderRadius: multiple ? BorderRadius.circular(5) : null,
-      color: selected ? AppColors.textSecondary : Colors.transparent,
+      color: selected
+          ? InterfaceThemeScope.maybePaletteOf(context).accent
+          : Colors.transparent,
       border: Border.all(
         color: selected
-            ? AppColors.textSecondary
-            : AppColors.textPrimary.withValues(alpha: 0.42),
+            ? InterfaceThemeScope.maybePaletteOf(context).accent
+            : InterfaceThemeScope.maybePaletteOf(
+                context,
+              ).primary.withValues(alpha: 0.42),
       ),
     ),
     child: selected
-        ? const Icon(
+        ? Icon(
             CupertinoIcons.check_mark,
             size: 15,
-            color: AppColors.menuBackground,
+            color: InterfaceThemeScope.maybePaletteOf(context).background,
           )
         : null,
   );
 }
 
-const _optionTitleStyle = TextStyle(
-  color: AppColors.textPrimary,
+TextStyle _optionTitleStyle(BuildContext context) => TextStyle(
+  color: InterfaceThemeScope.maybePaletteOf(context).primary,
   fontFamily: 'Figtree',
   fontSize: 15,
   fontWeight: FontWeight.w400,
 );
 
-final _optionSubtitleStyle = TextStyle(
-  color: AppColors.textPrimary.withValues(alpha: 0.5),
+TextStyle _optionSubtitleStyle(BuildContext context) => TextStyle(
+  color: InterfaceThemeScope.maybePaletteOf(
+    context,
+  ).primary.withValues(alpha: 0.5),
   fontFamily: 'Figtree',
   fontSize: 13,
   fontWeight: FontWeight.w300,

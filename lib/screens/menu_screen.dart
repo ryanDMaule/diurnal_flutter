@@ -2,12 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../services/bookmark_service.dart';
+import '../services/app_settings_service.dart';
 import '../services/edition_service.dart';
 import '../services/endless_recall_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import '../widgets/morphing_menu_button.dart';
 import 'about_screen.dart';
 import 'archive_screen.dart';
@@ -15,6 +16,7 @@ import 'appearance_screen.dart';
 import 'my_lexicon_screen.dart';
 import 'placeholder_screen.dart';
 import 'recall_screen.dart';
+import 'settings_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({
@@ -24,6 +26,7 @@ class MenuScreen extends StatelessWidget {
     this.recallProgressService,
     this.recallSettingsService,
     this.endlessRecallService,
+    this.appSettingsService,
     super.key,
   });
 
@@ -33,6 +36,7 @@ class MenuScreen extends StatelessWidget {
   final RecallProgressService? recallProgressService;
   final RecallSettingsService? recallSettingsService;
   final EndlessRecallService? endlessRecallService;
+  final AppSettingsService? appSettingsService;
 
   void _openDestination(BuildContext context, String title) {
     Navigator.of(context).push(
@@ -44,8 +48,9 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: palette.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -134,7 +139,20 @@ class MenuScreen extends StatelessWidget {
                     _MenuItem(
                       icon: CupertinoIcons.gear,
                       title: 'Settings',
-                      onTap: () => _openDestination(context, 'Settings'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => SettingsScreen(
+                            settingsService:
+                                appSettingsService ??
+                                InterfaceThemeScope.maybeControllerOf(
+                                  context,
+                                )?.service,
+                            bookmarkService: bookmarkService,
+                            recallProgressService: recallProgressService,
+                            endlessRecallService: endlessRecallService,
+                          ),
+                        ),
+                      ),
                     ),
                     const _MenuDivider(),
                     _MenuItem(
@@ -142,7 +160,7 @@ class MenuScreen extends StatelessWidget {
                       title: 'About Diurnus',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (context) => const AboutScreen(),
+                          builder: (context) => AboutScreen(),
                         ),
                       ),
                     ),
@@ -164,6 +182,7 @@ class _MenuHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -174,6 +193,7 @@ class _MenuHeader extends StatelessWidget {
         ),
         MorphingMenuButton(
           isOpen: true,
+          color: palette.primary,
           tooltip: 'Close menu',
           onPressed: onClose,
         ),
@@ -203,9 +223,10 @@ class _MenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     final iconColor = isSelected || isPremium
-        ? AppColors.textSecondary
-        : AppColors.textPrimary;
+        ? palette.accent
+        : palette.primary;
 
     return Semantics(
       button: true,
@@ -228,8 +249,8 @@ class _MenuItem extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: palette.primary,
                         fontFamily: 'NotoSerifJP',
                         fontSize: 27,
                         fontWeight: FontWeight.w400,
@@ -241,7 +262,7 @@ class _MenuItem extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: TextStyle(
-                          color: AppColors.textPrimary.withValues(alpha: 0.58),
+                          color: palette.secondary,
                           fontFamily: 'Figtree',
                           fontSize: 16,
                           fontWeight: FontWeight.w300,
@@ -266,9 +287,10 @@ class _MenuDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 22),
-      child: Divider(height: 1, thickness: 1, color: AppColors.menuDivider),
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      child: Divider(height: 1, thickness: 1, color: palette.divider),
     );
   }
 }
@@ -278,16 +300,17 @@ class _ProBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.textSecondary),
+        border: Border.all(color: palette.accent),
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Text(
+      child: Text(
         'PRO',
         style: TextStyle(
-          color: AppColors.textSecondary,
+          color: palette.accent,
           fontFamily: 'Inter',
           fontSize: 12,
           fontWeight: FontWeight.w500,

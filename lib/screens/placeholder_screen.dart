@@ -1,17 +1,19 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 
 class PlaceholderScreen extends StatelessWidget {
-  const PlaceholderScreen({required this.title, super.key});
+  PlaceholderScreen({required this.title, super.key});
 
   final String title;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -21,21 +23,21 @@ class PlaceholderScreen extends StatelessWidget {
               child: IconButton(
                 tooltip: 'Back',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
+                icon: Icon(
                   CupertinoIcons.back,
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   size: 26,
                 ),
               ),
             ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: InterfaceThemeScope.maybePaletteOf(context).primary,
                     fontFamily: 'NotoSerifJP',
                     fontSize: 34,
                     fontWeight: FontWeight.w400,

@@ -54,4 +54,6 @@ class EndlessRecallService {
       isNewBest: isNewBest,
     );
   }
+
+  Future<void> clearPersonalBest() => _storage.writeBest(0);
 }

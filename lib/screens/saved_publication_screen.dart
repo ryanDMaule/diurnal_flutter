@@ -6,6 +6,7 @@ import '../models/edition.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../widgets/publication_view.dart';
+import '../theme/interface_theme.dart';
 
 class SavedPublicationScreen extends StatefulWidget {
   const SavedPublicationScreen({
@@ -84,7 +85,9 @@ class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     return PublicationView(
+      interfaceStyled: true,
       publication: widget.publication,
       edition: edition,
       isBookmarked: isBookmarked,
@@ -94,7 +97,7 @@ class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
         tooltip: widget.backTooltip,
         onPressed: () => Navigator.of(context).pop(),
         icon: const Icon(CupertinoIcons.back, size: 26),
-        color: edition.primaryTextColor,
+        color: palette.primary,
       ),
     );
   }

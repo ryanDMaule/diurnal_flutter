@@ -1,12 +1,14 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/material.dart';
 
 import '../models/recall_question.dart';
 import '../services/recall_progress_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'recall_session_screen.dart';
 
 class RecallResultScreen extends StatefulWidget {
-  const RecallResultScreen({
+  RecallResultScreen({
     required this.correctAnswers,
     required this.questionCount,
     required this.previousSubjectIds,
@@ -62,33 +64,33 @@ class _RecallResultScreenState extends State<RecallResultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 '${widget.correctAnswers} / ${widget.questionCount}',
-                key: const Key('recall-result-score'),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                key: Key('recall-result-score'),
+                style: TextStyle(
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
                   fontFamily: 'NotoSerifJP',
                   fontSize: 48,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(height: 22),
-              const Text(
+              SizedBox(height: 22),
+              Text(
                 'Recall complete',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   fontFamily: 'NotoSerifJP',
                   fontSize: 31,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 recallResultSummary(
                   widget.correctAnswers,
@@ -96,66 +98,73 @@ class _RecallResultScreenState extends State<RecallResultScreen> {
                 ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.58),
+                  color: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.58),
                   fontFamily: 'Figtree',
                   fontSize: 16,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(height: 46),
+              SizedBox(height: 46),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  key: const Key('recall-again'),
+                  key: Key('recall-again'),
                   onPressed: _isStartingAgain ? null : _recallAgain,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.textSecondary,
-                    foregroundColor: AppColors.menuBackground,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Figtree',
-                      fontSize: 16,
-                    ),
+                    backgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).accent,
+                    foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).background,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    textStyle: TextStyle(fontFamily: 'Figtree', fontSize: 16),
                   ),
                   child: _isStartingAgain
-                      ? const SizedBox.square(
+                      ? SizedBox.square(
                           dimension: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.menuBackground,
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).background,
                           ),
                         )
-                      : const Text('Recall again'),
+                      : Text('Recall again'),
                 ),
               ),
               if (_retryFailed) ...[
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(
                   'Unable to begin another session.',
                   style: TextStyle(
-                    color: AppColors.textPrimary.withValues(alpha: 0.55),
+                    color: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: 0.55),
                     fontFamily: 'Figtree',
                     fontSize: 13,
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextButton(
-                key: const Key('finish-recall'),
+                key: Key('finish-recall'),
                 onPressed: _isStartingAgain
                     ? null
                     : () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary.withValues(
-                    alpha: 0.68,
-                  ),
-                  textStyle: const TextStyle(
+                  foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.68),
+                  textStyle: TextStyle(
                     fontFamily: 'Figtree',
                     fontSize: 15,
                     fontWeight: FontWeight.w300,
                   ),
                 ),
-                child: const Text('Finish'),
+                child: Text('Finish'),
               ),
             ],
           ),

@@ -1,14 +1,16 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../models/recall_question.dart';
 import '../services/endless_recall_service.dart';
 import '../services/recall_progress_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import 'endless_recall_session_screen.dart';
 
 class EndlessRecallResultScreen extends StatelessWidget {
-  const EndlessRecallResultScreen({
+  EndlessRecallResultScreen({
     required this.result,
     required this.archive,
     required this.generator,
@@ -42,81 +44,84 @@ class EndlessRecallResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 '${result.score}',
-                key: const Key('endless-result-score'),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                key: Key('endless-result-score'),
+                style: TextStyle(
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
                   fontFamily: 'NotoSerifJP',
                   fontSize: 56,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               Text(
                 result.isNewBest ? 'New personal best' : 'Endless complete',
-                key: const Key('endless-result-title'),
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                key: Key('endless-result-title'),
+                style: TextStyle(
+                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
                   fontFamily: 'NotoSerifJP',
                   fontSize: 31,
                 ),
               ),
               if (!result.isNewBest && result.personalBest != null) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   'Personal best · ${result.personalBest}',
                   style: TextStyle(
-                    color: AppColors.textPrimary.withValues(alpha: 0.58),
+                    color: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: 0.58),
                     fontFamily: 'Figtree',
                     fontSize: 16,
                     fontWeight: FontWeight.w300,
                   ),
                 ),
               ],
-              const SizedBox(height: 46),
+              SizedBox(height: 46),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  key: const Key('endless-try-again'),
+                  key: Key('endless-try-again'),
                   onPressed: () => _tryAgain(context),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.textSecondary,
-                    foregroundColor: AppColors.menuBackground,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Figtree',
-                      fontSize: 16,
-                    ),
+                    backgroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).accent,
+                    foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).background,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    textStyle: TextStyle(fontFamily: 'Figtree', fontSize: 16),
                   ),
-                  child: const Text('Try again'),
+                  child: Text('Try again'),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextButton(
-                key: const Key('finish-endless'),
+                key: Key('finish-endless'),
                 onPressed: () async {
                   await onFinished();
                   if (context.mounted) Navigator.of(context).pop();
                 },
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary.withValues(
-                    alpha: 0.68,
-                  ),
-                  textStyle: const TextStyle(
+                  foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                    context,
+                  ).primary.withValues(alpha: 0.68),
+                  textStyle: TextStyle(
                     fontFamily: 'Figtree',
                     fontSize: 15,
                     fontWeight: FontWeight.w300,
                   ),
                 ),
-                child: const Text('Finish'),
+                child: Text('Finish'),
               ),
             ],
           ),

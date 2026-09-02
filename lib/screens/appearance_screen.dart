@@ -1,9 +1,11 @@
+// ignore_for_file: prefer_const_constructors_in_immutables
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/edition.dart';
 import '../services/edition_service.dart';
-import '../theme/colors.dart';
+import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
 
 class AppearanceScreen extends StatefulWidget {
@@ -43,12 +45,12 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menuBackground,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 22),
               child: SizedBox(
                 height: 74,
                 child: Stack(
@@ -59,20 +61,24 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                       child: IconButton(
                         tooltip: 'Back to menu',
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(
+                        icon: Icon(
                           CupertinoIcons.back,
-                          color: AppColors.textPrimary,
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary,
                           size: 26,
                         ),
                       ),
                     ),
-                    const Column(
+                    Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           'Appearance',
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).primary,
                             fontFamily: 'NotoSerifJP',
                             fontSize: 31,
                             fontWeight: FontWeight.w400,
@@ -82,7 +88,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                         Text(
                           'Choose your Diurnus Edition',
                           style: TextStyle(
-                            color: Color(0x8FD4D4D4),
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).secondary,
                             fontFamily: 'Figtree',
                             fontSize: 14,
                             fontWeight: FontWeight.w300,
@@ -96,11 +104,10 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
             ),
             Expanded(
               child: ListView.separated(
-                key: const Key('appearance-edition-list'),
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+                key: Key('appearance-edition-list'),
+                padding: EdgeInsets.fromLTRB(24, 0, 24, 30),
                 itemCount: Editions.all.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
+                separatorBuilder: (context, index) => SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final edition = Editions.all[index];
                   return _EditionCard(
@@ -119,7 +126,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
 }
 
 class _EditionCard extends StatelessWidget {
-  const _EditionCard({
+  _EditionCard({
     required this.edition,
     required this.selected,
     required this.onTap,
@@ -140,21 +147,23 @@ class _EditionCard extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: Duration(milliseconds: 150),
           height: 122,
           decoration: BoxDecoration(
-            color: const Color(0xFF0B332A),
+            color: InterfaceThemeScope.maybePaletteOf(context).surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected
                   ? edition.accentColor.withValues(alpha: 0.68)
-                  : AppColors.menuDivider.withValues(alpha: 0.55),
+                  : InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).divider.withValues(alpha: 0.55),
             ),
           ),
           child: Row(
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.horizontal(
+                borderRadius: BorderRadius.horizontal(
                   left: Radius.circular(13),
                 ),
                 child: SizedBox(
@@ -162,11 +171,11 @@ class _EditionCard extends StatelessWidget {
                   height: 122,
                   child: EditionBackground(
                     edition: edition,
-                    child: const SizedBox.expand(),
+                    child: SizedBox.expand(),
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: 20),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -176,20 +185,24 @@ class _EditionCard extends StatelessWidget {
                       edition.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
                         fontFamily: 'NotoSerifJP',
                         fontSize: 22,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                    const SizedBox(height: 7),
+                    SizedBox(height: 7),
                     Text(
                       edition.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppColors.textPrimary.withValues(alpha: 0.48),
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary.withValues(alpha: 0.48),
                         fontFamily: 'Figtree',
                         fontSize: 13,
                         fontWeight: FontWeight.w300,
@@ -199,13 +212,13 @@ class _EditionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               _SelectionIndicator(
                 key: Key('edition-selection-${edition.id}'),
                 selected: selected,
                 accentColor: edition.accentColor,
               ),
-              const SizedBox(width: 18),
+              SizedBox(width: 18),
             ],
           ),
         ),
@@ -215,7 +228,7 @@ class _EditionCard extends StatelessWidget {
 }
 
 class _SelectionIndicator extends StatelessWidget {
-  const _SelectionIndicator({
+  _SelectionIndicator({
     required this.selected,
     required this.accentColor,
     super.key,
@@ -227,7 +240,7 @@ class _SelectionIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
+      duration: Duration(milliseconds: 150),
       width: 28,
       height: 28,
       decoration: BoxDecoration(
@@ -236,14 +249,16 @@ class _SelectionIndicator extends StatelessWidget {
         border: Border.all(
           color: selected
               ? accentColor
-              : AppColors.textPrimary.withValues(alpha: 0.42),
+              : InterfaceThemeScope.maybePaletteOf(
+                  context,
+                ).primary.withValues(alpha: 0.42),
           width: 1.5,
         ),
       ),
       child: selected
-          ? const Icon(
+          ? Icon(
               CupertinoIcons.check_mark,
-              color: AppColors.menuBackground,
+              color: InterfaceThemeScope.maybePaletteOf(context).background,
               size: 18,
             )
           : null,
