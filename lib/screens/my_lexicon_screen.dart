@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
+import '../services/edition_service.dart';
 import '../theme/colors.dart';
 import 'saved_publication_screen.dart';
 
@@ -33,10 +34,15 @@ String collectedWordsLabel(int count) =>
     '$count ${count == 1 ? 'word' : 'words'} collected';
 
 class MyLexiconScreen extends StatefulWidget {
-  MyLexiconScreen({BookmarkService? bookmarkService, super.key})
-    : bookmarkService = bookmarkService ?? BookmarkService();
+  MyLexiconScreen({
+    BookmarkService? bookmarkService,
+    EditionService? editionService,
+    super.key,
+  }) : bookmarkService = bookmarkService ?? BookmarkService(),
+       editionService = editionService ?? EditionService();
 
   final BookmarkService bookmarkService;
+  final EditionService editionService;
 
   @override
   State<MyLexiconScreen> createState() => _MyLexiconScreenState();
@@ -97,6 +103,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
         builder: (context) => SavedPublicationScreen(
           publication: publication,
           bookmarkService: widget.bookmarkService,
+          editionService: widget.editionService,
         ),
       ),
     );

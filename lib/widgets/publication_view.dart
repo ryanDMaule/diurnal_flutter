@@ -1,14 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/daily_publication.dart';
-import '../theme/colors.dart';
+import '../models/edition.dart';
+import 'edition_background.dart';
 
 class PublicationView extends StatefulWidget {
   const PublicationView({
     required this.publication,
     required this.isBookmarked,
     required this.onBookmarkToggle,
+    this.edition = Editions.originalLibrary,
     this.isBookmarkUpdating = false,
     this.isLoading = false,
     this.isOffline = false,
@@ -18,6 +21,7 @@ class PublicationView extends StatefulWidget {
   });
 
   final DailyPublication publication;
+  final Edition edition;
   final bool isBookmarked;
   final bool isBookmarkUpdating;
   final bool isLoading;
@@ -52,10 +56,10 @@ class _PublicationViewState extends State<PublicationView> {
   }
 
   Widget _content() {
-    const style = TextStyle(
+    final style = TextStyle(
       fontSize: 16,
       height: 1.6,
-      color: AppColors.textPrimary,
+      color: widget.edition.primaryTextColor,
       fontFamily: 'Figtree',
       fontWeight: FontWeight.w300,
     );
@@ -92,6 +96,7 @@ class _PublicationViewState extends State<PublicationView> {
   @override
   Widget build(BuildContext context) {
     final publication = widget.publication;
+    final edition = widget.edition;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final footerDate = publication.publicationDate == null
         ? 'Date unavailable'
@@ -102,225 +107,258 @@ class _PublicationViewState extends State<PublicationView> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-          ),
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle(
+          statusBarIconBrightness: edition.systemUiIconBrightness,
+          systemNavigationBarIconBrightness: edition.systemUiIconBrightness,
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Stack(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: screenHeight * 0.4),
-                    if (widget.isOffline)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          '⚠️ Offline mode — showing default word',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                            fontFamily: 'Figtree',
-                            fontWeight: FontWeight.w400,
+        child: EditionBackground(
+          edition: edition,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Stack(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: screenHeight * 0.4),
+                      if (widget.isOffline)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            '⚠️ Offline mode — showing default word',
+                            style: TextStyle(
+                              color: edition.primaryTextColor,
+                              fontSize: 14,
+                              fontFamily: 'Figtree',
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
                         ),
+                      Text(
+                        publication.type.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: edition.primaryTextColor,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: 1,
+                        ),
                       ),
-                    Text(
-                      publication.type.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textPrimary,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 1,
+                      Text(
+                        publication.word,
+                        style: TextStyle(
+                          fontSize: 54,
+                          color: edition.primaryTextColor,
+                          fontFamily: 'NotoSerifJP',
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                    ),
-                    Text(
-                      publication.word,
-                      style: const TextStyle(
-                        fontSize: 54,
-                        color: AppColors.textPrimary,
-                        fontFamily: 'NotoSerifJP',
-                        fontWeight: FontWeight.w400,
+                      Text(
+                        publication.phonetic,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: edition.secondaryTextColor,
+                          fontFamily: 'Figtree',
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                    ),
-                    Text(
-                      publication.phonetic,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                        fontFamily: 'Figtree',
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        for (final label in ['definition', 'usage', 'synonyms'])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 28),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => setState(() => selectedTab = label),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    AnimatedOpacity(
-                                      duration: const Duration(
-                                        milliseconds: 150,
-                                      ),
-                                      opacity: selectedTab == label ? 1 : 0.5,
-                                      child: Text(
-                                        '${label[0].toUpperCase()}${label.substring(1)}',
-                                        style: TextStyle(
-                                          color: AppColors.textPrimary,
-                                          fontFamily: 'Figtree',
-                                          fontSize: 16,
-                                          fontWeight: selectedTab == label
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
+                      const SizedBox(height: 32),
+                      Row(
+                        children: [
+                          for (final label in [
+                            'definition',
+                            'usage',
+                            'synonyms',
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 28),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () =>
+                                    setState(() => selectedTab = label),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      AnimatedOpacity(
+                                        duration: const Duration(
+                                          milliseconds: 150,
+                                        ),
+                                        opacity:
+                                            selectedTab == label ||
+                                                !edition.usesLegacyTreatment
+                                            ? 1
+                                            : 0.5,
+                                        child: Text(
+                                          '${label[0].toUpperCase()}${label.substring(1)}',
+                                          style: TextStyle(
+                                            color: selectedTab == label
+                                                ? edition.primaryTextColor
+                                                : edition.usesLegacyTreatment
+                                                ? edition.primaryTextColor
+                                                : edition.mutedTextColor,
+                                            fontFamily: 'Figtree',
+                                            fontSize: 16,
+                                            fontWeight: selectedTab == label
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 150,
+                                      const SizedBox(height: 5),
+                                      AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 150,
+                                        ),
+                                        width: selectedTab == label ? 22 : 0,
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          color: edition.usesLegacyTreatment
+                                              ? const Color(0xFFC59A5B)
+                                              : edition.accentColor,
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
                                       ),
-                                      width: selectedTab == label ? 22 : 0,
-                                      height: 2,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFC59A5B),
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 600),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOut,
+                          ),
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.98, end: 1).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutBack,
+                              ),
+                            ),
+                            child: child,
+                          ),
+                        ),
+                        layoutBuilder: (currentChild, previousChildren) =>
+                            Stack(
+                              alignment: Alignment.topLeft,
+                              children: [
+                                ...previousChildren,
+                                if (currentChild != null) currentChild,
+                              ],
+                            ),
+                        child: _content(),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 18,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(footerDate, style: _footerStyle(edition)),
+                        ),
+                        Semantics(
+                          button: true,
+                          enabled:
+                              widget.onBookmarkToggle != null &&
+                              !widget.isBookmarkUpdating,
+                          label: widget.isBookmarked
+                              ? 'Remove bookmark'
+                              : 'Save bookmark',
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: widget.isBookmarkUpdating
+                                ? null
+                                : widget.onBookmarkToggle,
+                            child: SizedBox.square(
+                              dimension: 30,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 130),
+                                transitionBuilder: (child, animation) =>
+                                    ScaleTransition(
+                                      scale: animation,
+                                      child: child,
                                     ),
-                                  ],
+                                child: Icon(
+                                  widget.isBookmarked
+                                      ? CupertinoIcons.bookmark_fill
+                                      : CupertinoIcons.bookmark,
+                                  key: ValueKey(widget.isBookmarked),
+                                  size: 30,
+                                  color: widget.isBookmarked
+                                      ? edition.accentColor
+                                      : edition.usesLegacyTreatment
+                                      ? edition.primaryTextColor.withValues(
+                                          alpha: widget.onBookmarkToggle == null
+                                              ? 0.25
+                                              : 0.6,
+                                        )
+                                      : edition.mutedTextColor.withValues(
+                                          alpha: widget.onBookmarkToggle == null
+                                              ? 0.45
+                                              : 1,
+                                        ),
                                 ),
                               ),
                             ),
                           ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            footerSequence,
+                            style: _footerStyle(edition),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 600),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOut,
-                        ),
-                        child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.98, end: 1).animate(
-                            CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutBack,
-                            ),
-                          ),
-                          child: child,
-                        ),
-                      ),
-                      layoutBuilder: (currentChild, previousChildren) => Stack(
-                        alignment: Alignment.topLeft,
-                        children: [
-                          ...previousChildren,
-                          if (currentChild != null) currentChild,
-                        ],
-                      ),
-                      child: _content(),
+                  ),
+                  if (widget.topLeftControl != null)
+                    Positioned(top: 20, left: 4, child: widget.topLeftControl!),
+                  if (widget.topRightControl != null)
+                    Positioned(
+                      top: 20,
+                      right: 4,
+                      child: widget.topRightControl!,
                     ),
-                    const Spacer(),
-                  ],
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 18,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(footerDate, style: _footerStyle),
-                      ),
-                      Semantics(
-                        button: true,
-                        enabled:
-                            widget.onBookmarkToggle != null &&
-                            !widget.isBookmarkUpdating,
-                        label: widget.isBookmarked
-                            ? 'Remove bookmark'
-                            : 'Save bookmark',
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: widget.isBookmarkUpdating
-                              ? null
-                              : widget.onBookmarkToggle,
-                          child: SizedBox.square(
-                            dimension: 30,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 130),
-                              transitionBuilder: (child, animation) =>
-                                  ScaleTransition(
-                                    scale: animation,
-                                    child: child,
-                                  ),
-                              child: Icon(
-                                widget.isBookmarked
-                                    ? CupertinoIcons.bookmark_fill
-                                    : CupertinoIcons.bookmark,
-                                key: ValueKey(widget.isBookmarked),
-                                size: 30,
-                                color: widget.isBookmarked
-                                    ? AppColors.textSecondary
-                                    : AppColors.textPrimary.withValues(
-                                        alpha: widget.onBookmarkToggle == null
-                                            ? 0.25
-                                            : 0.6,
-                                      ),
-                              ),
-                            ),
+                  if (widget.isLoading)
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(
+                            edition.primaryTextColor,
                           ),
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(footerSequence, style: _footerStyle),
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.topLeftControl != null)
-                  Positioned(top: 20, left: 4, child: widget.topLeftControl!),
-                if (widget.topRightControl != null)
-                  Positioned(top: 20, right: 4, child: widget.topRightControl!),
-                if (widget.isLoading)
-                  const Positioned(
-                    top: 12,
-                    left: 12,
-                    child: SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(
-                          AppColors.textPrimary,
-                        ),
-                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -329,8 +367,8 @@ class _PublicationViewState extends State<PublicationView> {
   }
 }
 
-final _footerStyle = TextStyle(
-  color: AppColors.textSecondary.withValues(alpha: 0.8),
+TextStyle _footerStyle(Edition edition) => TextStyle(
+  color: edition.accentColor.withValues(alpha: 0.8),
   fontFamily: 'Figtree',
   fontSize: 14,
   fontWeight: FontWeight.w300,

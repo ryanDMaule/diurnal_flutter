@@ -5,7 +5,9 @@ import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/daily_publication.dart';
+import '../models/edition.dart';
 import '../services/bookmark_service.dart';
+import '../services/edition_service.dart';
 import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
 import 'menu_screen.dart';
@@ -30,7 +32,9 @@ class TodayScreen extends StatefulWidget {
 
 class _TodayScreenState extends State<TodayScreen> {
   final BookmarkService _bookmarkService = BookmarkService();
+  final EditionService _editionService = EditionService();
   DailyPublication publication = DailyPublication.localFallback;
+  Edition edition = Editions.originalLibrary;
   bool isLoading = true;
   bool isOffline = false;
   bool isBookmarked = false;
@@ -39,6 +43,7 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   void initState() {
     super.initState();
+    _restoreEditionState();
     fetchWordOfTheDay();
   }
 
@@ -94,6 +99,15 @@ class _TodayScreenState extends State<TodayScreen> {
     }
   }
 
+  Future<void> _restoreEditionState() async {
+    try {
+      final selectedEdition = await _editionService.loadSelectedEdition();
+      if (mounted) setState(() => edition = selectedEdition);
+    } catch (error) {
+      debugPrint('Error loading Edition: $error');
+    }
+  }
+
   Future<void> _toggleBookmark() async {
     final current = publication;
     final id = current.id;
@@ -146,12 +160,14 @@ class _TodayScreenState extends State<TodayScreen> {
     );
     if (!mounted) return;
     await _restoreBookmarkState(publication);
+    await _restoreEditionState();
   }
 
   @override
   Widget build(BuildContext context) {
     return PublicationView(
       publication: publication,
+      edition: edition,
       isLoading: isLoading,
       isOffline: isOffline,
       isBookmarked: isBookmarked,
@@ -159,6 +175,7 @@ class _TodayScreenState extends State<TodayScreen> {
       onBookmarkToggle: publication.id == null ? null : _toggleBookmark,
       topRightControl: MorphingMenuButton(
         isOpen: false,
+        color: edition.primaryTextColor,
         tooltip: 'Open menu',
         onPressed: _openMenu,
       ),

@@ -80,6 +80,11 @@ flutter:
   assets:
     - assets/images/background.png
     - assets/images/branding.png
+    - assets/images/default.png
+    - assets/images/library-white.png
+    - assets/images/bust.png
+    - assets/images/vibrant.png
+    - assets/images/midnight.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

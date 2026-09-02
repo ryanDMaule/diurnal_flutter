@@ -5,16 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/screens/my_lexicon_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
+import 'package:diurnul/services/edition_service.dart';
 
 void main() {
   late _MemoryBookmarkStorage storage;
   late BookmarkService service;
+  late EditionService editionService;
   late DailyPublication diurnal;
   late DailyPublication arcane;
 
   setUp(() {
     storage = _MemoryBookmarkStorage();
     service = BookmarkService(storage: storage);
+    editionService = EditionService(storage: _MemoryEditionStorage());
     diurnal = _publication('2', 2, 'Diurnal');
     arcane = _publication('1', 1, 'Arcane');
   });
@@ -37,7 +40,12 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        MaterialApp(home: MyLexiconScreen(bookmarkService: service)),
+        MaterialApp(
+          home: MyLexiconScreen(
+            bookmarkService: service,
+            editionService: editionService,
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -59,7 +67,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      MaterialApp(home: MyLexiconScreen(bookmarkService: service)),
+      MaterialApp(
+        home: MyLexiconScreen(
+          bookmarkService: service,
+          editionService: editionService,
+        ),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('lexicon-row-2')));
@@ -82,7 +95,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      MaterialApp(home: MyLexiconScreen(bookmarkService: service)),
+      MaterialApp(
+        home: MyLexiconScreen(
+          bookmarkService: service,
+          editionService: editionService,
+        ),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('remove-bookmark-2')));
@@ -117,5 +135,17 @@ class _MemoryBookmarkStorage implements BookmarkStorage {
   @override
   Future<void> write(String key, String value) async {
     _values[key] = value;
+  }
+}
+
+class _MemoryEditionStorage implements EditionStorage {
+  String? value;
+
+  @override
+  Future<String?> read(String key) async => value;
+
+  @override
+  Future<void> write(String key, String value) async {
+    this.value = value;
   }
 }

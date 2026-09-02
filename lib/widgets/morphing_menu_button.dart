@@ -7,6 +7,7 @@ class MorphingMenuButton extends StatelessWidget {
     required this.isOpen,
     required this.onPressed,
     required this.tooltip,
+    this.color = AppColors.textPrimary,
     super.key,
   });
 
@@ -15,6 +16,7 @@ class MorphingMenuButton extends StatelessWidget {
   final bool isOpen;
   final VoidCallback onPressed;
   final String tooltip;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -29,34 +31,36 @@ class MorphingMenuButton extends StatelessWidget {
               return AnimatedBuilder(
                 animation: animation,
                 builder: (context, child) {
-                  return _MenuGlyph(progress: animation.value);
+                  return _MenuGlyph(progress: animation.value, color: color);
                 },
               );
             },
-        child: _MenuGlyph(progress: isOpen ? 1 : 0),
+        child: _MenuGlyph(progress: isOpen ? 1 : 0, color: color),
       ),
     );
   }
 }
 
 class _MenuGlyph extends StatelessWidget {
-  const _MenuGlyph({required this.progress});
+  const _MenuGlyph({required this.progress, required this.color});
 
   final double progress;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: const Size.square(28),
-      painter: _MenuGlyphPainter(progress),
+      painter: _MenuGlyphPainter(progress, color),
     );
   }
 }
 
 class _MenuGlyphPainter extends CustomPainter {
-  const _MenuGlyphPainter(this.progress);
+  const _MenuGlyphPainter(this.progress, this.color);
 
   final double progress;
+  final Color color;
 
   Offset _lerp(Offset begin, Offset end) {
     return Offset.lerp(begin, end, progress)!;
@@ -65,7 +69,7 @@ class _MenuGlyphPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.textPrimary
+      ..color = color
       ..strokeWidth = 1.8
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -76,14 +80,14 @@ class _MenuGlyphPainter extends CustomPainter {
       paint,
     );
 
-    paint.color = AppColors.textPrimary.withValues(alpha: 1 - progress);
+    paint.color = color.withValues(alpha: 1 - progress);
     canvas.drawLine(
       _lerp(const Offset(4, 14), const Offset(14, 14)),
       _lerp(const Offset(24, 14), const Offset(14, 14)),
       paint,
     );
 
-    paint.color = AppColors.textPrimary;
+    paint.color = color;
     canvas.drawLine(
       _lerp(const Offset(4, 21), const Offset(5, 23)),
       _lerp(const Offset(24, 21), const Offset(23, 5)),
@@ -93,6 +97,6 @@ class _MenuGlyphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MenuGlyphPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
+import 'appearance_screen.dart';
 import 'my_lexicon_screen.dart';
 import 'placeholder_screen.dart';
 
@@ -58,7 +59,11 @@ class MenuScreen extends StatelessWidget {
                       icon: CupertinoIcons.circle_grid_hex,
                       title: 'Appearance',
                       subtitle: 'Diurnus editions',
-                      onTap: () => _openDestination(context, 'Appearance'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => AppearanceScreen(),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 18),
                     _MenuItem(
