@@ -44,12 +44,13 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
     } else {
       unawaited(HapticFeedback.lightImpact());
     }
-    if (isCorrect) {
-      try {
-        await widget.progressService.markRecalled(_question.subject.id!);
-      } catch (error) {
-        debugPrint('Error saving Recall progress: $error');
-      }
+    try {
+      await widget.progressService.recordAnswer(
+        _question.subject.id!,
+        wasCorrect: isCorrect,
+      );
+    } catch (error) {
+      debugPrint('Error saving Recall progress: $error');
     }
   }
 

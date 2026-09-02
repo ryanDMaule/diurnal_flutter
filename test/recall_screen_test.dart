@@ -161,7 +161,7 @@ void main() {
 
       expect(find.text('Your Lexicon is empty'), findsOneWidget);
       expect(find.text('Save words to practise them here.'), findsOneWidget);
-      expect(requests, 0);
+      expect(requests, 1);
     },
   );
 
@@ -203,6 +203,10 @@ void main() {
       expect(find.text(archive[0].word), findsOneWidget);
       expect(find.byType(RecallSessionScreen), findsOneWidget);
       expect(await progressService.isRecalled(archive[0].id!), isFalse);
+      expect(
+        await progressService.stateFor(archive[0].id!),
+        RecallProgressState.revisit,
+      );
 
       await tester.tap(find.byKey(const Key('recall-continue')));
       await tester.pumpAndSettle();
@@ -224,6 +228,8 @@ void main() {
       bookmarkService,
       progressService,
     );
+    await tester.pumpAndSettle();
+    expect(find.text('0 of 1 recalled'), findsOneWidget);
     await tester.tap(find.byKey(const Key('daily-recall')));
     await tester.pumpAndSettle();
     final question = tester
@@ -243,6 +249,97 @@ void main() {
     await tester.tap(find.byKey(const Key('finish-recall')));
     await tester.pumpAndSettle();
     expect(find.byType(RecallScreen), findsOneWidget);
+    expect(find.text('1 of 1 recalled'), findsOneWidget);
+    expect(find.text('Unseen 0 · Revisit 0 · Recalled 1'), findsOneWidget);
+    expect(find.byKey(const Key('recall-progress-unseen')), findsNothing);
+    expect(find.byKey(const Key('recall-progress-revisit')), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const Key('recall-progress-recalled'))).width,
+      closeTo(
+        tester
+            .getSize(find.byKey(const Key('recall-segmented-progress')))
+            .width,
+        0.01,
+      ),
+    );
+  });
+
+  testWidgets(
+    'landing shows Archive-wide Unseen, Revisit, and Recalled counts',
+    (tester) async {
+      await progressService.recordAnswer(archive[0].id!, wasCorrect: false);
+      await progressService.recordAnswer(archive[1].id!, wasCorrect: true);
+      await progressService.recordAnswer('not-in-archive', wasCorrect: true);
+
+      await _pumpLanding(tester, archive, bookmarkService, progressService);
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 of 6 recalled'), findsOneWidget);
+      expect(find.text('Unseen 4 · Revisit 1 · Recalled 1'), findsOneWidget);
+      expect(find.byKey(const Key('recall-progress-unseen')), findsOneWidget);
+      expect(find.byKey(const Key('recall-progress-revisit')), findsOneWidget);
+      expect(find.byKey(const Key('recall-progress-recalled')), findsOneWidget);
+
+      final trackWidth = tester
+          .getSize(find.byKey(const Key('recall-segmented-progress')))
+          .width;
+      final unseenWidth = tester
+          .getSize(find.byKey(const Key('recall-progress-unseen')))
+          .width;
+      final revisitWidth = tester
+          .getSize(find.byKey(const Key('recall-progress-revisit')))
+          .width;
+      final recalledWidth = tester
+          .getSize(find.byKey(const Key('recall-progress-recalled')))
+          .width;
+      expect(
+        unseenWidth + revisitWidth + recalledWidth,
+        closeTo(trackWidth, 0.01),
+      );
+      expect(unseenWidth / trackWidth, closeTo(4 / 6, 0.01));
+      expect(revisitWidth / trackWidth, closeTo(1 / 6, 0.01));
+      expect(recalledWidth / trackWidth, closeTo(1 / 6, 0.01));
+    },
+  );
+
+  testWidgets('landing refreshes Revisit after an incorrect subject answer', (
+    tester,
+  ) async {
+    await _pumpLanding(
+      tester,
+      archive.take(2).toList(),
+      bookmarkService,
+      progressService,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('daily-recall')));
+    await tester.pumpAndSettle();
+
+    var session = tester.widget<RecallSessionScreen>(
+      find.byType(RecallSessionScreen),
+    );
+    var question = session.questions.first;
+    final wrongAnswer = question.answers.firstWhere(
+      (answer) => answer != question.correctAnswer,
+    );
+    await tester.tap(find.text(wrongAnswer));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.pumpAndSettle();
+
+    session = tester.widget<RecallSessionScreen>(
+      find.byType(RecallSessionScreen),
+    );
+    question = session.questions[1];
+    await tester.tap(find.text(question.correctAnswer));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('finish-recall')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 of 2 recalled'), findsOneWidget);
+    expect(find.text('Unseen 0 · Revisit 1 · Recalled 1'), findsOneWidget);
   });
 
   testWidgets(
