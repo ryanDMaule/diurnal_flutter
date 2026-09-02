@@ -32,6 +32,11 @@ class BookmarkService {
 
   final BookmarkStorage _storage;
 
+  Future<List<DailyPublication>> getSavedPublications() async {
+    final bookmarks = await _readBookmarks();
+    return List<DailyPublication>.unmodifiable(bookmarks.values);
+  }
+
   Future<bool> isSaved(String? publicationId) async {
     if (publicationId == null) return false;
     final bookmarks = await _readBookmarks();

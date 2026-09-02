@@ -31,6 +31,7 @@ void main() {
 
     final restoredService = BookmarkService(storage: storage);
     expect(await restoredService.isSaved(publication.id), isTrue);
+    expect(await restoredService.getSavedPublications(), hasLength(1));
   });
 
   test('removes a saved publication', () async {
@@ -39,6 +40,20 @@ void main() {
 
     expect(await service.isSaved(publication.id), isFalse);
   });
+
+  test(
+    'repeated save and remove operations preserve persisted truth',
+    () async {
+      await service.save(publication);
+      await service.remove(publication.id!);
+      await service.save(publication);
+      expect(await service.isSaved(publication.id), isTrue);
+
+      await service.remove(publication.id!);
+      final restartedService = BookmarkService(storage: storage);
+      expect(await restartedService.isSaved(publication.id), isFalse);
+    },
+  );
 
   test('does not allow fallback content to be saved', () async {
     expect(await service.isSaved(DailyPublication.localFallback.id), isFalse);

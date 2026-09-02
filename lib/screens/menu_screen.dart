@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
+import 'my_lexicon_screen.dart';
 import 'placeholder_screen.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -46,7 +47,11 @@ class MenuScreen extends StatelessWidget {
                       icon: CupertinoIcons.bookmark,
                       title: 'My Lexicon',
                       subtitle: 'Your saved words',
-                      onTap: () => _openDestination(context, 'My Lexicon'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => MyLexiconScreen(),
+                        ),
+                      ),
                     ),
                     const _MenuDivider(),
                     _MenuItem(
