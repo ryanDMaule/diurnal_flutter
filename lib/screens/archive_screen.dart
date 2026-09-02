@@ -6,6 +6,7 @@ import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/publication_api_service.dart';
 import '../theme/colors.dart';
+import 'archive_calendar_screen.dart';
 import 'saved_publication_screen.dart';
 
 List<DailyPublication> sortArchivePublications(
@@ -101,6 +102,18 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     );
   }
 
+  Future<void> _openCalendar() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ArchiveCalendarScreen(
+          publications: _publications,
+          bookmarkService: widget.bookmarkService,
+          editionService: widget.editionService,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,24 +134,48 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                 ),
               ),
               const SizedBox(height: 22),
-              const Text(
-                'Archive',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontFamily: 'NotoSerifJP',
-                  fontSize: 40,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                'Every word, every day',
-                style: TextStyle(
-                  color: AppColors.textPrimary.withValues(alpha: 0.56),
-                  fontFamily: 'Figtree',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w300,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Archive',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontFamily: 'NotoSerifJP',
+                            fontSize: 40,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Every word, every day',
+                          style: TextStyle(
+                            color: AppColors.textPrimary.withValues(
+                              alpha: 0.56,
+                            ),
+                            fontFamily: 'Figtree',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_isLoading && _error == null && _publications.isNotEmpty)
+                    IconButton(
+                      key: const Key('open-archive-calendar'),
+                      tooltip: 'Open Archive calendar',
+                      onPressed: _openCalendar,
+                      icon: const Icon(
+                        CupertinoIcons.calendar,
+                        color: AppColors.textSecondary,
+                        size: 23,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 30),
               Expanded(child: _body()),

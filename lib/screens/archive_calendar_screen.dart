@@ -1,0 +1,318 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+
+import '../models/daily_publication.dart';
+import '../services/bookmark_service.dart';
+import '../services/edition_service.dart';
+import '../theme/colors.dart';
+import 'saved_publication_screen.dart';
+
+class ArchiveCalendarScreen extends StatefulWidget {
+  const ArchiveCalendarScreen({
+    required this.publications,
+    required this.bookmarkService,
+    required this.editionService,
+    super.key,
+  });
+
+  final List<DailyPublication> publications;
+  final BookmarkService bookmarkService;
+  final EditionService editionService;
+
+  @override
+  State<ArchiveCalendarScreen> createState() => _ArchiveCalendarScreenState();
+}
+
+class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
+  late final Map<int, DailyPublication> _publicationsByDate;
+  late final DateTime _earliestMonth;
+  late final DateTime _newestMonth;
+  late DateTime _visibleMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _publicationsByDate = {
+      for (final publication in widget.publications)
+        _dateKey(publication.publicationDate!): publication,
+    };
+    final dates =
+        widget.publications
+            .map((publication) => publication.publicationDate!)
+            .toList()
+          ..sort();
+    _earliestMonth = _monthOnly(dates.first);
+    _newestMonth = _monthOnly(dates.last);
+    _visibleMonth = _newestMonth;
+  }
+
+  bool get _canGoPrevious => _visibleMonth.isAfter(_earliestMonth);
+  bool get _canGoNext => _visibleMonth.isBefore(_newestMonth);
+
+  void _showPreviousMonth() {
+    if (!_canGoPrevious) return;
+    setState(() {
+      _visibleMonth = DateTime.utc(_visibleMonth.year, _visibleMonth.month - 1);
+    });
+  }
+
+  void _showNextMonth() {
+    if (!_canGoNext) return;
+    setState(() {
+      _visibleMonth = DateTime.utc(_visibleMonth.year, _visibleMonth.month + 1);
+    });
+  }
+
+  Future<void> _openPublication(DailyPublication publication) async {
+    final isBookmarked = await widget.bookmarkService.isSaved(publication.id);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => SavedPublicationScreen(
+          publication: publication,
+          bookmarkService: widget.bookmarkService,
+          editionService: widget.editionService,
+          backTooltip: 'Back to Calendar',
+          initiallyBookmarked: isBookmarked,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final firstDay = DateTime.utc(_visibleMonth.year, _visibleMonth.month);
+    final leadingBlankDays = firstDay.weekday - DateTime.monday;
+    final daysInMonth = DateTime.utc(
+      _visibleMonth.year,
+      _visibleMonth.month + 1,
+      0,
+    ).day;
+
+    return Scaffold(
+      backgroundColor: AppColors.menuBackground,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  tooltip: 'Back to Archive',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(
+                    CupertinoIcons.back,
+                    color: AppColors.textPrimary,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 42),
+              Row(
+                children: [
+                  _MonthButton(
+                    buttonKey: const Key('previous-month'),
+                    tooltip: 'Previous month',
+                    icon: CupertinoIcons.chevron_left,
+                    onPressed: _canGoPrevious ? _showPreviousMonth : null,
+                  ),
+                  Expanded(
+                    child: Text(
+                      _monthHeading(_visibleMonth),
+                      key: const Key('calendar-month-heading'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontFamily: 'NotoSerifJP',
+                        fontSize: 25,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  _MonthButton(
+                    buttonKey: const Key('next-month'),
+                    tooltip: 'Next month',
+                    icon: CupertinoIcons.chevron_right,
+                    onPressed: _canGoNext ? _showNextMonth : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 36),
+              Row(
+                children: [
+                  for (final weekday in ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+                    Expanded(
+                      child: Text(
+                        weekday,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0x8FD4D4D4),
+                          fontFamily: 'Figtree',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                key: const Key('archive-calendar-grid'),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  childAspectRatio: 1,
+                ),
+                itemCount: leadingBlankDays + daysInMonth,
+                itemBuilder: (context, index) {
+                  if (index < leadingBlankDays) return const SizedBox.shrink();
+                  final day = index - leadingBlankDays + 1;
+                  final date = DateTime.utc(
+                    _visibleMonth.year,
+                    _visibleMonth.month,
+                    day,
+                  );
+                  final publication = _publicationsByDate[_dateKey(date)];
+                  return _CalendarDay(
+                    date: date,
+                    publication: publication,
+                    onTap: publication == null
+                        ? null
+                        : () => _openPublication(publication),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthButton extends StatelessWidget {
+  const _MonthButton({
+    required this.buttonKey,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final Key buttonKey;
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: buttonKey,
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      color: AppColors.textSecondary,
+      disabledColor: AppColors.textPrimary.withValues(alpha: 0.2),
+    );
+  }
+}
+
+class _CalendarDay extends StatelessWidget {
+  const _CalendarDay({
+    required this.date,
+    required this.publication,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final DailyPublication? publication;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dateId = _dateId(date);
+    final content = Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${date.day}',
+            style: TextStyle(
+              color: AppColors.textPrimary.withValues(
+                alpha: publication == null ? 0.32 : 0.9,
+              ),
+              fontFamily: 'Figtree',
+              fontSize: 15,
+              fontWeight: FontWeight.w300,
+            ),
+          ),
+          const SizedBox(height: 5),
+          SizedBox(
+            height: 4,
+            child: publication == null
+                ? null
+                : Container(
+                    key: Key('publication-indicator-$dateId'),
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: AppColors.textSecondary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+
+    if (publication == null) {
+      return ExcludeSemantics(
+        child: SizedBox(key: Key('calendar-day-$dateId'), child: content),
+      );
+    }
+
+    return Semantics(
+      button: true,
+      label:
+          '${date.day} ${_spokenMonth(date.month)} ${date.year}, '
+          '${publication!.word}',
+      child: InkWell(
+        key: Key('calendar-day-$dateId'),
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: content,
+      ),
+    );
+  }
+}
+
+DateTime _monthOnly(DateTime date) => DateTime.utc(date.year, date.month);
+
+int _dateKey(DateTime date) => date.year * 10000 + date.month * 100 + date.day;
+
+String _dateId(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
+
+String _monthHeading(DateTime date) =>
+    '${_spokenMonth(date.month).toUpperCase()} ${date.year}';
+
+String _spokenMonth(int month) => const [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+][month - 1];
