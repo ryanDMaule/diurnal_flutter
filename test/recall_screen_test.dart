@@ -34,6 +34,15 @@ void main() {
     );
   });
 
+  test('result wording omits zero-value portions for any session length', () {
+    expect(recallResultSummary(5, 5), '5 correct');
+    expect(recallResultSummary(4, 5), '4 correct · 1 to revisit');
+    expect(recallResultSummary(2, 5), '2 correct · 3 to revisit');
+    expect(recallResultSummary(0, 5), '5 to revisit');
+    expect(recallResultSummary(2, 3), '2 correct · 1 to revisit');
+    expect(recallResultSummary(0, 1), '1 to revisit');
+  });
+
   testWidgets('Recall appears in Menu and opens its landing screen', (
     tester,
   ) async {
@@ -182,6 +191,7 @@ void main() {
           home: RecallSessionScreen(
             questions: questions,
             progressService: progressService,
+            onRecallAgain: (_) async => questions,
           ),
         ),
       );
@@ -229,10 +239,92 @@ void main() {
     expect(find.byType(RecallResultScreen), findsOneWidget);
     expect(find.text('1 / 1'), findsOneWidget);
     expect(find.text('Recall complete'), findsOneWidget);
+    expect(find.text('1 correct'), findsOneWidget);
     await tester.tap(find.byKey(const Key('finish-recall')));
     await tester.pumpAndSettle();
     expect(find.byType(RecallScreen), findsOneWidget);
   });
+
+  testWidgets(
+    'Recall again regenerates Daily Recall without previous subjects when possible',
+    (tester) async {
+      final largerArchive = List.generate(
+        10,
+        (index) => _publication('daily-$index', index + 1, 'Daily$index'),
+      );
+      await _pumpLanding(
+        tester,
+        largerArchive,
+        bookmarkService,
+        progressService,
+      );
+      await tester.tap(find.byKey(const Key('daily-recall')));
+      await tester.pumpAndSettle();
+      final firstIds = tester
+          .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
+          .questions
+          .map((question) => question.subject.id)
+          .toSet();
+
+      await _completeSession(tester);
+      await tester.tap(find.byKey(const Key('recall-again')));
+      await tester.pumpAndSettle();
+
+      final secondSession = tester.widget<RecallSessionScreen>(
+        find.byType(RecallSessionScreen),
+      );
+      final secondIds = secondSession.questions
+          .map((question) => question.subject.id)
+          .toSet();
+      expect(secondSession.questions, hasLength(5));
+      expect(secondIds.intersection(firstIds), isEmpty);
+      expect(secondIds.every((id) => id!.startsWith('daily-')), isTrue);
+    },
+  );
+
+  testWidgets(
+    'Recall again preserves Lexicon mode and safely repeats small pool',
+    (tester) async {
+      final saved = archive.take(2).toList();
+      for (final publication in saved) {
+        await bookmarkService.save(publication);
+      }
+      await _pumpLanding(tester, archive, bookmarkService, progressService);
+      await tester.tap(find.byKey(const Key('lexicon-recall')));
+      await tester.pumpAndSettle();
+
+      await _completeSession(tester);
+      await tester.tap(find.byKey(const Key('recall-again')));
+      await tester.pumpAndSettle();
+
+      final secondSession = tester.widget<RecallSessionScreen>(
+        find.byType(RecallSessionScreen),
+      );
+      expect(secondSession.questions, hasLength(2));
+      expect(
+        secondSession.questions.map((question) => question.subject.id).toSet(),
+        {saved[0].id, saved[1].id},
+      );
+    },
+  );
+}
+
+Future<void> _completeSession(WidgetTester tester) async {
+  while (find.byType(RecallSessionScreen).evaluate().isNotEmpty) {
+    final session = tester.widget<RecallSessionScreen>(
+      find.byType(RecallSessionScreen),
+    );
+    final counter = tester.widget<Text>(
+      find.byKey(const Key('recall-question-counter')),
+    );
+    final currentNumber = int.parse(counter.data!.substring(0, 2));
+    final question = session.questions[currentNumber - 1];
+    await tester.tap(find.text(question.correctAnswer));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.pumpAndSettle();
+  }
+  expect(find.byType(RecallResultScreen), findsOneWidget);
 }
 
 RecallQuestion _question(

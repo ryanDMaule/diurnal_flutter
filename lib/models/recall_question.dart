@@ -6,6 +6,9 @@ enum RecallMode { daily, lexicon }
 
 enum RecallQuestionType { wordToDefinition, definitionToWord, wordToSynonym }
 
+typedef RecallAgainCallback =
+    Future<List<RecallQuestion>> Function(Set<String> previousSubjectIds);
+
 class RecallQuestion {
   const RecallQuestion({
     required this.subject,
@@ -34,9 +37,21 @@ class RecallSessionGenerator {
     required Iterable<DailyPublication> distractorPool,
     int questionCount = 5,
     Set<RecallQuestionType>? enabledTypes,
+    Set<String> avoidSubjectIds = const {},
   }) {
     final activeTypes = enabledTypes ?? RecallQuestionType.values.toSet();
-    final subjectList = _uniquePublications(subjects)..shuffle(_random);
+    final uniqueSubjects = _uniquePublications(subjects);
+    final preferredSubjects =
+        uniqueSubjects
+            .where((publication) => !avoidSubjectIds.contains(publication.id))
+            .toList()
+          ..shuffle(_random);
+    final previousSubjects =
+        uniqueSubjects
+            .where((publication) => avoidSubjectIds.contains(publication.id))
+            .toList()
+          ..shuffle(_random);
+    final subjectList = [...preferredSubjects, ...previousSubjects];
     final distractors = _uniquePublications(distractorPool);
     final count = min(questionCount, subjectList.length);
     final questions = <RecallQuestion>[];
@@ -86,7 +101,7 @@ class RecallSessionGenerator {
     switch (type) {
       case RecallQuestionType.wordToDefinition:
         content = subject.word;
-        prompt = 'Which definition belongs to this word?';
+        prompt = 'Which definition best describes this word?';
         correct = subject.definition;
         candidates = pool.map((publication) => publication.definition);
       case RecallQuestionType.definitionToWord:

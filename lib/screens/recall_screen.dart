@@ -62,10 +62,13 @@ class _RecallScreenState extends State<RecallScreen> {
 
       final archive = await widget.apiService.fetchPublications();
       if (mode == RecallMode.daily) subjects = archive;
-      final questions = widget.sessionGenerator.generate(
-        subjects: subjects,
-        distractorPool: archive,
-      );
+      List<RecallQuestion> generate(Set<String> avoidSubjectIds) =>
+          widget.sessionGenerator.generate(
+            subjects: subjects,
+            distractorPool: archive,
+            avoidSubjectIds: avoidSubjectIds,
+          );
+      final questions = generate(const {});
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (questions.isEmpty) {
@@ -81,6 +84,8 @@ class _RecallScreenState extends State<RecallScreen> {
           builder: (context) => RecallSessionScreen(
             questions: questions,
             progressService: widget.progressService,
+            onRecallAgain: (previousSubjectIds) async =>
+                generate(previousSubjectIds),
           ),
         ),
       );

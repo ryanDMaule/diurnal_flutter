@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/recall_question.dart';
+import 'package:diurnul/screens/recall_session_screen.dart';
 
 void main() {
   final archive = List.generate(
@@ -102,6 +103,75 @@ void main() {
     }
     expect(correctPositions.length, greaterThan(1));
   });
+
+  test('uses the standard prompt for every question type', () {
+    final generator = RecallSessionGenerator(random: Random(3));
+    final expected = {
+      RecallQuestionType.wordToDefinition:
+          'Which definition best describes this word?',
+      RecallQuestionType.definitionToWord: 'Which word does this describe?',
+      RecallQuestionType.wordToSynonym: 'Which word is closest in meaning?',
+    };
+
+    for (final entry in expected.entries) {
+      final question = generator
+          .generate(
+            subjects: [archive.first],
+            distractorPool: archive,
+            enabledTypes: {entry.key},
+          )
+          .single;
+      expect(question.prompt, entry.value);
+    }
+  });
+
+  test('progress is proportional for five and shorter sessions', () {
+    expect(recallProgressValue(1, 5), 0.2);
+    expect(recallProgressValue(3, 5), 0.6);
+    expect(recallProgressValue(5, 5), 1);
+    expect(recallProgressValue(1, 1), 1);
+    expect(recallProgressValue(1, 2), 0.5);
+    expect(recallProgressValue(2, 2), 1);
+  });
+
+  test('avoids previous subjects when five alternatives exist', () {
+    final largerArchive = List.generate(
+      10,
+      (index) => _publication('larger-$index', index + 1, 'Larger$index'),
+    );
+    final previousIds = largerArchive.take(5).map((item) => item.id!).toSet();
+    final questions = RecallSessionGenerator(random: Random(5)).generate(
+      subjects: largerArchive,
+      distractorPool: largerArchive,
+      avoidSubjectIds: previousIds,
+    );
+
+    expect(
+      questions.every((question) => !previousIds.contains(question.subject.id)),
+      isTrue,
+    );
+  });
+
+  test(
+    'prefers unused subjects then safely repeats when the pool is small',
+    () {
+      final previousIds = archive.take(4).map((item) => item.id!).toSet();
+      final questions = RecallSessionGenerator(random: Random(5)).generate(
+        subjects: archive.take(5),
+        distractorPool: archive,
+        avoidSubjectIds: previousIds,
+      );
+
+      expect(questions, hasLength(5));
+      expect(questions.first.subject.id, 'archive-4');
+      expect(
+        questions
+            .skip(1)
+            .every((question) => previousIds.contains(question.subject.id)),
+        isTrue,
+      );
+    },
+  );
 }
 
 DailyPublication _publication(

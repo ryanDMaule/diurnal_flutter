@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/recall_question.dart';
 import '../services/recall_progress_service.dart';
@@ -10,11 +13,13 @@ class RecallSessionScreen extends StatefulWidget {
   const RecallSessionScreen({
     required this.questions,
     required this.progressService,
+    required this.onRecallAgain,
     super.key,
   });
 
   final List<RecallQuestion> questions;
   final RecallProgressService progressService;
+  final RecallAgainCallback onRecallAgain;
 
   @override
   State<RecallSessionScreen> createState() => _RecallSessionScreenState();
@@ -34,6 +39,11 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
       _selectedAnswer = answer;
       if (isCorrect) _correctAnswers++;
     });
+    if (isCorrect) {
+      unawaited(HapticFeedback.selectionClick());
+    } else {
+      unawaited(HapticFeedback.lightImpact());
+    }
     if (isCorrect) {
       try {
         await widget.progressService.markRecalled(_question.subject.id!);
@@ -58,6 +68,11 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
         builder: (context) => RecallResultScreen(
           correctAnswers: _correctAnswers,
           questionCount: widget.questions.length,
+          previousSubjectIds: widget.questions
+              .map((question) => question.subject.id!)
+              .toSet(),
+          progressService: widget.progressService,
+          onRecallAgain: widget.onRecallAgain,
         ),
       ),
     );
@@ -106,15 +121,24 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  key: const Key('recall-progress'),
-                  value: questionNumber / total,
-                  minHeight: 4,
-                  backgroundColor: AppColors.menuDivider.withValues(alpha: 0.5),
-                  valueColor: const AlwaysStoppedAnimation(
-                    AppColors.textSecondary,
+              TweenAnimationBuilder<double>(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                tween: Tween(end: recallProgressValue(questionNumber, total)),
+                builder: (context, value, child) => ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    key: const Key('recall-progress'),
+                    value: value,
+                    minHeight: 4,
+                    backgroundColor: AppColors.menuDivider.withValues(
+                      alpha: 0.5,
+                    ),
+                    valueColor: const AlwaysStoppedAnimation(
+                      AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -204,6 +228,9 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
     );
   }
 }
+
+double recallProgressValue(int questionNumber, int questionCount) =>
+    questionNumber / questionCount;
 
 class _AnswerChoice extends StatelessWidget {
   const _AnswerChoice({
