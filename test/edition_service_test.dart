@@ -9,10 +9,11 @@ import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
-  test('Original Library is the development default', () async {
+  test('Library is the canonical default', () async {
     final service = EditionService(storage: _MemoryEditionStorage());
-    expect(await service.loadSelectedEdition(), same(Editions.originalLibrary));
-    expect(Editions.all.first, same(Editions.originalLibrary));
+    expect(await service.loadSelectedEdition(), same(Editions.library));
+    expect(Editions.all.first, same(Editions.library));
+    expect(Editions.all, hasLength(5));
   });
 
   test('selection persists and restores in a fresh service instance', () async {
@@ -25,18 +26,26 @@ void main() {
     expect(restored, same(Editions.atrium));
   });
 
-  test('invalid selection safely falls back to Original Library', () async {
+  test('invalid selection safely falls back to Library', () async {
     final storage = _MemoryEditionStorage()..value = 'removed-edition';
     final restored = await EditionService(
       storage: storage,
     ).loadSelectedEdition();
-    expect(restored, same(Editions.originalLibrary));
+    expect(restored, same(Editions.library));
+  });
+
+  test('legacy Original Library selection migrates to Library', () async {
+    final storage = _MemoryEditionStorage()..value = 'original-library';
+    final restored = await EditionService(
+      storage: storage,
+    ).loadSelectedEdition();
+    expect(restored, same(Editions.library));
+    expect(storage.value, Editions.library.id);
   });
 
   test(
     'runtime treatment keeps tint and gradient independently configurable',
     () {
-      expect(Editions.library.usesLegacyTreatment, isFalse);
       expect(Editions.library.tintColor, const Color(0xFF000000));
       expect(Editions.library.tintOpacity, 0.48);
       expect(Editions.library.gradientColors, const [

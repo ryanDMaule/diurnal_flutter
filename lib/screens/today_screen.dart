@@ -34,7 +34,7 @@ class _TodayScreenState extends State<TodayScreen> {
   final BookmarkService _bookmarkService = BookmarkService();
   final EditionService _editionService = EditionService();
   DailyPublication publication = DailyPublication.localFallback;
-  Edition edition = Editions.originalLibrary;
+  Edition edition = Editions.library;
   bool isLoading = true;
   bool isOffline = false;
   bool isBookmarked = false;

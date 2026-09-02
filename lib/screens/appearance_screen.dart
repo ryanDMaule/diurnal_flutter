@@ -17,7 +17,7 @@ class AppearanceScreen extends StatefulWidget {
 }
 
 class _AppearanceScreenState extends State<AppearanceScreen> {
-  Edition selectedEdition = Editions.originalLibrary;
+  Edition selectedEdition = Editions.library;
 
   @override
   void initState() {

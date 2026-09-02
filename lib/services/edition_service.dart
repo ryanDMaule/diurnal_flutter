@@ -30,6 +30,10 @@ class EditionService {
 
   Future<Edition> loadSelectedEdition() async {
     final id = await _storage.read(_selectedEditionKey);
+    if (id == 'original-library') {
+      await _storage.write(_selectedEditionKey, Editions.library.id);
+      return Editions.library;
+    }
     return Editions.fromId(id);
   }
 

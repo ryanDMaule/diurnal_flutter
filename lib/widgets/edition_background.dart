@@ -16,18 +16,6 @@ class EditionBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (edition.usesLegacyTreatment) {
-      return Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(edition.backgroundAsset),
-            fit: imageFit,
-          ),
-        ),
-        child: child,
-      );
-    }
-
     return Stack(
       fit: StackFit.expand,
       children: [

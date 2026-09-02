@@ -6,7 +6,6 @@ class Edition {
     required this.name,
     required this.description,
     required this.backgroundAsset,
-    required this.usesLegacyTreatment,
     required this.tintColor,
     required this.tintOpacity,
     required this.gradientColors,
@@ -24,7 +23,6 @@ class Edition {
   final String name;
   final String description;
   final String backgroundAsset;
-  final bool usesLegacyTreatment;
   final Color tintColor;
   final double tintOpacity;
   final List<Color> gradientColors;
@@ -39,31 +37,11 @@ class Edition {
 }
 
 abstract final class Editions {
-  static const originalLibrary = Edition(
-    id: 'original-library',
-    name: 'Original Library',
-    description: 'The original Diurnus library treatment',
-    backgroundAsset: 'assets/images/background.png',
-    usesLegacyTreatment: true,
-    tintColor: Colors.transparent,
-    tintOpacity: 0,
-    gradientColors: [Colors.transparent, Colors.transparent],
-    gradientStops: [0, 1],
-    gradientBegin: Alignment.topCenter,
-    gradientEnd: Alignment.bottomCenter,
-    primaryTextColor: Color(0xFFD4D4D4),
-    secondaryTextColor: Color(0xFFD4D4D4),
-    mutedTextColor: Color(0x999D9D9D),
-    accentColor: Color(0xFFC8A363),
-    systemUiIconBrightness: Brightness.light,
-  );
-
   static const library = Edition(
     id: 'library',
     name: 'Library',
     description: 'A deep, antique reading room',
     backgroundAsset: 'assets/images/default.png',
-    usesLegacyTreatment: false,
     tintColor: Color(0xFF000000),
     tintOpacity: 0.48,
     gradientColors: [Color(0x10000000), Color(0xB5000000), Color(0xF2000000)],
@@ -82,7 +60,6 @@ abstract final class Editions {
     name: 'Atrium',
     description: 'Light, architectural and quietly warm',
     backgroundAsset: 'assets/images/library-white.png',
-    usesLegacyTreatment: false,
     tintColor: Color(0xFFFFF2DD),
     tintOpacity: 0.22,
     gradientColors: [Color(0x10FFF7EA), Color(0xB8F0D7CF), Color(0xF5E8CDC5)],
@@ -101,7 +78,6 @@ abstract final class Editions {
     name: 'Archive',
     description: 'Warm stone, bronze and old histories',
     backgroundAsset: 'assets/images/bust.png',
-    usesLegacyTreatment: false,
     tintColor: Color(0xFF5A321C),
     tintOpacity: 0.38,
     gradientColors: [Color(0x184A2B1C), Color(0xAA392317), Color(0xED1B120D)],
@@ -120,7 +96,6 @@ abstract final class Editions {
     name: 'Gallery',
     description: 'Expressive colour with an editorial calm',
     backgroundAsset: 'assets/images/vibrant.png',
-    usesLegacyTreatment: false,
     tintColor: Color(0xFF3B3C20),
     tintOpacity: 0.16,
     gradientColors: [Color(0x08343A25), Color(0x96333B20), Color(0xE9141C12)],
@@ -139,7 +114,6 @@ abstract final class Editions {
     name: 'Midnight',
     description: 'A quiet, celestial reading hour',
     backgroundAsset: 'assets/images/midnight.png',
-    usesLegacyTreatment: false,
     tintColor: Color(0xFF07111F),
     tintOpacity: 0.32,
     gradientColors: [Color(0x12132438), Color(0xA5070D18), Color(0xF003070E)],
@@ -153,17 +127,8 @@ abstract final class Editions {
     systemUiIconBrightness: Brightness.light,
   );
 
-  static const all = [
-    originalLibrary,
-    library,
-    atrium,
-    archive,
-    gallery,
-    midnight,
-  ];
+  static const all = [library, atrium, archive, gallery, midnight];
 
-  static Edition fromId(String? id) => all.firstWhere(
-    (edition) => edition.id == id,
-    orElse: () => originalLibrary,
-  );
+  static Edition fromId(String? id) =>
+      all.firstWhere((edition) => edition.id == id, orElse: () => library);
 }

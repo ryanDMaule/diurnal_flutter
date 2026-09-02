@@ -11,7 +11,7 @@ class PublicationView extends StatefulWidget {
     required this.publication,
     required this.isBookmarked,
     required this.onBookmarkToggle,
-    this.edition = Editions.originalLibrary,
+    this.edition = Editions.library,
     this.isBookmarkUpdating = false,
     this.isLoading = false,
     this.isOffline = false,
@@ -191,17 +191,11 @@ class _PublicationViewState extends State<PublicationView> {
                                         duration: const Duration(
                                           milliseconds: 150,
                                         ),
-                                        opacity:
-                                            selectedTab == label ||
-                                                !edition.usesLegacyTreatment
-                                            ? 1
-                                            : 0.5,
+                                        opacity: 1,
                                         child: Text(
                                           '${label[0].toUpperCase()}${label.substring(1)}',
                                           style: TextStyle(
                                             color: selectedTab == label
-                                                ? edition.primaryTextColor
-                                                : edition.usesLegacyTreatment
                                                 ? edition.primaryTextColor
                                                 : edition.mutedTextColor,
                                             fontFamily: 'Figtree',
@@ -220,9 +214,7 @@ class _PublicationViewState extends State<PublicationView> {
                                         width: selectedTab == label ? 22 : 0,
                                         height: 2,
                                         decoration: BoxDecoration(
-                                          color: edition.usesLegacyTreatment
-                                              ? const Color(0xFFC59A5B)
-                                              : edition.accentColor,
+                                          color: edition.accentColor,
                                           borderRadius: BorderRadius.circular(
                                             2,
                                           ),
@@ -309,12 +301,6 @@ class _PublicationViewState extends State<PublicationView> {
                                   size: 30,
                                   color: widget.isBookmarked
                                       ? edition.accentColor
-                                      : edition.usesLegacyTreatment
-                                      ? edition.primaryTextColor.withValues(
-                                          alpha: widget.onBookmarkToggle == null
-                                              ? 0.25
-                                              : 0.6,
-                                        )
                                       : edition.mutedTextColor.withValues(
                                           alpha: widget.onBookmarkToggle == null
                                               ? 0.45

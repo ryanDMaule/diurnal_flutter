@@ -26,7 +26,7 @@ class SavedPublicationScreen extends StatefulWidget {
 class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
   bool isBookmarked = true;
   bool isBookmarkUpdating = false;
-  Edition edition = Editions.originalLibrary;
+  Edition edition = Editions.library;
   late final EditionService _editionService;
 
   @override
