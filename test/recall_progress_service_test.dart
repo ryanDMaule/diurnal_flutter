@@ -103,6 +103,26 @@ void main() {
     expect(summary.fractionFor(RecallProgressState.recalled), 0);
   });
 
+  test('Unrecalled and To Revisit subject filters use exact states', () async {
+    final unseen = _publication('unseen');
+    final revisit = _publication('revisit');
+    final recalled = _publication('recalled');
+    await service.recordAnswer(revisit.id!, wasCorrect: false);
+    await service.recordAnswer(recalled.id!, wasCorrect: true);
+
+    final unrecalled = await service.publicationsInStates(
+      [unseen, revisit, recalled],
+      {RecallProgressState.unseen, RecallProgressState.revisit},
+    );
+    final toRevisit = await service.publicationsInStates(
+      [unseen, revisit, recalled],
+      {RecallProgressState.revisit},
+    );
+
+    expect(unrecalled.map((item) => item.id), ['unseen', 'revisit']);
+    expect(toRevisit.map((item) => item.id), ['revisit']);
+  });
+
   test('reading and distractor use do not change state', () async {
     final publication = _publication('read-only');
     expect(publication.word, 'Word read-only');

@@ -2,8 +2,6 @@ import 'dart:math';
 
 import 'daily_publication.dart';
 
-enum RecallMode { daily, lexicon }
-
 enum RecallQuestionType { wordToDefinition, definitionToWord, wordToSynonym }
 
 typedef RecallAgainCallback =
@@ -40,7 +38,9 @@ class RecallSessionGenerator {
     Set<String> avoidSubjectIds = const {},
   }) {
     final activeTypes = enabledTypes ?? RecallQuestionType.values.toSet();
-    final uniqueSubjects = _uniquePublications(subjects);
+    final uniqueSubjects = _uniquePublications(
+      subjects,
+    ).where((subject) => _hasCompatibleType(subject, activeTypes)).toList();
     final preferredSubjects =
         uniqueSubjects
             .where((publication) => !avoidSubjectIds.contains(publication.id))
@@ -65,6 +65,18 @@ class RecallSessionGenerator {
     }
 
     return List.unmodifiable(questions);
+  }
+
+  bool _hasCompatibleType(
+    DailyPublication subject,
+    Set<RecallQuestionType> enabledTypes,
+  ) {
+    if (enabledTypes.contains(RecallQuestionType.wordToDefinition) ||
+        enabledTypes.contains(RecallQuestionType.definitionToWord)) {
+      return true;
+    }
+    return enabledTypes.contains(RecallQuestionType.wordToSynonym) &&
+        subject.synonyms.any((value) => value.trim().isNotEmpty);
   }
 
   RecallQuestionType? _supportedType(

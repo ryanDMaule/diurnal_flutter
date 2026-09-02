@@ -5,6 +5,7 @@ import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/recall_settings_service.dart';
 import '../theme/colors.dart';
 import '../widgets/morphing_menu_button.dart';
 import 'archive_screen.dart';
@@ -19,6 +20,7 @@ class MenuScreen extends StatelessWidget {
     this.bookmarkService,
     this.editionService,
     this.recallProgressService,
+    this.recallSettingsService,
     super.key,
   });
 
@@ -26,6 +28,7 @@ class MenuScreen extends StatelessWidget {
   final BookmarkService? bookmarkService;
   final EditionService? editionService;
   final RecallProgressService? recallProgressService;
+  final RecallSettingsService? recallSettingsService;
 
   void _openDestination(BuildContext context, String title) {
     Navigator.of(context).push(
@@ -97,6 +100,7 @@ class MenuScreen extends StatelessWidget {
                             apiService: archiveApiService,
                             bookmarkService: bookmarkService,
                             progressService: recallProgressService,
+                            settingsService: recallSettingsService,
                           ),
                         ),
                       ),

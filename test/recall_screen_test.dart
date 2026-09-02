@@ -8,13 +8,16 @@ import 'package:http/testing.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/recall_question.dart';
+import 'package:diurnul/models/recall_settings.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/recall_result_screen.dart';
 import 'package:diurnul/screens/recall_screen.dart';
+import 'package:diurnul/screens/recall_settings_screen.dart';
 import 'package:diurnul/screens/recall_session_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
+import 'package:diurnul/services/recall_settings_service.dart';
 
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
@@ -53,6 +56,9 @@ void main() {
           archiveApiService: _apiReturning(archive),
           bookmarkService: bookmarkService,
           recallProgressService: progressService,
+          recallSettingsService: RecallSettingsService(
+            storage: _MemoryRecallSettingsStorage(),
+          ),
         ),
       ),
     );
@@ -62,15 +68,17 @@ void main() {
     await tester.tap(find.text('Recall'));
     await tester.pumpAndSettle();
     expect(find.byType(RecallScreen), findsOneWidget);
-    expect(find.text('Daily Recall'), findsOneWidget);
-    expect(find.text('My Lexicon Recall'), findsOneWidget);
+    expect(find.byKey(const Key('normal-recall')), findsOneWidget);
+    expect(find.text('Endless Recall'), findsOneWidget);
+    expect(find.text('Best · —'), findsOneWidget);
+    expect(find.text('My Lexicon Recall'), findsNothing);
   });
 
   testWidgets('Daily Recall starts with five unique Archive subjects', (
     tester,
   ) async {
     await _pumpLanding(tester, archive, bookmarkService, progressService);
-    await tester.tap(find.byKey(const Key('daily-recall')));
+    await tester.tap(find.byKey(const Key('normal-recall')));
     await tester.pumpAndSettle();
 
     final session = tester.widget<RecallSessionScreen>(
@@ -83,15 +91,38 @@ void main() {
     );
   });
 
+  testWidgets('Endless is unavailable and settings opens from the header', (
+    tester,
+  ) async {
+    await _pumpLanding(tester, archive, bookmarkService, progressService);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecallSessionScreen), findsNothing);
+
+    await tester.tap(find.byKey(const Key('recall-settings')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecallSettingsScreen), findsOneWidget);
+  });
+
   testWidgets(
     'My Lexicon uses only saved subjects and supports short sessions',
     (tester) async {
       await bookmarkService.save(archive[0]);
       await bookmarkService.save(archive[1]);
       await bookmarkService.save(archive[2]);
-      await _pumpLanding(tester, archive, bookmarkService, progressService);
+      await _pumpLanding(
+        tester,
+        archive,
+        bookmarkService,
+        progressService,
+        settings: RecallSettings.defaults.copyWith(
+          wordPool: RecallWordPool.myLexicon,
+        ),
+      );
 
-      await tester.tap(find.byKey(const Key('lexicon-recall')));
+      await tester.tap(find.byKey(const Key('normal-recall')));
       await tester.pumpAndSettle();
       final questions = tester
           .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -108,8 +139,16 @@ void main() {
 
   testWidgets('one saved word creates one question', (tester) async {
     await bookmarkService.save(archive.first);
-    await _pumpLanding(tester, archive, bookmarkService, progressService);
-    await tester.tap(find.byKey(const Key('lexicon-recall')));
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        wordPool: RecallWordPool.myLexicon,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
     await tester.pumpAndSettle();
 
     expect(
@@ -126,8 +165,16 @@ void main() {
     for (final publication in archive) {
       await bookmarkService.save(publication);
     }
-    await _pumpLanding(tester, archive, bookmarkService, progressService);
-    await tester.tap(find.byKey(const Key('lexicon-recall')));
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        wordPool: RecallWordPool.myLexicon,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
     await tester.pumpAndSettle();
 
     final questions = tester
@@ -145,37 +192,161 @@ void main() {
     );
   });
 
-  testWidgets(
-    'empty Lexicon shows its distinct minimal state without API use',
-    (tester) async {
-      var requests = 0;
-      final api = PublicationApiService(
-        client: MockClient((request) async {
-          requests++;
-          return http.Response('[]', 200);
-        }),
-      );
-      await _pumpLandingWithApi(tester, api, bookmarkService, progressService);
-      await tester.tap(find.byKey(const Key('lexicon-recall')));
-      await tester.pumpAndSettle();
+  testWidgets('empty Lexicon shows its distinct minimal state', (tester) async {
+    var requests = 0;
+    final api = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response('[]', 200);
+      }),
+    );
+    await _pumpLandingWithApi(
+      tester,
+      api,
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        wordPool: RecallWordPool.myLexicon,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Your Lexicon is empty'), findsOneWidget);
-      expect(find.text('Save words to practise them here.'), findsOneWidget);
-      expect(requests, 1);
-    },
-  );
+    expect(find.text('Your Lexicon is empty'), findsOneWidget);
+    expect(find.text('Save words to practise them here.'), findsOneWidget);
+    expect(requests, 1);
+  });
 
   testWidgets('API failure is distinct and offers Retry', (tester) async {
     final api = PublicationApiService(
       client: MockClient((request) async => http.Response('Error', 500)),
     );
     await _pumpLandingWithApi(tester, api, bookmarkService, progressService);
-    await tester.tap(find.byKey(const Key('daily-recall')));
+    await tester.tap(find.byKey(const Key('normal-recall')));
     await tester.pumpAndSettle();
 
     expect(find.text('Recall unavailable'), findsOneWidget);
     expect(find.byKey(const Key('retry-recall')), findsOneWidget);
     expect(find.text('Your Lexicon is empty'), findsNothing);
+  });
+
+  testWidgets('selected count and question types configure normal Recall', (
+    tester,
+  ) async {
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      settings: const RecallSettings(
+        wordPool: RecallWordPool.archive,
+        questionCount: 10,
+        enabledQuestionTypes: {RecallQuestionType.definitionToWord},
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+
+    final questions = tester
+        .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
+        .questions;
+    expect(questions, hasLength(6));
+    expect(
+      questions.every(
+        (question) => question.type == RecallQuestionType.definitionToWord,
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets('Unrecalled uses Unseen and Revisit but excludes Recalled', (
+    tester,
+  ) async {
+    await progressService.recordAnswer(archive[0].id!, wasCorrect: true);
+    await progressService.recordAnswer(archive[1].id!, wasCorrect: false);
+    await _pumpLanding(
+      tester,
+      archive.take(3).toList(),
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        wordPool: RecallWordPool.unrecalled,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+
+    final ids = tester
+        .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
+        .questions
+        .map((question) => question.subject.id)
+        .toSet();
+    expect(ids, {archive[1].id, archive[2].id});
+  });
+
+  testWidgets('To Revisit uses only Revisit subjects', (tester) async {
+    await progressService.recordAnswer(archive[0].id!, wasCorrect: true);
+    await progressService.recordAnswer(archive[1].id!, wasCorrect: false);
+    await _pumpLanding(
+      tester,
+      archive.take(3).toList(),
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        wordPool: RecallWordPool.revisit,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+
+    final questions = tester
+        .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
+        .questions;
+    expect(questions, hasLength(1));
+    expect(questions.single.subject.id, archive[1].id);
+  });
+
+  testWidgets('empty filtered pools show their dedicated states', (
+    tester,
+  ) async {
+    for (final publication in archive) {
+      await progressService.recordAnswer(publication.id!, wasCorrect: true);
+    }
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        wordPool: RecallWordPool.unrecalled,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+    expect(find.text('All caught up'), findsOneWidget);
+    expect(find.text('You\'ve recalled every published word.'), findsOneWidget);
+
+    final revisitSettings = RecallSettingsService(
+      storage: _MemoryRecallSettingsStorage(),
+    );
+    await revisitSettings.save(
+      RecallSettings.defaults.copyWith(wordPool: RecallWordPool.revisit),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecallScreen(
+          apiService: _apiReturning(archive),
+          bookmarkService: bookmarkService,
+          progressService: progressService,
+          settingsService: revisitSettings,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing to revisit'), findsOneWidget);
+    expect(find.text('Words you miss will appear here.'), findsOneWidget);
   });
 
   testWidgets(
@@ -230,7 +401,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('0 of 1 recalled'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('daily-recall')));
+    await tester.tap(find.byKey(const Key('normal-recall')));
     await tester.pumpAndSettle();
     final question = tester
         .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -312,7 +483,7 @@ void main() {
       progressService,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('daily-recall')));
+    await tester.tap(find.byKey(const Key('normal-recall')));
     await tester.pumpAndSettle();
 
     var session = tester.widget<RecallSessionScreen>(
@@ -354,8 +525,13 @@ void main() {
         largerArchive,
         bookmarkService,
         progressService,
+        settings: const RecallSettings(
+          wordPool: RecallWordPool.archive,
+          questionCount: 5,
+          enabledQuestionTypes: {RecallQuestionType.wordToDefinition},
+        ),
       );
-      await tester.tap(find.byKey(const Key('daily-recall')));
+      await tester.tap(find.byKey(const Key('normal-recall')));
       await tester.pumpAndSettle();
       final firstIds = tester
           .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -376,6 +552,12 @@ void main() {
       expect(secondSession.questions, hasLength(5));
       expect(secondIds.intersection(firstIds), isEmpty);
       expect(secondIds.every((id) => id!.startsWith('daily-')), isTrue);
+      expect(
+        secondSession.questions.every(
+          (question) => question.type == RecallQuestionType.wordToDefinition,
+        ),
+        isTrue,
+      );
     },
   );
 
@@ -386,8 +568,16 @@ void main() {
       for (final publication in saved) {
         await bookmarkService.save(publication);
       }
-      await _pumpLanding(tester, archive, bookmarkService, progressService);
-      await tester.tap(find.byKey(const Key('lexicon-recall')));
+      await _pumpLanding(
+        tester,
+        archive,
+        bookmarkService,
+        progressService,
+        settings: RecallSettings.defaults.copyWith(
+          wordPool: RecallWordPool.myLexicon,
+        ),
+      );
+      await tester.tap(find.byKey(const Key('normal-recall')));
       await tester.pumpAndSettle();
 
       await _completeSession(tester);
@@ -433,7 +623,7 @@ RecallQuestion _question(
     subject: publication,
     type: RecallQuestionType.wordToDefinition,
     content: publication.word,
-    prompt: 'Which definition belongs to this word?',
+    prompt: 'Which definition best describes this word?',
     answers: [correct, wrong],
     correctAnswer: correct,
   );
@@ -443,20 +633,27 @@ Future<void> _pumpLanding(
   WidgetTester tester,
   List<DailyPublication> archive,
   BookmarkService bookmarkService,
-  RecallProgressService progressService,
-) => _pumpLandingWithApi(
+  RecallProgressService progressService, {
+  RecallSettings settings = RecallSettings.defaults,
+}) => _pumpLandingWithApi(
   tester,
   _apiReturning(archive),
   bookmarkService,
   progressService,
+  settings: settings,
 );
 
 Future<void> _pumpLandingWithApi(
   WidgetTester tester,
   PublicationApiService apiService,
   BookmarkService bookmarkService,
-  RecallProgressService progressService,
-) async {
+  RecallProgressService progressService, {
+  RecallSettings settings = RecallSettings.defaults,
+}) async {
+  final settingsService = RecallSettingsService(
+    storage: _MemoryRecallSettingsStorage(),
+  );
+  await settingsService.save(settings);
   await _setTestSize(tester);
   await tester.pumpWidget(
     MaterialApp(
@@ -464,6 +661,7 @@ Future<void> _pumpLandingWithApi(
         apiService: apiService,
         bookmarkService: bookmarkService,
         progressService: progressService,
+        settingsService: settingsService,
         sessionGenerator: RecallSessionGenerator(random: Random(4)),
       ),
     ),
@@ -513,6 +711,18 @@ class _MemoryBookmarkStorage implements BookmarkStorage {
 }
 
 class _MemoryRecallProgressStorage implements RecallProgressStorage {
+  final Map<String, String> _values = {};
+
+  @override
+  Future<String?> read(String key) async => _values[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    _values[key] = value;
+  }
+}
+
+class _MemoryRecallSettingsStorage implements RecallSettingsStorage {
   final Map<String, String> _values = {};
 
   @override

@@ -130,6 +130,26 @@ class RecallProgressService {
     );
   }
 
+  Future<List<DailyPublication>> publicationsInStates(
+    Iterable<DailyPublication> publications,
+    Set<RecallProgressState> states,
+  ) async {
+    final attempted = await _publicationIds(_attemptedStorageKey);
+    final recalled = await recalledPublicationIds();
+    return List.unmodifiable(
+      publications.where((publication) {
+        final id = publication.id;
+        if (id == null) return false;
+        final state = recalled.contains(id)
+            ? RecallProgressState.recalled
+            : attempted.contains(id)
+            ? RecallProgressState.revisit
+            : RecallProgressState.unseen;
+        return states.contains(state);
+      }),
+    );
+  }
+
   Future<Set<String>> _publicationIds(String key) async {
     final stored = await _storage.read(key);
     if (stored == null || stored.isEmpty) return {};

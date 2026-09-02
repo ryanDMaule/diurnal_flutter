@@ -3,27 +3,33 @@ import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../models/recall_question.dart';
+import '../models/recall_settings.dart';
 import '../services/bookmark_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/recall_settings_service.dart';
 import '../theme/colors.dart';
 import 'recall_session_screen.dart';
+import 'recall_settings_screen.dart';
 
 class RecallScreen extends StatefulWidget {
   RecallScreen({
     PublicationApiService? apiService,
     BookmarkService? bookmarkService,
     RecallProgressService? progressService,
+    RecallSettingsService? settingsService,
     RecallSessionGenerator? sessionGenerator,
     super.key,
   }) : apiService = apiService ?? PublicationApiService(),
        bookmarkService = bookmarkService ?? BookmarkService(),
        progressService = progressService ?? RecallProgressService(),
+       settingsService = settingsService ?? RecallSettingsService(),
        sessionGenerator = sessionGenerator ?? RecallSessionGenerator();
 
   final PublicationApiService apiService;
   final BookmarkService bookmarkService;
   final RecallProgressService progressService;
+  final RecallSettingsService settingsService;
   final RecallSessionGenerator sessionGenerator;
 
   @override
@@ -37,7 +43,7 @@ class _RecallScreenState extends State<RecallScreen> {
   List<DailyPublication>? _archive;
   Future<List<DailyPublication>>? _archiveRequest;
   RecallProgressSummary? _progressSummary;
-  RecallMode? _retryMode;
+  bool _canRetry = false;
   String? _messageTitle;
   String? _messageBody;
 
@@ -90,36 +96,70 @@ class _RecallScreenState extends State<RecallScreen> {
     }
   }
 
-  Future<void> _start(RecallMode mode) async {
+  Future<void> _openSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            RecallSettingsScreen(settingsService: widget.settingsService),
+      ),
+    );
+  }
+
+  Future<void> _start() async {
     if (_isLoading) return;
     setState(() {
       _isLoading = true;
-      _retryMode = null;
+      _canRetry = false;
       _messageTitle = null;
       _messageBody = null;
     });
 
     try {
-      var subjects = <DailyPublication>[];
-      if (mode == RecallMode.lexicon) {
-        subjects = await widget.bookmarkService.getSavedPublications();
-        if (subjects.isEmpty) {
+      final settings = await widget.settingsService.load();
+      List<DailyPublication>? savedSubjects;
+      if (settings.wordPool == RecallWordPool.myLexicon) {
+        savedSubjects = await widget.bookmarkService.getSavedPublications();
+        if (savedSubjects.isEmpty) {
           if (!mounted) return;
+          final message = _emptyPoolMessage(settings.wordPool);
           setState(() {
             _isLoading = false;
-            _messageTitle = 'Your Lexicon is empty';
-            _messageBody = 'Save words to practise them here.';
+            _messageTitle = message.$1;
+            _messageBody = message.$2;
           });
           return;
         }
       }
-
       final archive = await _getArchive();
-      if (mode == RecallMode.daily) subjects = archive;
+      final subjects = switch (settings.wordPool) {
+        RecallWordPool.archive => archive,
+        RecallWordPool.myLexicon => savedSubjects!,
+        RecallWordPool.unrecalled =>
+          await widget.progressService.publicationsInStates(archive, {
+            RecallProgressState.unseen,
+            RecallProgressState.revisit,
+          }),
+        RecallWordPool.revisit =>
+          await widget.progressService.publicationsInStates(archive, {
+            RecallProgressState.revisit,
+          }),
+      };
+      if (subjects.isEmpty) {
+        if (!mounted) return;
+        final message = _emptyPoolMessage(settings.wordPool);
+        setState(() {
+          _isLoading = false;
+          _messageTitle = message.$1;
+          _messageBody = message.$2;
+        });
+        return;
+      }
       List<RecallQuestion> generate(Set<String> avoidSubjectIds) =>
           widget.sessionGenerator.generate(
             subjects: subjects,
             distractorPool: archive,
+            questionCount: settings.questionCount,
+            enabledTypes: settings.enabledQuestionTypes,
             avoidSubjectIds: avoidSubjectIds,
           );
       final questions = generate(const {});
@@ -149,7 +189,7 @@ class _RecallScreenState extends State<RecallScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _retryMode = mode;
+        _canRetry = true;
         _messageTitle = 'Recall unavailable';
         _messageBody = 'Please check your connection and try again.';
       });
@@ -176,14 +216,30 @@ class _RecallScreenState extends State<RecallScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Recall',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontFamily: 'NotoSerifJP',
-                  fontSize: 40,
-                  fontWeight: FontWeight.w400,
-                ),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Recall',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontFamily: 'NotoSerifJP',
+                        fontSize: 40,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('recall-settings'),
+                    tooltip: 'Recall Settings',
+                    onPressed: _openSettings,
+                    icon: const Icon(
+                      CupertinoIcons.slider_horizontal_3,
+                      color: AppColors.textSecondary,
+                      size: 23,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Text(
@@ -197,20 +253,19 @@ class _RecallScreenState extends State<RecallScreen> {
               ),
               const SizedBox(height: 38),
               _RecallCard(
-                key: const Key('daily-recall'),
+                key: const Key('normal-recall'),
                 icon: CupertinoIcons.book,
-                title: 'Daily Recall',
-                description:
-                    'A short session from words in the Diurnus Archive.',
-                onTap: () => _start(RecallMode.daily),
+                title: 'Recall',
+                description: 'A short session from your selected word pool.',
+                onTap: _start,
               ),
               const SizedBox(height: 18),
               _RecallCard(
-                key: const Key('lexicon-recall'),
-                icon: CupertinoIcons.bookmark,
-                title: 'My Lexicon Recall',
-                description: 'Practice the words you\'ve chosen to keep.',
-                onTap: () => _start(RecallMode.lexicon),
+                key: const Key('endless-recall'),
+                icon: CupertinoIcons.infinite,
+                title: 'Endless Recall',
+                description: 'Keep going until you miss one.',
+                footer: 'Best · —',
               ),
               const SizedBox(height: 30),
               _WordProgressSection(
@@ -253,11 +308,11 @@ class _RecallScreenState extends State<RecallScreen> {
                           fontWeight: FontWeight.w300,
                         ),
                       ),
-                      if (_retryMode != null) ...[
+                      if (_canRetry) ...[
                         const SizedBox(height: 10),
                         TextButton(
                           key: const Key('retry-recall'),
-                          onPressed: () => _start(_retryMode!),
+                          onPressed: _start,
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.textSecondary,
                           ),
@@ -280,14 +335,16 @@ class _RecallCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.description,
-    required this.onTap,
+    this.onTap,
+    this.footer,
     super.key,
   });
 
   final IconData icon;
   final String title;
   final String description;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final String? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -336,15 +393,29 @@ class _RecallCard extends StatelessWidget {
                       height: 1.45,
                     ),
                   ),
+                  if (footer != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      footer!,
+                      style: TextStyle(
+                        color: AppColors.textSecondary.withValues(alpha: 0.7),
+                        fontFamily: 'Figtree',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Icon(
-              CupertinoIcons.chevron_right,
-              color: AppColors.textPrimary.withValues(alpha: 0.6),
-              size: 18,
-            ),
+            if (onTap != null) ...[
+              const SizedBox(width: 12),
+              Icon(
+                CupertinoIcons.chevron_right,
+                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                size: 18,
+              ),
+            ],
           ],
         ),
       ),
@@ -483,3 +554,22 @@ TextStyle _progressDetailStyle({double fontSize = 14}) => TextStyle(
   fontSize: fontSize,
   fontWeight: FontWeight.w300,
 );
+
+(String, String) _emptyPoolMessage(RecallWordPool pool) => switch (pool) {
+  RecallWordPool.archive => (
+    'Recall unavailable',
+    'There are not enough published words yet.',
+  ),
+  RecallWordPool.myLexicon => (
+    'Your Lexicon is empty',
+    'Save words to practise them here.',
+  ),
+  RecallWordPool.unrecalled => (
+    'All caught up',
+    'You\'ve recalled every published word.',
+  ),
+  RecallWordPool.revisit => (
+    'Nothing to revisit',
+    'Words you miss will appear here.',
+  ),
+};

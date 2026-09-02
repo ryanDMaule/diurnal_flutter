@@ -51,6 +51,22 @@ void main() {
       generator.generate(subjects: archive, distractorPool: archive),
       hasLength(5),
     );
+    expect(
+      generator.generate(
+        subjects: archive,
+        distractorPool: archive,
+        questionCount: 10,
+      ),
+      hasLength(8),
+    );
+    expect(
+      generator.generate(
+        subjects: archive.take(3),
+        distractorPool: archive,
+        questionCount: 20,
+      ),
+      hasLength(3),
+    );
   });
 
   test('Lexicon subjects remain saved while Archive supplies distractors', () {
@@ -91,6 +107,28 @@ void main() {
       (question) => question.subject.id == 'plain',
     );
     expect(plainQuestion.type, isNot(RecallQuestionType.wordToSynonym));
+  });
+
+  test('synonym-only excludes subjects without synonyms', () {
+    final noSynonyms = _publication('plain', 9, 'Plain', synonyms: const []);
+    final questions = RecallSessionGenerator(random: Random(1)).generate(
+      subjects: [noSynonyms, ...archive.take(2)],
+      distractorPool: archive,
+      enabledTypes: {RecallQuestionType.wordToSynonym},
+      questionCount: 5,
+    );
+
+    expect(questions, hasLength(2));
+    expect(
+      questions.every(
+        (question) => question.type == RecallQuestionType.wordToSynonym,
+      ),
+      isTrue,
+    );
+    expect(
+      questions.any((question) => question.subject.id == 'plain'),
+      isFalse,
+    );
   });
 
   test('answer order is shuffled rather than fixed', () {
