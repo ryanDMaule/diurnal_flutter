@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
+import '../services/endless_recall_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
@@ -21,6 +22,7 @@ class MenuScreen extends StatelessWidget {
     this.editionService,
     this.recallProgressService,
     this.recallSettingsService,
+    this.endlessRecallService,
     super.key,
   });
 
@@ -29,6 +31,7 @@ class MenuScreen extends StatelessWidget {
   final EditionService? editionService;
   final RecallProgressService? recallProgressService;
   final RecallSettingsService? recallSettingsService;
+  final EndlessRecallService? endlessRecallService;
 
   void _openDestination(BuildContext context, String title) {
     Navigator.of(context).push(
@@ -101,6 +104,7 @@ class MenuScreen extends StatelessWidget {
                             bookmarkService: bookmarkService,
                             progressService: recallProgressService,
                             settingsService: recallSettingsService,
+                            endlessService: endlessRecallService,
                           ),
                         ),
                       ),

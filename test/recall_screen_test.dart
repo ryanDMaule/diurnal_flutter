@@ -10,11 +10,14 @@ import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/recall_question.dart';
 import 'package:diurnul/models/recall_settings.dart';
 import 'package:diurnul/screens/menu_screen.dart';
+import 'package:diurnul/screens/endless_recall_session_screen.dart';
+import 'package:diurnul/screens/endless_recall_result_screen.dart';
 import 'package:diurnul/screens/recall_result_screen.dart';
 import 'package:diurnul/screens/recall_screen.dart';
 import 'package:diurnul/screens/recall_settings_screen.dart';
 import 'package:diurnul/screens/recall_session_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
+import 'package:diurnul/services/endless_recall_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/services/recall_settings_service.dart';
@@ -59,6 +62,9 @@ void main() {
           recallSettingsService: RecallSettingsService(
             storage: _MemoryRecallSettingsStorage(),
           ),
+          endlessRecallService: EndlessRecallService(
+            storage: _MemoryEndlessRecallStorage(),
+          ),
         ),
       ),
     );
@@ -91,7 +97,7 @@ void main() {
     );
   });
 
-  testWidgets('Endless is unavailable and settings opens from the header', (
+  testWidgets('Endless is tappable and settings still opens from the header', (
     tester,
   ) async {
     await _pumpLanding(tester, archive, bookmarkService, progressService);
@@ -99,12 +105,174 @@ void main() {
 
     await tester.tap(find.byKey(const Key('endless-recall')));
     await tester.pumpAndSettle();
-    expect(find.byType(RecallSessionScreen), findsNothing);
+    expect(find.byType(EndlessRecallSessionScreen), findsOneWidget);
+    expect(find.byKey(const Key('endless-question-counter')), findsOneWidget);
+    expect(find.byKey(const Key('recall-progress')), findsNothing);
+    await tester.tap(find.byTooltip('Exit Endless Recall'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('recall-settings')));
     await tester.pumpAndSettle();
     expect(find.byType(RecallSettingsScreen), findsOneWidget);
   });
+
+  testWidgets('Endless refreshes completed personal best changes on Finish', (
+    tester,
+  ) async {
+    final endlessStorage = _MemoryEndlessRecallStorage();
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      endlessStorage: endlessStorage,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Best · —'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 3; index++) {
+      await _answerEndless(tester, correctly: true);
+    }
+    await _answerEndless(tester, correctly: false);
+    expect(find.text('New personal best'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('finish-endless')));
+    await tester.pumpAndSettle();
+    expect(find.text('Best · 3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 2; index++) {
+      await _answerEndless(tester, correctly: true);
+    }
+    await _answerEndless(tester, correctly: false);
+    await tester.tap(find.byKey(const Key('finish-endless')));
+    await tester.pumpAndSettle();
+    expect(find.text('Best · 3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 5; index++) {
+      await _answerEndless(tester, correctly: true);
+    }
+    await _answerEndless(tester, correctly: false);
+    await tester.tap(find.byKey(const Key('finish-endless')));
+    await tester.pumpAndSettle();
+    expect(find.text('Best · 5'), findsOneWidget);
+  });
+
+  testWidgets('Try Again refreshes final best and Back leaves best unchanged', (
+    tester,
+  ) async {
+    final endlessStorage = _MemoryEndlessRecallStorage()..value = 2;
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      endlessStorage: endlessStorage,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    await _answerEndless(tester, correctly: false);
+    await tester.tap(find.byKey(const Key('endless-try-again')));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 3; index++) {
+      await _answerEndless(tester, correctly: true);
+    }
+    await _answerEndless(tester, correctly: false);
+    await tester.tap(find.byKey(const Key('finish-endless')));
+    await tester.pumpAndSettle();
+    expect(find.text('Best · 3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    await _answerEndless(tester, correctly: true);
+    await tester.tap(find.byTooltip('Exit Endless Recall'));
+    await tester.pumpAndSettle();
+    expect(find.text('Best · 3'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Endless ignores normal settings and ends after first incorrect',
+    (tester) async {
+      await bookmarkService.save(archive.first);
+      await _pumpLanding(
+        tester,
+        archive,
+        bookmarkService,
+        progressService,
+        settings: RecallSettings.defaults.copyWith(
+          wordPool: RecallWordPool.myLexicon,
+          questionCount: 20,
+          enabledQuestionTypes: {RecallQuestionType.definitionToWord},
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('endless-recall')));
+      await tester.pumpAndSettle();
+
+      final firstContent = tester
+          .widget<Text>(find.byKey(const Key('endless-question-content')))
+          .data;
+      expect(archive.map((item) => item.word), contains(firstContent));
+      expect(find.textContaining('/'), findsNothing);
+
+      final session = tester.widget<EndlessRecallSessionScreen>(
+        find.byType(EndlessRecallSessionScreen),
+      );
+      final prompt = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((text) => text.data)
+          .firstWhere(
+            (text) =>
+                text == 'Which definition best describes this word?' ||
+                text == 'Which word does this describe?' ||
+                text == 'Which word is closest in meaning?',
+          );
+      final subject = archive.firstWhere(
+        (publication) =>
+            publication.word == firstContent ||
+            publication.definition == firstContent,
+      );
+      final correct = switch (prompt) {
+        'Which definition best describes this word?' => subject.definition,
+        'Which word does this describe?' => subject.word,
+        _ => subject.synonyms.first,
+      };
+      Finder? wrongChoice;
+      for (var index = 0; index < 4; index++) {
+        final choice = find.byKey(Key('endless-answer-$index'));
+        if (choice.evaluate().isEmpty) continue;
+        final answer = tester
+            .widget<Text>(
+              find.descendant(of: choice, matching: find.byType(Text)),
+            )
+            .data;
+        if (answer != correct) {
+          wrongChoice = choice;
+          break;
+        }
+      }
+      expect(wrongChoice, isNotNull);
+      await tester.tap(wrongChoice!);
+      await tester.pump();
+      expect(find.text('Finish run'), findsOneWidget);
+      expect(
+        find.byKey(const Key('endless-incorrect-feedback')),
+        findsOneWidget,
+      );
+      expect(session.archive, hasLength(archive.length));
+
+      await tester.tap(find.byKey(const Key('endless-continue')));
+      await tester.pumpAndSettle();
+      expect(find.byType(EndlessRecallResultScreen), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
+      expect(find.text('Endless complete'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'My Lexicon uses only saved subjects and supports short sessions',
@@ -339,6 +507,9 @@ void main() {
           bookmarkService: bookmarkService,
           progressService: progressService,
           settingsService: revisitSettings,
+          endlessService: EndlessRecallService(
+            storage: _MemoryEndlessRecallStorage(),
+          ),
         ),
       ),
     );
@@ -635,12 +806,14 @@ Future<void> _pumpLanding(
   BookmarkService bookmarkService,
   RecallProgressService progressService, {
   RecallSettings settings = RecallSettings.defaults,
+  EndlessRecallStorage? endlessStorage,
 }) => _pumpLandingWithApi(
   tester,
   _apiReturning(archive),
   bookmarkService,
   progressService,
   settings: settings,
+  endlessStorage: endlessStorage,
 );
 
 Future<void> _pumpLandingWithApi(
@@ -649,6 +822,7 @@ Future<void> _pumpLandingWithApi(
   BookmarkService bookmarkService,
   RecallProgressService progressService, {
   RecallSettings settings = RecallSettings.defaults,
+  EndlessRecallStorage? endlessStorage,
 }) async {
   final settingsService = RecallSettingsService(
     storage: _MemoryRecallSettingsStorage(),
@@ -663,6 +837,9 @@ Future<void> _pumpLandingWithApi(
         progressService: progressService,
         settingsService: settingsService,
         sessionGenerator: RecallSessionGenerator(random: Random(4)),
+        endlessService: EndlessRecallService(
+          storage: endlessStorage ?? _MemoryEndlessRecallStorage(),
+        ),
       ),
     ),
   );
@@ -732,4 +909,63 @@ class _MemoryRecallSettingsStorage implements RecallSettingsStorage {
   Future<void> write(String key, String value) async {
     _values[key] = value;
   }
+}
+
+class _MemoryEndlessRecallStorage implements EndlessRecallStorage {
+  int? value;
+
+  @override
+  Future<int?> readBest() async => value;
+
+  @override
+  Future<void> writeBest(int score) async => value = score;
+}
+
+Future<void> _answerEndless(
+  WidgetTester tester, {
+  required bool correctly,
+}) async {
+  final content = tester
+      .widget<Text>(find.byKey(const Key('endless-question-content')))
+      .data!;
+  final prompt = tester
+      .widgetList<Text>(find.byType(Text))
+      .map((text) => text.data)
+      .firstWhere(
+        (text) =>
+            text == 'Which definition best describes this word?' ||
+            text == 'Which word does this describe?' ||
+            text == 'Which word is closest in meaning?',
+      );
+  final session = tester.widget<EndlessRecallSessionScreen>(
+    find.byType(EndlessRecallSessionScreen),
+  );
+  final subject = session.archive.firstWhere(
+    (publication) =>
+        publication.word == content || publication.definition == content,
+  );
+  final correctAnswer = switch (prompt) {
+    'Which definition best describes this word?' => subject.definition,
+    'Which word does this describe?' => subject.word,
+    _ => subject.synonyms.first,
+  };
+  Finder? choice;
+  for (var index = 0; index < 4; index++) {
+    final candidate = find.byKey(Key('endless-answer-$index'));
+    if (candidate.evaluate().isEmpty) continue;
+    final answer = tester
+        .widget<Text>(
+          find.descendant(of: candidate, matching: find.byType(Text)),
+        )
+        .data;
+    if ((answer == correctAnswer) == correctly) {
+      choice = candidate;
+      break;
+    }
+  }
+  expect(choice, isNotNull);
+  await tester.tap(choice!);
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('endless-continue')));
+  await tester.pumpAndSettle();
 }

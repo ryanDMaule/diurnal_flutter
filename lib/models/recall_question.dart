@@ -67,6 +67,30 @@ class RecallSessionGenerator {
     return List.unmodifiable(questions);
   }
 
+  RecallQuestion? generateQuestion({
+    required DailyPublication subject,
+    required Iterable<DailyPublication> distractorPool,
+    Set<RecallQuestionType>? enabledTypes,
+  }) {
+    final activeTypes = enabledTypes ?? RecallQuestionType.values.toSet();
+    final supportedTypes =
+        RecallQuestionType.values
+            .where(
+              (type) =>
+                  activeTypes.contains(type) &&
+                  (type != RecallQuestionType.wordToSynonym ||
+                      subject.synonyms.any((value) => value.trim().isNotEmpty)),
+            )
+            .toList()
+          ..shuffle(_random);
+    if (supportedTypes.isEmpty) return null;
+    return _buildQuestion(
+      subject,
+      supportedTypes.first,
+      _uniquePublications(distractorPool),
+    );
+  }
+
   bool _hasCompatibleType(
     DailyPublication subject,
     Set<RecallQuestionType> enabledTypes,
@@ -148,6 +172,41 @@ class RecallSessionGenerator {
       prompt: prompt,
       answers: List.unmodifiable(answers),
       correctAnswer: correct,
+    );
+  }
+}
+
+class EndlessRecallQuestionCycle {
+  EndlessRecallQuestionCycle({
+    required Iterable<DailyPublication> publications,
+    required this.generator,
+    Random? random,
+  }) : _publications = _uniquePublications(publications),
+       _random = random ?? Random();
+
+  final List<DailyPublication> _publications;
+  final RecallSessionGenerator generator;
+  final Random _random;
+  final List<DailyPublication> _remaining = [];
+  String? _lastSubjectId;
+
+  int get eligibleSubjectCount => _publications.length;
+
+  RecallQuestion? next() {
+    if (_publications.isEmpty) return null;
+    if (_remaining.isEmpty) {
+      _remaining.addAll(_publications..shuffle(_random));
+      if (_remaining.length > 1 && _remaining.first.id == _lastSubjectId) {
+        final first = _remaining.removeAt(0);
+        _remaining.add(first);
+      }
+    }
+    final subject = _remaining.removeAt(0);
+    _lastSubjectId = subject.id;
+    return generator.generateQuestion(
+      subject: subject,
+      distractorPool: _publications,
+      enabledTypes: RecallQuestionType.values.toSet(),
     );
   }
 }

@@ -5,10 +5,12 @@ import '../models/daily_publication.dart';
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
 import '../services/bookmark_service.dart';
+import '../services/endless_recall_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/colors.dart';
+import 'endless_recall_session_screen.dart';
 import 'recall_session_screen.dart';
 import 'recall_settings_screen.dart';
 
@@ -18,18 +20,21 @@ class RecallScreen extends StatefulWidget {
     BookmarkService? bookmarkService,
     RecallProgressService? progressService,
     RecallSettingsService? settingsService,
+    EndlessRecallService? endlessService,
     RecallSessionGenerator? sessionGenerator,
     super.key,
   }) : apiService = apiService ?? PublicationApiService(),
        bookmarkService = bookmarkService ?? BookmarkService(),
        progressService = progressService ?? RecallProgressService(),
        settingsService = settingsService ?? RecallSettingsService(),
+       endlessService = endlessService ?? EndlessRecallService(),
        sessionGenerator = sessionGenerator ?? RecallSessionGenerator();
 
   final PublicationApiService apiService;
   final BookmarkService bookmarkService;
   final RecallProgressService progressService;
   final RecallSettingsService settingsService;
+  final EndlessRecallService endlessService;
   final RecallSessionGenerator sessionGenerator;
 
   @override
@@ -46,11 +51,23 @@ class _RecallScreenState extends State<RecallScreen> {
   bool _canRetry = false;
   String? _messageTitle;
   String? _messageBody;
+  int? _endlessBest;
+  bool _retryStartsEndless = false;
 
   @override
   void initState() {
     super.initState();
     _loadProgress();
+    _loadEndlessBest();
+  }
+
+  Future<void> _loadEndlessBest() async {
+    try {
+      final best = await widget.endlessService.personalBest();
+      if (mounted) setState(() => _endlessBest = best);
+    } catch (error) {
+      debugPrint('Error loading Endless Recall best: $error');
+    }
   }
 
   Future<List<DailyPublication>> _getArchive() {
@@ -112,6 +129,7 @@ class _RecallScreenState extends State<RecallScreen> {
       _canRetry = false;
       _messageTitle = null;
       _messageBody = null;
+      _retryStartsEndless = false;
     });
 
     try {
@@ -196,6 +214,64 @@ class _RecallScreenState extends State<RecallScreen> {
     }
   }
 
+  Future<void> _startEndless() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _canRetry = false;
+      _messageTitle = null;
+      _messageBody = null;
+      _retryStartsEndless = true;
+    });
+    try {
+      final archive = await _getArchive();
+      final eligible = archive
+          .where((publication) => publication.id != null)
+          .toList();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (eligible.isEmpty) {
+        setState(() {
+          _messageTitle = 'Endless Recall unavailable';
+          _messageBody = 'There are no published words to recall yet.';
+        });
+        return;
+      }
+      final probe = widget.sessionGenerator.generateQuestion(
+        subject: eligible.first,
+        distractorPool: archive,
+      );
+      if (probe == null) {
+        setState(() {
+          _messageTitle = 'Endless Recall unavailable';
+          _messageBody = 'There are no valid published questions yet.';
+        });
+        return;
+      }
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => EndlessRecallSessionScreen(
+            archive: List.unmodifiable(eligible),
+            generator: widget.sessionGenerator,
+            progressService: widget.progressService,
+            endlessService: widget.endlessService,
+            onFinished: _loadEndlessBest,
+          ),
+        ),
+      );
+      await Future.wait([_refreshProgress(), _loadEndlessBest()]);
+    } catch (error) {
+      debugPrint('Error preparing Endless Recall: $error');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _canRetry = true;
+        _messageTitle = 'Endless Recall unavailable';
+        _messageBody = 'Please check your connection and try again.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -265,7 +341,8 @@ class _RecallScreenState extends State<RecallScreen> {
                 icon: CupertinoIcons.infinite,
                 title: 'Endless Recall',
                 description: 'Keep going until you miss one.',
-                footer: 'Best · —',
+                footer: 'Best · ${_endlessBest ?? '—'}',
+                onTap: _startEndless,
               ),
               const SizedBox(height: 30),
               _WordProgressSection(
@@ -312,7 +389,9 @@ class _RecallScreenState extends State<RecallScreen> {
                         const SizedBox(height: 10),
                         TextButton(
                           key: const Key('retry-recall'),
-                          onPressed: _start,
+                          onPressed: _retryStartsEndless
+                              ? _startEndless
+                              : _start,
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.textSecondary,
                           ),
