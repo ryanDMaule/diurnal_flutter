@@ -4,11 +4,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
+import '../services/archive_access.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
+import '../services/entitlement_service.dart';
 import '../services/publication_api_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/entitlement_scope.dart';
 import 'archive_calendar_screen.dart';
+import 'pro_screen.dart';
 import 'saved_publication_screen.dart';
 
 List<DailyPublication> sortArchivePublications(
@@ -42,6 +46,7 @@ class ArchiveScreen extends StatefulWidget {
     PublicationApiService? apiService,
     BookmarkService? bookmarkService,
     EditionService? editionService,
+    this.entitlementController,
     super.key,
   }) : apiService = apiService ?? PublicationApiService(),
        bookmarkService = bookmarkService ?? BookmarkService(),
@@ -50,6 +55,7 @@ class ArchiveScreen extends StatefulWidget {
   final PublicationApiService apiService;
   final BookmarkService bookmarkService;
   final EditionService editionService;
+  final EntitlementController? entitlementController;
 
   @override
   State<ArchiveScreen> createState() => _ArchiveScreenState();
@@ -88,7 +94,29 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
   }
 
+  EntitlementController? _entitlementController() =>
+      widget.entitlementController ??
+      EntitlementScope.maybeControllerOf(context);
+
+  bool _isAccessible(DailyPublication publication) =>
+      ArchiveAccess.isAccessible(
+        publication,
+        _publications,
+        isPro: _entitlementController()?.isPro ?? false,
+      );
+
   Future<void> _openPublication(DailyPublication publication) async {
+    if (!_isAccessible(publication)) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => ProScreen(
+            entitlementController: _entitlementController(),
+            backTooltip: 'Back to Archive',
+          ),
+        ),
+      );
+      return;
+    }
     final isBookmarked = await widget.bookmarkService.isSaved(publication.id);
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -224,6 +252,11 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       );
     }
 
+    final accessibleIds = ArchiveAccess.accessiblePublicationIds(
+      _publications,
+      isPro: _entitlementController()?.isPro ?? false,
+    );
+
     final sections = <String, List<DailyPublication>>{};
     for (final publication in _publications) {
       final heading = archiveMonthHeading(publication.publicationDate!);
@@ -252,6 +285,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           for (final publication in section.value)
             _ArchiveRow(
               publication: publication,
+              isLocked: !accessibleIds.contains(publication.id),
               onTap: () => _openPublication(publication),
             ),
           SizedBox(height: 22),
@@ -262,11 +296,16 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 }
 
 class _ArchiveRow extends StatelessWidget {
-  _ArchiveRow({required this.publication, required this.onTap});
+  _ArchiveRow({
+    required this.publication,
+    required this.isLocked,
+    required this.onTap,
+  });
 
   static double height = 118;
 
   final DailyPublication publication;
+  final bool isLocked;
   final VoidCallback onTap;
 
   @override
@@ -331,7 +370,7 @@ class _ArchiveRow extends StatelessWidget {
                       style: TextStyle(
                         color: InterfaceThemeScope.maybePaletteOf(
                           context,
-                        ).primary,
+                        ).primary.withValues(alpha: isLocked ? 0.64 : 1),
                         fontFamily: 'NotoSerifJP',
                         fontSize: 23,
                         height: 1.15,
@@ -353,21 +392,47 @@ class _ArchiveRow extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 5),
-                    Text(
-                      publication.definition,
-                      key: Key('archive-definition-${publication.id}'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).primary.withValues(alpha: 0.58),
-                        fontFamily: 'Figtree',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w300,
-                        height: 1.25,
+                    if (isLocked)
+                      Row(
+                        key: Key('archive-lock-${publication.id}'),
+                        children: [
+                          Icon(
+                            CupertinoIcons.lock,
+                            size: 12,
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).accent.withValues(alpha: 0.72),
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Diurnus Pro',
+                            style: TextStyle(
+                              color: InterfaceThemeScope.maybePaletteOf(
+                                context,
+                              ).accent.withValues(alpha: 0.72),
+                              fontFamily: 'Figtree',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        publication.definition,
+                        key: Key('archive-definition-${publication.id}'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).primary.withValues(alpha: 0.58),
+                          fontFamily: 'Figtree',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w300,
+                          height: 1.25,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

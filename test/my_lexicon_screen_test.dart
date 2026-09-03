@@ -3,9 +3,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
+import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/my_lexicon_screen.dart';
+import 'package:diurnul/screens/pro_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
+import 'package:diurnul/services/entitlement_service.dart';
+import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
   late _MemoryBookmarkStorage storage;
@@ -33,17 +37,23 @@ void main() {
   });
 
   testWidgets(
-    'loads saved publications and opens a snapshot without fetching',
+    'Free users can open an old saved publication without Archive gating',
     (tester) async {
       await service.save(diurnal);
       await tester.binding.setSurfaceSize(const Size(700, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
+      final entitlementController = EntitlementController(
+        EntitlementService(storage: _MemoryEntitlementStorage()),
+      );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: MyLexiconScreen(
-            bookmarkService: service,
-            editionService: editionService,
+        EntitlementScope(
+          notifier: entitlementController,
+          child: MaterialApp(
+            home: MyLexiconScreen(
+              bookmarkService: service,
+              editionService: editionService,
+            ),
           ),
         ),
       );
@@ -56,6 +66,8 @@ void main() {
       expect(find.text('ADJECTIVE'), findsOneWidget);
       expect(find.text('Definition for Diurnal'), findsOneWidget);
       expect(find.text('#2'), findsOneWidget);
+      expect(entitlementController.tier, SubscriptionTier.free);
+      expect(find.byType(ProScreen), findsNothing);
     },
   );
 
@@ -148,4 +160,12 @@ class _MemoryEditionStorage implements EditionStorage {
   Future<void> write(String key, String value) async {
     this.value = value;
   }
+}
+
+class _MemoryEntitlementStorage implements EntitlementStorage {
+  @override
+  Future<String?> readTier() async => SubscriptionTier.free.name;
+
+  @override
+  Future<void> writeTier(String tier) async {}
 }

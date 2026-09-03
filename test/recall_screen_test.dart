@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/recall_question.dart';
 import 'package:diurnul/models/recall_settings.dart';
+import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/endless_recall_session_screen.dart';
 import 'package:diurnul/screens/endless_recall_result_screen.dart';
@@ -20,10 +21,12 @@ import 'package:diurnul/screens/recall_settings_screen.dart';
 import 'package:diurnul/screens/recall_session_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/endless_recall_service.dart';
+import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/match_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/services/recall_settings_service.dart';
+import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
@@ -129,6 +132,43 @@ void main() {
       session.questions.map((question) => question.subject.id).toSet(),
       hasLength(5),
     );
+  });
+
+  testWidgets('Free entitlement does not truncate Recall archive data', (
+    tester,
+  ) async {
+    final entitlementController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      EntitlementScope(
+        notifier: entitlementController,
+        child: MaterialApp(
+          home: RecallScreen(
+            apiService: _apiReturning(archive),
+            bookmarkService: bookmarkService,
+            progressService: progressService,
+            settingsService: RecallSettingsService(
+              storage: _MemoryRecallSettingsStorage(),
+            ),
+            endlessService: EndlessRecallService(
+              storage: _MemoryEndlessRecallStorage(),
+            ),
+            matchService: MatchService(storage: _MemoryMatchStorage()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(entitlementController.tier, SubscriptionTier.free);
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    final session = tester.widget<EndlessRecallSessionScreen>(
+      find.byType(EndlessRecallSessionScreen),
+    );
+    expect(session.archive, hasLength(archive.length));
   });
 
   testWidgets(
@@ -1048,6 +1088,14 @@ class _MemoryBookmarkStorage implements BookmarkStorage {
   Future<void> write(String key, String value) async {
     _values[key] = value;
   }
+}
+
+class _MemoryEntitlementStorage implements EntitlementStorage {
+  @override
+  Future<String?> readTier() async => SubscriptionTier.free.name;
+
+  @override
+  Future<void> writeTier(String tier) async {}
 }
 
 class _MemoryRecallProgressStorage implements RecallProgressStorage {

@@ -10,9 +10,14 @@ import '../theme/interface_theme.dart';
 import '../widgets/entitlement_scope.dart';
 
 class ProScreen extends StatelessWidget {
-  ProScreen({this.entitlementController, super.key});
+  ProScreen({
+    this.entitlementController,
+    this.backTooltip = 'Back to menu',
+    super.key,
+  });
 
   final EntitlementController? entitlementController;
+  final String backTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -20,15 +25,17 @@ class ProScreen extends StatelessWidget {
         entitlementController ?? EntitlementScope.controllerOf(context);
     return ListenableBuilder(
       listenable: controller,
-      builder: (context, child) => _ProContent(controller: controller),
+      builder: (context, child) =>
+          _ProContent(controller: controller, backTooltip: backTooltip),
     );
   }
 }
 
 class _ProContent extends StatelessWidget {
-  const _ProContent({required this.controller});
+  const _ProContent({required this.controller, required this.backTooltip});
 
   final EntitlementController controller;
+  final String backTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +53,7 @@ class _ProContent extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      tooltip: 'Back to menu',
+                      tooltip: backTooltip,
                       onPressed: () => Navigator.of(context).pop(),
                       icon: Icon(
                         CupertinoIcons.back,

@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
+import '../services/archive_access.dart';
 import '../services/edition_service.dart';
+import '../services/entitlement_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/entitlement_scope.dart';
+import 'pro_screen.dart';
 import 'saved_publication_screen.dart';
 
 class ArchiveCalendarScreen extends StatefulWidget {
@@ -14,12 +18,14 @@ class ArchiveCalendarScreen extends StatefulWidget {
     required this.publications,
     required this.bookmarkService,
     required this.editionService,
+    this.entitlementController,
     super.key,
   });
 
   final List<DailyPublication> publications;
   final BookmarkService bookmarkService;
   final EditionService editionService;
+  final EntitlementController? entitlementController;
 
   @override
   State<ArchiveCalendarScreen> createState() => _ArchiveCalendarScreenState();
@@ -51,6 +57,17 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
   bool get _canGoPrevious => _visibleMonth.isAfter(_earliestMonth);
   bool get _canGoNext => _visibleMonth.isBefore(_newestMonth);
 
+  EntitlementController? _entitlementController() =>
+      widget.entitlementController ??
+      EntitlementScope.maybeControllerOf(context);
+
+  bool _isAccessible(DailyPublication publication) =>
+      ArchiveAccess.isAccessible(
+        publication,
+        widget.publications,
+        isPro: _entitlementController()?.isPro ?? false,
+      );
+
   void _showPreviousMonth() {
     if (!_canGoPrevious) return;
     setState(() {
@@ -66,6 +83,17 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
   }
 
   Future<void> _openPublication(DailyPublication publication) async {
+    if (!_isAccessible(publication)) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => ProScreen(
+            entitlementController: _entitlementController(),
+            backTooltip: 'Back to Calendar',
+          ),
+        ),
+      );
+      return;
+    }
     final isBookmarked = await widget.bookmarkService.isSaved(publication.id);
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -184,9 +212,12 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
                     day,
                   );
                   final publication = _publicationsByDate[_dateKey(date)];
+                  final isLocked =
+                      publication != null && !_isAccessible(publication);
                   return _CalendarDay(
                     date: date,
                     publication: publication,
+                    isLocked: isLocked,
                     onTap: publication == null
                         ? null
                         : () => _openPublication(publication),
@@ -233,11 +264,13 @@ class _CalendarDay extends StatelessWidget {
   _CalendarDay({
     required this.date,
     required this.publication,
+    required this.isLocked,
     required this.onTap,
   });
 
   final DateTime date;
   final DailyPublication? publication;
+  final bool isLocked;
   final VoidCallback? onTap;
 
   @override
@@ -268,7 +301,9 @@ class _CalendarDay extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).accent.withValues(alpha: isLocked ? 0.38 : 1),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -287,7 +322,8 @@ class _CalendarDay extends StatelessWidget {
       button: true,
       label:
           '${date.day} ${_spokenMonth(date.month)} ${date.year}, '
-          '${publication!.word}',
+          '${publication!.word}'
+          '${isLocked ? ', locked, Diurnus Pro' : ''}',
       child: InkWell(
         key: Key('calendar-day-$dateId'),
         onTap: onTap,

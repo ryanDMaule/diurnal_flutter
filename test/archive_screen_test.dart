@@ -8,9 +8,14 @@ import 'package:http/testing.dart';
 
 import 'package:diurnul/screens/archive_screen.dart';
 import 'package:diurnul/screens/menu_screen.dart';
+import 'package:diurnul/screens/pro_screen.dart';
+import 'package:diurnul/screens/saved_publication_screen.dart';
+import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
+import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
+import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
@@ -172,24 +177,88 @@ void main() {
       expect(await bookmarkService.isSaved('history'), isTrue);
     },
   );
+
+  testWidgets('Free gates the sixth-newest row and Pro opens it', (
+    tester,
+  ) async {
+    final controller = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    final publications = [
+      for (var day = 1; day <= 7; day++)
+        _publication('day-$day', day, 'Word $day', '2026-09-0$day'),
+    ];
+    await _pumpArchive(
+      tester,
+      _apiReturning(publications),
+      bookmarkService,
+      editionService,
+      entitlementController: controller,
+    );
+
+    expect(find.byKey(const Key('archive-lock-day-3')), findsNothing);
+    expect(find.byKey(const Key('archive-lock-day-2')), findsOneWidget);
+    expect(find.byKey(const Key('archive-definition-day-2')), findsNothing);
+    expect(find.text('Diurnus Pro'), findsWidgets);
+
+    await tester.ensureVisible(find.byKey(const Key('archive-row-day-7')));
+    await tester.tap(find.byKey(const Key('archive-row-day-7')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SavedPublicationScreen), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Archive'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('archive-row-day-3')));
+    await tester.tap(find.byKey(const Key('archive-row-day-3')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SavedPublicationScreen), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Archive'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('archive-row-day-2')));
+    await tester.tap(find.byKey(const Key('archive-row-day-2')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProScreen), findsOneWidget);
+    expect(find.byType(SavedPublicationScreen), findsNothing);
+    await tester.tap(find.byTooltip('Back to Archive'));
+    await tester.pumpAndSettle();
+
+    await controller.update(SubscriptionTier.pro);
+    await tester.pump();
+    expect(find.byKey(const Key('archive-lock-day-2')), findsNothing);
+    await tester.ensureVisible(find.byKey(const Key('archive-row-day-2')));
+    await tester.tap(find.byKey(const Key('archive-row-day-2')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SavedPublicationScreen), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Archive'));
+    await tester.pumpAndSettle();
+
+    await controller.update(SubscriptionTier.free);
+    await tester.pump();
+    expect(find.byKey(const Key('archive-lock-day-2')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpArchive(
   WidgetTester tester,
   PublicationApiService apiService,
   BookmarkService bookmarkService,
-  EditionService editionService,
-) async {
+  EditionService editionService, {
+  EntitlementController? entitlementController,
+}) async {
   await tester.binding.setSurfaceSize(const Size(700, 1000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(
-    MaterialApp(
-      home: ArchiveScreen(
-        apiService: apiService,
-        bookmarkService: bookmarkService,
-        editionService: editionService,
-      ),
+  final app = MaterialApp(
+    home: ArchiveScreen(
+      apiService: apiService,
+      bookmarkService: bookmarkService,
+      editionService: editionService,
     ),
+  );
+  await tester.pumpWidget(
+    entitlementController == null
+        ? app
+        : EntitlementScope(notifier: entitlementController, child: app),
   );
   await tester.pumpAndSettle();
 }
@@ -243,5 +312,17 @@ class _MemoryEditionStorage implements EditionStorage {
   @override
   Future<void> write(String key, String value) async {
     this.value = value;
+  }
+}
+
+class _MemoryEntitlementStorage implements EntitlementStorage {
+  String? value;
+
+  @override
+  Future<String?> readTier() async => value;
+
+  @override
+  Future<void> writeTier(String tier) async {
+    value = tier;
   }
 }

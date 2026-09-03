@@ -6,11 +6,16 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
+import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/archive_calendar_screen.dart';
 import 'package:diurnul/screens/archive_screen.dart';
+import 'package:diurnul/screens/pro_screen.dart';
+import 'package:diurnul/screens/saved_publication_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
+import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
+import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
   late BookmarkService bookmarkService;
@@ -144,6 +149,47 @@ void main() {
     expect(node.label, contains('7 September 2026, Apocryphal'));
     semantics.dispose();
   });
+
+  testWidgets('calendar gates old dates for Free and opens them for Pro', (
+    tester,
+  ) async {
+    final controller = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    final history = [
+      for (var day = 1; day <= 7; day++)
+        _publication('day-$day', day, 'Word $day', 2026, 9, day),
+    ];
+    await _pumpCalendar(
+      tester,
+      history,
+      bookmarkService,
+      editionService,
+      entitlementController: controller,
+    );
+
+    expect(
+      find.byKey(const Key('publication-indicator-2026-09-01')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('calendar-day-2026-09-07')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SavedPublicationScreen), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Calendar'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calendar-day-2026-09-01')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProScreen), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Calendar'));
+    await tester.pumpAndSettle();
+
+    await controller.update(SubscriptionTier.pro);
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('calendar-day-2026-09-01')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SavedPublicationScreen), findsOneWidget);
+  });
 }
 
 IconButton _iconButton(WidgetTester tester, Key key) =>
@@ -153,17 +199,21 @@ Future<void> _pumpCalendar(
   WidgetTester tester,
   List<DailyPublication> publications,
   BookmarkService bookmarkService,
-  EditionService editionService,
-) async {
+  EditionService editionService, {
+  EntitlementController? entitlementController,
+}) async {
   await _setTestSize(tester);
-  await tester.pumpWidget(
-    MaterialApp(
-      home: ArchiveCalendarScreen(
-        publications: publications,
-        bookmarkService: bookmarkService,
-        editionService: editionService,
-      ),
+  final app = MaterialApp(
+    home: ArchiveCalendarScreen(
+      publications: publications,
+      bookmarkService: bookmarkService,
+      editionService: editionService,
     ),
+  );
+  await tester.pumpWidget(
+    entitlementController == null
+        ? app
+        : EntitlementScope(notifier: entitlementController, child: app),
   );
   await tester.pumpAndSettle();
 }
@@ -215,5 +265,17 @@ class _MemoryEditionStorage implements EditionStorage {
   @override
   Future<void> write(String key, String value) async {
     this.value = value;
+  }
+}
+
+class _MemoryEntitlementStorage implements EntitlementStorage {
+  String? value;
+
+  @override
+  Future<String?> readTier() async => value;
+
+  @override
+  Future<void> writeTier(String tier) async {
+    value = tier;
   }
 }
