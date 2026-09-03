@@ -5,6 +5,7 @@ import '../services/bookmark_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/edition_service.dart';
 import '../services/endless_recall_service.dart';
+import '../services/entitlement_service.dart';
 import '../services/match_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
@@ -15,7 +16,7 @@ import 'about_screen.dart';
 import 'archive_screen.dart';
 import 'appearance_screen.dart';
 import 'my_lexicon_screen.dart';
-import 'placeholder_screen.dart';
+import 'pro_screen.dart';
 import 'recall_screen.dart';
 import 'settings_screen.dart';
 
@@ -29,6 +30,7 @@ class MenuScreen extends StatelessWidget {
     this.endlessRecallService,
     this.matchService,
     this.appSettingsService,
+    this.entitlementController,
     super.key,
   });
 
@@ -40,14 +42,7 @@ class MenuScreen extends StatelessWidget {
   final EndlessRecallService? endlessRecallService;
   final MatchService? matchService;
   final AppSettingsService? appSettingsService;
-
-  void _openDestination(BuildContext context, String title) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => PlaceholderScreen(title: title),
-      ),
-    );
-  }
+  final EntitlementController? entitlementController;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +132,13 @@ class MenuScreen extends StatelessWidget {
                       subtitle: 'Unlock the full experience',
                       isPremium: true,
                       trailing: const _ProBadge(),
-                      onTap: () => _openDestination(context, 'Diurnus Pro'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => ProScreen(
+                            entitlementController: entitlementController,
+                          ),
+                        ),
+                      ),
                     ),
                     const _MenuDivider(),
                     _MenuItem(
