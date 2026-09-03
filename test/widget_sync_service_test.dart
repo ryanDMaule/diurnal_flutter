@@ -2,6 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/edition.dart';
+import 'package:diurnul/models/subscription_tier.dart';
+import 'package:diurnul/services/edition_entitlement_coordinator.dart';
+import 'package:diurnul/services/edition_service.dart';
+import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/widget_sync_service.dart';
 
 void main() {
@@ -43,6 +47,44 @@ void main() {
     expect(cache.values, {WidgetSyncService.editionKey: 'evergreen'});
     expect(cache.redrawCount, 1);
   });
+
+  test(
+    'entitlement changes sync the effective Edition without replacing storage',
+    () async {
+      final editionStorage = _MemoryEditionStorage();
+      final editionService = EditionService(storage: editionStorage);
+      await editionService.selectEdition(Editions.gallery);
+      final cache = _MemoryWidgetCache();
+      final entitlementController = EntitlementController(
+        EntitlementService(storage: _MemoryEntitlementStorage()),
+      );
+      final coordinator = EditionEntitlementCoordinator(
+        entitlementController: entitlementController,
+        editionService: editionService,
+        widgetSyncService: WidgetSyncService(cache: cache),
+      )..start();
+      addTearDown(coordinator.dispose);
+
+      await entitlementController.update(SubscriptionTier.pro);
+      await _waitForEdition(cache, 'gallery');
+      await entitlementController.update(SubscriptionTier.free);
+      await _waitForEdition(cache, 'library');
+      expect(
+        await editionService.loadSelectedEdition(),
+        same(Editions.gallery),
+      );
+      await entitlementController.update(SubscriptionTier.pro);
+      await _waitForEdition(cache, 'gallery');
+    },
+  );
+}
+
+Future<void> _waitForEdition(_MemoryWidgetCache cache, String id) async {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    if (cache.values[WidgetSyncService.editionKey] == id) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Widget Edition never became $id.');
 }
 
 class _MemoryWidgetCache implements WidgetCache {
@@ -58,4 +100,24 @@ class _MemoryWidgetCache implements WidgetCache {
   Future<void> redraw() async {
     redrawCount++;
   }
+}
+
+class _MemoryEditionStorage implements EditionStorage {
+  String? value;
+
+  @override
+  Future<String?> read(String key) async => value;
+
+  @override
+  Future<void> write(String key, String value) async => this.value = value;
+}
+
+class _MemoryEntitlementStorage implements EntitlementStorage {
+  String? value;
+
+  @override
+  Future<String?> readTier() async => value;
+
+  @override
+  Future<void> writeTier(String tier) async => value = tier;
 }

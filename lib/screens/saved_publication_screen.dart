@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
+import '../models/edition_access_policy.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../widgets/publication_view.dart';
+import '../widgets/entitlement_scope.dart';
 
 class SavedPublicationScreen extends StatefulWidget {
   const SavedPublicationScreen({
@@ -84,9 +86,13 @@ class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveEdition = EditionAccessPolicy.effectiveFor(
+      edition,
+      isPro: EntitlementScope.maybeControllerOf(context)?.isPro ?? false,
+    );
     return PublicationView(
       publication: widget.publication,
-      edition: edition,
+      edition: effectiveEdition,
       isBookmarked: isBookmarked,
       isBookmarkUpdating: isBookmarkUpdating,
       onBookmarkToggle: _toggleBookmark,
@@ -94,7 +100,7 @@ class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
         tooltip: widget.backTooltip,
         onPressed: () => Navigator.of(context).pop(),
         icon: const Icon(CupertinoIcons.back, size: 26),
-        color: edition.primaryTextColor,
+        color: effectiveEdition.primaryTextColor,
       ),
     );
   }

@@ -4,10 +4,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/edition.dart';
+import '../models/edition_access_policy.dart';
 import '../services/edition_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
+import '../widgets/entitlement_scope.dart';
+import 'pro_screen.dart';
 
 class AppearanceScreen extends StatefulWidget {
   AppearanceScreen({
@@ -38,7 +41,15 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
     if (mounted) setState(() => selectedEdition = edition);
   }
 
-  Future<void> _select(Edition edition) async {
+  Future<void> _select(Edition edition, {required bool isPro}) async {
+    if (!EditionAccessPolicy.canSelect(edition, isPro: isPro)) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => ProScreen(backTooltip: 'Back to Appearance'),
+        ),
+      );
+      return;
+    }
     setState(() => selectedEdition = edition);
     try {
       await widget.editionService.selectEdition(edition);
@@ -48,7 +59,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       return;
     }
     try {
-      await widget.widgetSyncService.syncEdition(edition);
+      await widget.widgetSyncService.syncEdition(
+        EditionAccessPolicy.effectiveFor(edition, isPro: isPro),
+      );
     } catch (error) {
       debugPrint('Error updating widget Edition: $error');
     }
@@ -56,6 +69,11 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
+    final effectiveEdition = EditionAccessPolicy.effectiveFor(
+      selectedEdition,
+      isPro: isPro,
+    );
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
@@ -122,10 +140,15 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                 separatorBuilder: (context, index) => SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final edition = Editions.all[index];
+                  final locked = !EditionAccessPolicy.canSelect(
+                    edition,
+                    isPro: isPro,
+                  );
                   return _EditionCard(
                     edition: edition,
-                    selected: selectedEdition.id == edition.id,
-                    onTap: () => _select(edition),
+                    selected: effectiveEdition.id == edition.id,
+                    locked: locked,
+                    onTap: () => _select(edition, isPro: isPro),
                   );
                 },
               ),
@@ -142,11 +165,13 @@ class _EditionCard extends StatelessWidget {
     required this.edition,
     required this.selected,
     required this.onTap,
+    required this.locked,
   });
 
   final Edition edition;
   final bool selected;
   final VoidCallback onTap;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +252,25 @@ class _EditionCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 14),
+              if (locked) ...[
+                Icon(
+                  CupertinoIcons.lock,
+                  key: Key('edition-lock-${edition.id}'),
+                  size: 13,
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  'Pro',
+                  style: TextStyle(
+                    color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                    fontFamily: 'Figtree',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(width: 10),
+              ],
               _SelectionIndicator(
                 key: Key('edition-selection-${edition.id}'),
                 selected: selected,

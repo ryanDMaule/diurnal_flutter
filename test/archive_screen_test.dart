@@ -163,7 +163,17 @@ void main() {
           );
         }),
       );
-      await _pumpArchive(tester, service, bookmarkService, editionService);
+      final controller = EntitlementController(
+        EntitlementService(storage: _MemoryEntitlementStorage()),
+      );
+      await controller.update(SubscriptionTier.pro);
+      await _pumpArchive(
+        tester,
+        service,
+        bookmarkService,
+        editionService,
+        entitlementController: controller,
+      );
 
       await tester.tap(find.byKey(const Key('archive-row-history')));
       await tester.pumpAndSettle();

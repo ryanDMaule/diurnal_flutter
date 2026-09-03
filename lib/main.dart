@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'screens/today_screen.dart';
 import 'services/app_settings_service.dart';
 import 'services/entitlement_service.dart';
+import 'services/edition_entitlement_coordinator.dart';
+import 'services/edition_service.dart';
+import 'services/widget_sync_service.dart';
 import 'theme/interface_theme.dart';
 import 'widgets/entitlement_scope.dart';
 
@@ -21,12 +24,18 @@ class DiurnalApp extends StatefulWidget {
 class _DiurnalAppState extends State<DiurnalApp> {
   late final InterfaceAppearanceController _controller;
   late final EntitlementController _entitlementController;
+  late final EditionEntitlementCoordinator _editionCoordinator;
 
   @override
   void initState() {
     super.initState();
     _controller = InterfaceAppearanceController(AppSettingsService());
     _entitlementController = EntitlementController(EntitlementService());
+    _editionCoordinator = EditionEntitlementCoordinator(
+      entitlementController: _entitlementController,
+      editionService: EditionService(),
+      widgetSyncService: WidgetSyncService(),
+    )..start();
     _controller.load();
     _entitlementController.load();
   }
@@ -34,6 +43,7 @@ class _DiurnalAppState extends State<DiurnalApp> {
   @override
   void dispose() {
     _controller.dispose();
+    _editionCoordinator.dispose();
     _entitlementController.dispose();
     super.dispose();
   }

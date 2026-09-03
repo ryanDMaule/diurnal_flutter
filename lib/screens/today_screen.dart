@@ -5,12 +5,14 @@ import 'package:http/http.dart' as http;
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
+import '../models/edition_access_policy.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/widget_sync_service.dart';
 import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
+import '../widgets/entitlement_scope.dart';
 import 'menu_screen.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -93,7 +95,6 @@ class _TodayScreenState extends State<TodayScreen> {
     try {
       final selectedEdition = await _editionService.loadSelectedEdition();
       if (mounted) setState(() => edition = selectedEdition);
-      await _widgetSyncService.syncEdition(selectedEdition);
     } catch (error) {
       debugPrint('Error loading Edition: $error');
     }
@@ -156,9 +157,13 @@ class _TodayScreenState extends State<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveEdition = EditionAccessPolicy.effectiveFor(
+      edition,
+      isPro: EntitlementScope.maybeControllerOf(context)?.isPro ?? false,
+    );
     return PublicationView(
       publication: publication,
-      edition: edition,
+      edition: effectiveEdition,
       isLoading: isLoading,
       isOffline: isOffline,
       isBookmarked: isBookmarked,
@@ -166,7 +171,7 @@ class _TodayScreenState extends State<TodayScreen> {
       onBookmarkToggle: publication.id == null ? null : _toggleBookmark,
       topRightControl: MorphingMenuButton(
         isOpen: false,
-        color: edition.primaryTextColor,
+        color: effectiveEdition.primaryTextColor,
         tooltip: 'Open menu',
         onPressed: _openMenu,
       ),

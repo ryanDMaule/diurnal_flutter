@@ -149,7 +149,7 @@ abstract final class Editions {
     systemUiIconBrightness: Brightness.light,
   );
 
-  static const all = [library, evergreen, atrium, archive, gallery, midnight];
+  static const all = [library, evergreen, midnight, atrium, archive, gallery];
 
   static Edition fromId(String? id) =>
       all.firstWhere((edition) => edition.id == id, orElse: () => library);

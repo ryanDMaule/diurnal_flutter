@@ -3,9 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/edition.dart';
+import 'package:diurnul/models/edition_access_policy.dart';
+import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/saved_publication_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
+import 'package:diurnul/services/entitlement_service.dart';
+import 'package:diurnul/widgets/entitlement_scope.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 import 'package:diurnul/widgets/edition_background.dart';
 
@@ -15,6 +19,37 @@ void main() {
     expect(await service.loadSelectedEdition(), same(Editions.library));
     expect(Editions.all.first, same(Editions.library));
     expect(Editions.all, hasLength(6));
+  });
+
+  test('Edition access policy applies the Free and Pro matrix', () {
+    for (final edition in [
+      Editions.library,
+      Editions.evergreen,
+      Editions.midnight,
+    ]) {
+      expect(EditionAccessPolicy.requiresPro(edition), isFalse);
+      expect(
+        EditionAccessPolicy.effectiveFor(edition, isPro: false),
+        same(edition),
+      );
+    }
+    for (final edition in [
+      Editions.atrium,
+      Editions.archive,
+      Editions.gallery,
+    ]) {
+      expect(EditionAccessPolicy.requiresPro(edition), isTrue);
+      expect(
+        EditionAccessPolicy.effectiveFor(edition, isPro: false),
+        same(Editions.library),
+      );
+    }
+    for (final edition in Editions.all) {
+      expect(
+        EditionAccessPolicy.effectiveFor(edition, isPro: true),
+        same(edition),
+      );
+    }
   });
 
   test(
@@ -145,6 +180,45 @@ void main() {
     );
   });
 
+  testWidgets('saved publication renders the entitlement-effective Edition', (
+    tester,
+  ) async {
+    final editionStorage = _MemoryEditionStorage();
+    final editionService = EditionService(storage: editionStorage);
+    await editionService.selectEdition(Editions.gallery);
+    final bookmarkService = BookmarkService(storage: _MemoryBookmarkStorage());
+    final controller = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await tester.binding.setSurfaceSize(const Size(700, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      EntitlementScope(
+        notifier: controller,
+        child: MaterialApp(
+          home: SavedPublicationScreen(
+            publication: _publication,
+            bookmarkService: bookmarkService,
+            editionService: editionService,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PublicationView>(find.byType(PublicationView)).edition,
+      same(Editions.library),
+    );
+
+    await controller.update(SubscriptionTier.pro);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PublicationView>(find.byType(PublicationView)).edition,
+      same(Editions.gallery),
+    );
+    expect(await editionService.loadSelectedEdition(), same(Editions.gallery));
+  });
+
   testWidgets('PublicationView renders Evergreen as a solid Edition', (
     tester,
   ) async {
@@ -201,4 +275,14 @@ class _MemoryBookmarkStorage implements BookmarkStorage {
   Future<void> write(String key, String value) async {
     values[key] = value;
   }
+}
+
+class _MemoryEntitlementStorage implements EntitlementStorage {
+  String? value;
+
+  @override
+  Future<String?> readTier() async => value;
+
+  @override
+  Future<void> writeTier(String tier) async => value = tier;
 }

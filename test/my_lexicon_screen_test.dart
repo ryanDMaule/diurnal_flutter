@@ -73,7 +73,7 @@ void main() {
       expect(find.byType(ProScreen), findsNothing);
       expect(
         tester.widget<PublicationView>(find.byType(PublicationView)).edition,
-        same(Editions.gallery),
+        same(Editions.library),
       );
     },
   );

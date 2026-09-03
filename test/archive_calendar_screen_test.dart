@@ -96,7 +96,17 @@ void main() {
     tester,
   ) async {
     await editionService.selectEdition(Editions.atrium);
-    await _pumpCalendar(tester, publications, bookmarkService, editionService);
+    final controller = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await controller.update(SubscriptionTier.pro);
+    await _pumpCalendar(
+      tester,
+      publications,
+      bookmarkService,
+      editionService,
+      entitlementController: controller,
+    );
 
     expect(
       find.byKey(const Key('publication-indicator-2026-09-07')),
