@@ -13,9 +13,11 @@ import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
 import 'menu_screen.dart';
 
-Future<void> updateWidget(String word, String definition) async {
-  await HomeWidget.saveWidgetData<String>('word', word);
-  await HomeWidget.saveWidgetData<String>('definition', definition);
+Future<void> updateWidget(DailyPublication publication) async {
+  await HomeWidget.saveWidgetData<String>('word', publication.word);
+  await HomeWidget.saveWidgetData<String>('type', publication.type);
+  await HomeWidget.saveWidgetData<String>('phonetic', publication.phonetic);
+  await HomeWidget.saveWidgetData<String>('definition', publication.definition);
   await HomeWidget.updateWidget(
     name: 'HomeWidgetProvider',
     androidName: 'HomeWidgetProvider',
@@ -65,7 +67,7 @@ class _TodayScreenState extends State<TodayScreen> {
           isBookmarked = false;
         });
         await _restoreBookmarkState(fetched);
-        await updateWidget(fetched.word, fetched.definition);
+        await updateWidget(fetched);
       } else {
         debugPrint(
           '⚠️ API returned ${response.statusCode}. Using fallback word.',
@@ -86,7 +88,7 @@ class _TodayScreenState extends State<TodayScreen> {
       isOffline = true;
       isBookmarked = false;
     });
-    await updateWidget(publication.word, publication.definition);
+    await updateWidget(publication);
   }
 
   Future<void> _restoreBookmarkState(DailyPublication current) async {

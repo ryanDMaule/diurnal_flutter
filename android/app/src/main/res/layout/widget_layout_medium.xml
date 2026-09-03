@@ -16,16 +16,16 @@
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:background="#73000000" />
+        android:background="#73000000"
+        android:contentDescription="@null" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="top"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="8dp">
+        android:paddingHorizontal="22dp"
+        android:paddingVertical="6dp">
 
         <TextView
             android:id="@+id/widget_word"
@@ -41,7 +41,7 @@
             android:id="@+id/widget_definition"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:ellipsize="end"
             android:fontFamily="@font/figtree_reg"
             android:maxLines="2"
