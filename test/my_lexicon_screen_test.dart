@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
+import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/my_lexicon_screen.dart';
 import 'package:diurnul/screens/pro_screen.dart';
@@ -10,6 +11,7 @@ import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
+import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
   late _MemoryBookmarkStorage storage;
@@ -40,6 +42,7 @@ void main() {
     'Free users can open an old saved publication without Archive gating',
     (tester) async {
       await service.save(diurnal);
+      await editionService.selectEdition(Editions.gallery);
       await tester.binding.setSurfaceSize(const Size(700, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final entitlementController = EntitlementController(
@@ -68,6 +71,10 @@ void main() {
       expect(find.text('#2'), findsOneWidget);
       expect(entitlementController.tier, SubscriptionTier.free);
       expect(find.byType(ProScreen), findsNothing);
+      expect(
+        tester.widget<PublicationView>(find.byType(PublicationView)).edition,
+        same(Editions.gallery),
+      );
     },
   );
 

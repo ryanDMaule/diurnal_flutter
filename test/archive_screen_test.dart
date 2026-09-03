@@ -6,16 +6,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:diurnul/models/edition.dart';
+import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/archive_screen.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/pro_screen.dart';
 import 'package:diurnul/screens/saved_publication_screen.dart';
-import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
+import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
@@ -148,6 +150,7 @@ void main() {
   testWidgets(
     'opens the supplied snapshot without requesting the Today endpoint',
     (tester) async {
+      await editionService.selectEdition(Editions.gallery);
       final requestedUris = <Uri>[];
       final service = PublicationApiService(
         client: MockClient((request) async {
@@ -170,6 +173,10 @@ void main() {
       expect(find.text('September 2, 2026'), findsOneWidget);
       expect(find.text('#34'), findsOneWidget);
       expect(find.byTooltip('Back to Archive'), findsOneWidget);
+      expect(
+        tester.widget<PublicationView>(find.byType(PublicationView)).edition,
+        same(Editions.gallery),
+      );
       expect(requestedUris, [PublicationApiService.publicationsUri]);
 
       await tester.tap(find.byIcon(CupertinoIcons.bookmark));

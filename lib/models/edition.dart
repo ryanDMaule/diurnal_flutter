@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../theme/colors.dart';
+
 class Edition {
   const Edition({
     required this.id,
     required this.name,
     required this.description,
-    required this.backgroundAsset,
+    this.backgroundAsset,
+    this.backgroundColor = Colors.black,
     required this.tintColor,
     required this.tintOpacity,
     required this.gradientColors,
@@ -22,7 +25,8 @@ class Edition {
   final String id;
   final String name;
   final String description;
-  final String backgroundAsset;
+  final String? backgroundAsset;
+  final Color backgroundColor;
   final Color tintColor;
   final double tintOpacity;
   final List<Color> gradientColors;
@@ -52,6 +56,24 @@ abstract final class Editions {
     secondaryTextColor: Color(0xFFD2C7B5),
     mutedTextColor: Color(0xFF9E988E),
     accentColor: Color(0xFFC49A52),
+    systemUiIconBrightness: Brightness.light,
+  );
+
+  static const evergreen = Edition(
+    id: 'evergreen',
+    name: 'Evergreen',
+    description: 'Deep forest, warm cream and quiet focus',
+    backgroundColor: AppColors.menuBackground,
+    tintColor: Colors.transparent,
+    tintOpacity: 0,
+    gradientColors: [],
+    gradientStops: [],
+    gradientBegin: Alignment.topCenter,
+    gradientEnd: Alignment.bottomCenter,
+    primaryTextColor: Color(0xFFF3EBDD),
+    secondaryTextColor: Color(0xFFCFC7B8),
+    mutedTextColor: Color(0xFF9AA89F),
+    accentColor: AppColors.textSecondary,
     systemUiIconBrightness: Brightness.light,
   );
 
@@ -127,7 +149,7 @@ abstract final class Editions {
     systemUiIconBrightness: Brightness.light,
   );
 
-  static const all = [library, atrium, archive, gallery, midnight];
+  static const all = [library, evergreen, atrium, archive, gallery, midnight];
 
   static Edition fromId(String? id) =>
       all.firstWhere((edition) => edition.id == id, orElse: () => library);

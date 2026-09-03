@@ -19,20 +19,24 @@ class EditionBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(edition.backgroundAsset, fit: imageFit),
-        ColoredBox(
-          color: edition.tintColor.withValues(alpha: edition.tintOpacity),
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: edition.gradientColors,
-              stops: edition.gradientStops,
-              begin: edition.gradientBegin,
-              end: edition.gradientEnd,
+        ColoredBox(color: edition.backgroundColor),
+        if (edition.backgroundAsset case final asset?)
+          Image.asset(asset, fit: imageFit),
+        if (edition.tintOpacity > 0)
+          ColoredBox(
+            color: edition.tintColor.withValues(alpha: edition.tintOpacity),
+          ),
+        if (edition.gradientColors.isNotEmpty)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: edition.gradientColors,
+                stops: edition.gradientStops,
+                begin: edition.gradientBegin,
+                end: edition.gradientEnd,
+              ),
             ),
           ),
-        ),
         child,
       ],
     );

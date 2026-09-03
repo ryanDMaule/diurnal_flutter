@@ -38,9 +38,9 @@ void main() {
     final cache = _MemoryWidgetCache();
     final service = WidgetSyncService(cache: cache);
 
-    await service.syncEdition(Editions.midnight);
+    await service.syncEdition(Editions.evergreen);
 
-    expect(cache.values, {WidgetSyncService.editionKey: 'midnight'});
+    expect(cache.values, {WidgetSyncService.editionKey: 'evergreen'});
     expect(cache.redrawCount, 1);
   });
 }

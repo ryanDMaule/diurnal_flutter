@@ -7,14 +7,37 @@ import 'package:diurnul/screens/saved_publication_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/widgets/publication_view.dart';
+import 'package:diurnul/widgets/edition_background.dart';
 
 void main() {
   test('Library is the canonical default', () async {
     final service = EditionService(storage: _MemoryEditionStorage());
     expect(await service.loadSelectedEdition(), same(Editions.library));
     expect(Editions.all.first, same(Editions.library));
-    expect(Editions.all, hasLength(5));
+    expect(Editions.all, hasLength(6));
   });
+
+  test(
+    'Evergreen has a stable id and persists through EditionService',
+    () async {
+      final storage = _MemoryEditionStorage();
+      final service = EditionService(storage: storage);
+
+      expect(Editions.evergreen.id, 'evergreen');
+      expect(Editions.evergreen.backgroundAsset, isNull);
+      expect(Editions.evergreen.backgroundColor, const Color(0xFF032C23));
+      expect(Editions.evergreen.tintOpacity, 0);
+      expect(Editions.evergreen.gradientColors, isEmpty);
+      expect(Editions.evergreen.primaryTextColor, const Color(0xFFF3EBDD));
+      expect(Editions.evergreen.accentColor, const Color(0xFFC8A363));
+      await service.selectEdition(Editions.evergreen);
+
+      expect(
+        await EditionService(storage: storage).loadSelectedEdition(),
+        same(Editions.evergreen),
+      );
+    },
+  );
 
   test('selection persists and restores in a fresh service instance', () async {
     final storage = _MemoryEditionStorage();
@@ -96,7 +119,7 @@ void main() {
   ) async {
     final editionStorage = _MemoryEditionStorage();
     final editionService = EditionService(storage: editionStorage);
-    await editionService.selectEdition(Editions.atrium);
+    await editionService.selectEdition(Editions.evergreen);
     final bookmarkService = BookmarkService(storage: _MemoryBookmarkStorage());
     await bookmarkService.save(_publication);
 
@@ -114,8 +137,33 @@ void main() {
     await tester.pumpAndSettle();
 
     final view = tester.widget<PublicationView>(find.byType(PublicationView));
-    expect(view.edition, same(Editions.atrium));
+    expect(view.edition, same(Editions.evergreen));
     expect(view.publication, same(_publication));
+    expect(
+      tester.widget<EditionBackground>(find.byType(EditionBackground)).edition,
+      same(Editions.evergreen),
+    );
+  });
+
+  testWidgets('PublicationView renders Evergreen as a solid Edition', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PublicationView(
+          publication: _publication,
+          edition: Editions.evergreen,
+          isBookmarked: false,
+          onBookmarkToggle: null,
+        ),
+      ),
+    );
+
+    final background = tester.widget<EditionBackground>(
+      find.byType(EditionBackground),
+    );
+    expect(background.edition, same(Editions.evergreen));
+    expect(find.byType(Image), findsNothing);
   });
 }
 

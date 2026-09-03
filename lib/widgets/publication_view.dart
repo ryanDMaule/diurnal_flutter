@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
-import '../theme/interface_theme.dart';
 import 'edition_background.dart';
 
 class PublicationView extends StatefulWidget {
@@ -18,7 +17,6 @@ class PublicationView extends StatefulWidget {
     this.isOffline = false,
     this.topLeftControl,
     this.topRightControl,
-    this.interfaceStyled = false,
     super.key,
   });
 
@@ -31,7 +29,6 @@ class PublicationView extends StatefulWidget {
   final VoidCallback? onBookmarkToggle;
   final Widget? topLeftControl;
   final Widget? topRightControl;
-  final bool interfaceStyled;
 
   @override
   State<PublicationView> createState() => _PublicationViewState();
@@ -59,13 +56,10 @@ class _PublicationViewState extends State<PublicationView> {
   }
 
   Widget _content() {
-    final palette = InterfaceThemeScope.maybePaletteOf(context);
     final style = TextStyle(
       fontSize: 16,
       height: 1.6,
-      color: widget.interfaceStyled
-          ? palette.primary
-          : widget.edition.primaryTextColor,
+      color: widget.edition.primaryTextColor,
       fontFamily: 'Figtree',
       fontWeight: FontWeight.w300,
     );
@@ -103,24 +97,11 @@ class _PublicationViewState extends State<PublicationView> {
   Widget build(BuildContext context) {
     final publication = widget.publication;
     final edition = widget.edition;
-    final palette = InterfaceThemeScope.maybePaletteOf(context);
-    final primary = widget.interfaceStyled
-        ? palette.primary
-        : edition.primaryTextColor;
-    final secondary = widget.interfaceStyled
-        ? palette.secondary
-        : edition.secondaryTextColor;
-    final muted = widget.interfaceStyled
-        ? palette.secondary
-        : edition.mutedTextColor;
-    final accent = widget.interfaceStyled
-        ? palette.accent
-        : edition.accentColor;
-    final iconBrightness = widget.interfaceStyled
-        ? (palette == InterfacePalette.light
-              ? Brightness.dark
-              : Brightness.light)
-        : edition.systemUiIconBrightness;
+    final primary = edition.primaryTextColor;
+    final secondary = edition.secondaryTextColor;
+    final muted = edition.mutedTextColor;
+    final accent = edition.accentColor;
+    final iconBrightness = edition.systemUiIconBrightness;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final footerDate = publication.publicationDate == null
         ? 'Date unavailable'
@@ -130,17 +111,13 @@ class _PublicationViewState extends State<PublicationView> {
         : '#${publication.sequence}';
 
     return Scaffold(
-      backgroundColor: widget.interfaceStyled
-          ? palette.background
-          : Colors.black,
+      backgroundColor: Colors.black,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle(
           statusBarIconBrightness: iconBrightness,
           systemNavigationBarIconBrightness: iconBrightness,
         ),
-        child: _PublicationBackground(
-          interfaceStyled: widget.interfaceStyled,
-          palette: palette,
+        child: EditionBackground(
           edition: edition,
           child: SafeArea(
             child: Padding(
@@ -385,21 +362,3 @@ TextStyle _footerStyle(Color accent) => TextStyle(
   fontSize: 14,
   fontWeight: FontWeight.w300,
 );
-
-class _PublicationBackground extends StatelessWidget {
-  const _PublicationBackground({
-    required this.interfaceStyled,
-    required this.palette,
-    required this.edition,
-    required this.child,
-  });
-  final bool interfaceStyled;
-  final InterfacePalette palette;
-  final Edition edition;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => interfaceStyled
-      ? ColoredBox(color: palette.background, child: child)
-      : EditionBackground(edition: edition, child: child);
-}

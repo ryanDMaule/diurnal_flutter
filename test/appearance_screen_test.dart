@@ -27,9 +27,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('appearance-edition-list')), findsOneWidget);
-    expect(find.byType(EditionBackground), findsNWidgets(5));
+    expect(find.byType(EditionBackground), findsNWidgets(6));
     expect(Editions.all.map((edition) => edition.name), [
       'Library',
+      'Evergreen',
       'Atrium',
       'Archive',
       'Gallery',
@@ -69,11 +70,11 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const Key('edition-atrium')));
+    await tester.tap(find.byKey(const Key('edition-evergreen')));
     await tester.pumpAndSettle();
 
-    expect(await service.loadSelectedEdition(), same(Editions.atrium));
-    expect(widgetCache.values[WidgetSyncService.editionKey], 'atrium');
+    expect(await service.loadSelectedEdition(), same(Editions.evergreen));
+    expect(widgetCache.values[WidgetSyncService.editionKey], 'evergreen');
     expect(widgetCache.redrawCount, 1);
     expect(
       find.descendant(
@@ -84,7 +85,7 @@ void main() {
     );
     expect(
       find.descendant(
-        of: find.byKey(const Key('edition-selection-atrium')),
+        of: find.byKey(const Key('edition-selection-evergreen')),
         matching: find.byIcon(CupertinoIcons.check_mark),
       ),
       findsOneWidget,

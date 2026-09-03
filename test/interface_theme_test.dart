@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/app_settings.dart';
 import 'package:diurnul/models/daily_publication.dart';
+import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/settings_screen.dart';
 import 'package:diurnul/services/app_settings_service.dart';
@@ -10,6 +11,7 @@ import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/endless_recall_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/theme/interface_theme.dart';
+import 'package:diurnul/widgets/edition_background.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
@@ -96,7 +98,7 @@ void main() {
   });
 
   testWidgets(
-    'historical detail uses interface palette while Edition path remains unchanged',
+    'publication detail remains Edition-driven across interface appearances',
     (tester) async {
       final controller = InterfaceAppearanceController(
         AppSettingsService(storage: _AppStorage()),
@@ -117,26 +119,40 @@ void main() {
         usage: 'A diurnal rhythm.',
         synonyms: const ['Daily'],
       );
-      Widget view(bool interfaceStyled) => InterfaceThemeScope(
+      Widget view() => InterfaceThemeScope(
         notifier: controller,
         child: MaterialApp(
           home: PublicationView(
             publication: publication,
-            interfaceStyled: interfaceStyled,
+            edition: Editions.evergreen,
             isBookmarked: false,
             onBookmarkToggle: null,
           ),
         ),
       );
-      await tester.pumpWidget(view(true));
-      expect(
-        tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-        InterfacePalette.light.background,
-      );
-      await tester.pumpWidget(view(false));
+      await tester.pumpWidget(view());
       expect(
         tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         Colors.black,
+      );
+      expect(
+        tester
+            .widget<EditionBackground>(find.byType(EditionBackground))
+            .edition,
+        same(Editions.evergreen),
+      );
+
+      await controller.update(
+        AppSettings.defaults.copyWith(
+          interfaceAppearance: InterfaceAppearance.dark,
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester
+            .widget<EditionBackground>(find.byType(EditionBackground))
+            .edition,
+        same(Editions.evergreen),
       );
     },
   );

@@ -183,7 +183,9 @@ class _EditionCard extends StatelessWidget {
                   height: 122,
                   child: EditionBackground(
                     edition: edition,
-                    child: SizedBox.expand(),
+                    child: edition == Editions.evergreen
+                        ? _EvergreenPreview(edition: edition)
+                        : SizedBox.expand(),
                   ),
                 ),
               ),
@@ -234,6 +236,35 @@ class _EditionCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EvergreenPreview extends StatelessWidget {
+  const _EvergreenPreview({required this.edition});
+
+  final Edition edition;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            'Aa',
+            style: TextStyle(
+              color: edition.primaryTextColor,
+              fontFamily: 'NotoSerifJP',
+              fontSize: 27,
+            ),
+          ),
+          SizedBox(height: 8),
+          Container(width: 30, height: 2, color: edition.accentColor),
+        ],
       ),
     );
   }

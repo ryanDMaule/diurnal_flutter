@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
+import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/archive_calendar_screen.dart';
 import 'package:diurnul/screens/archive_screen.dart';
@@ -16,6 +17,7 @@ import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
+import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
   late BookmarkService bookmarkService;
@@ -93,6 +95,7 @@ void main() {
   testWidgets('only published dates receive indicators and can open details', (
     tester,
   ) async {
+    await editionService.selectEdition(Editions.atrium);
     await _pumpCalendar(tester, publications, bookmarkService, editionService);
 
     expect(
@@ -119,6 +122,10 @@ void main() {
     expect(find.text('#34'), findsOneWidget);
     expect(find.text('September 7, 2026'), findsOneWidget);
     expect(find.byTooltip('Back to Calendar'), findsOneWidget);
+    expect(
+      tester.widget<PublicationView>(find.byType(PublicationView)).edition,
+      same(Editions.atrium),
+    );
   });
 
   testWidgets('returning from a snapshot preserves the viewed calendar month', (

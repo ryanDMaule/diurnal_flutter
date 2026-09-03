@@ -71,7 +71,8 @@ class HomeWidgetProvider : HomeWidgetProvider() {
             views.setTextColor(R.id.widget_type, style.mutedTextColor)
             views.setTextColor(R.id.widget_phonetic, style.mutedTextColor)
         }
-        views.setImageViewResource(R.id.widget_background, style.backgroundResource)
+        views.setImageViewResource(R.id.widget_background, style.backgroundResource ?: 0)
+        views.setInt(R.id.widget_background, "setBackgroundColor", style.backgroundColor)
         views.setInt(R.id.widget_overlay, "setBackgroundColor", style.overlayColor)
 
         val launchIntent = HomeWidgetLaunchIntent.getActivity(
@@ -114,7 +115,8 @@ internal data class CachedPublication(
 
 internal enum class WidgetStyle(
     val id: String,
-    val backgroundResource: Int,
+    val backgroundResource: Int?,
+    val backgroundColor: Int,
     val overlayColor: Int,
     val primaryTextColor: Int,
     val secondaryTextColor: Int,
@@ -123,6 +125,7 @@ internal enum class WidgetStyle(
     LIBRARY(
         "library",
         R.drawable.widget_background_library,
+        0xFF000000.toInt(),
         0x7A000000,
         0xFFF3EBDD.toInt(),
         0xFFE6DED1.toInt(),
@@ -131,6 +134,7 @@ internal enum class WidgetStyle(
     ATRIUM(
         "atrium",
         R.drawable.widget_background_atrium,
+        0xFF000000.toInt(),
         0x4DFFF2DD,
         0xFF302B27.toInt(),
         0xFF5C5048.toInt(),
@@ -139,6 +143,7 @@ internal enum class WidgetStyle(
     ARCHIVE(
         "archive",
         R.drawable.widget_background_archive,
+        0xFF000000.toInt(),
         0x665A321C,
         0xFFEFE3D2.toInt(),
         0xFFC7B7A3.toInt(),
@@ -147,6 +152,7 @@ internal enum class WidgetStyle(
     GALLERY(
         "gallery",
         R.drawable.widget_background_gallery,
+        0xFF000000.toInt(),
         0x383B3C20,
         0xFFF0E9D8.toInt(),
         0xFFC9C3AC.toInt(),
@@ -155,10 +161,20 @@ internal enum class WidgetStyle(
     MIDNIGHT(
         "midnight",
         R.drawable.widget_background_midnight,
+        0xFF000000.toInt(),
         0x5207111F,
         0xFFE2E7ED.toInt(),
         0xFFB5C0CA.toInt(),
         0xFF87939F.toInt(),
+    ),
+    EVERGREEN(
+        "evergreen",
+        null,
+        0xFF032C23.toInt(),
+        0x00000000,
+        0xFFF3EBDD.toInt(),
+        0xFFCFC7B8.toInt(),
+        0xFF9AA89F.toInt(),
     );
 
     companion object {
