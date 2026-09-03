@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
+import '../models/recall_settings_policy.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/entitlement_scope.dart';
+import 'pro_screen.dart';
 
 class RecallSettingsScreen extends StatefulWidget {
   RecallSettingsScreen({required this.settingsService, super.key});
@@ -58,8 +61,21 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
     _save(_settings.copyWith(enabledQuestionTypes: enabled));
   }
 
+  Future<void> _openPro() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ProScreen(backTooltip: 'Back to Recall Settings'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
+    final displayedSettings = RecallSettingsPolicy.effectiveFor(
+      _settings,
+      isPro: isPro,
+    );
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
@@ -119,7 +135,8 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             title: 'Archive',
                             subtitle: 'All published Diurnus words.',
                             selected:
-                                _settings.wordPool == RecallWordPool.archive,
+                                displayedSettings.wordPool ==
+                                RecallWordPool.archive,
                             onTap: () => _save(
                               _settings.copyWith(
                                 wordPool: RecallWordPool.archive,
@@ -131,36 +148,48 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                             title: 'My Lexicon',
                             subtitle: 'Only words you\'ve chosen to keep.',
                             selected:
-                                _settings.wordPool == RecallWordPool.myLexicon,
-                            onTap: () => _save(
-                              _settings.copyWith(
-                                wordPool: RecallWordPool.myLexicon,
-                              ),
-                            ),
+                                displayedSettings.wordPool ==
+                                RecallWordPool.myLexicon,
+                            locked: !isPro,
+                            onTap: isPro
+                                ? () => _save(
+                                    _settings.copyWith(
+                                      wordPool: RecallWordPool.myLexicon,
+                                    ),
+                                  )
+                                : _openPro,
                           ),
                           _SingleOption(
                             key: Key('pool-unrecalled'),
                             title: 'Unrecalled',
                             subtitle: 'Words you\'ve yet to recall correctly.',
                             selected:
-                                _settings.wordPool == RecallWordPool.unrecalled,
-                            onTap: () => _save(
-                              _settings.copyWith(
-                                wordPool: RecallWordPool.unrecalled,
-                              ),
-                            ),
+                                displayedSettings.wordPool ==
+                                RecallWordPool.unrecalled,
+                            locked: !isPro,
+                            onTap: isPro
+                                ? () => _save(
+                                    _settings.copyWith(
+                                      wordPool: RecallWordPool.unrecalled,
+                                    ),
+                                  )
+                                : _openPro,
                           ),
                           _SingleOption(
                             key: Key('pool-revisit'),
                             title: 'To Revisit',
                             subtitle: 'Words you\'ve previously missed.',
                             selected:
-                                _settings.wordPool == RecallWordPool.revisit,
-                            onTap: () => _save(
-                              _settings.copyWith(
-                                wordPool: RecallWordPool.revisit,
-                              ),
-                            ),
+                                displayedSettings.wordPool ==
+                                RecallWordPool.revisit,
+                            locked: !isPro,
+                            onTap: isPro
+                                ? () => _save(
+                                    _settings.copyWith(
+                                      wordPool: RecallWordPool.revisit,
+                                    ),
+                                  )
+                                : _openPro,
                           ),
                           SizedBox(height: 28),
                           _SectionHeading('Questions per session'),
@@ -171,10 +200,17 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                                   child: _CountOption(
                                     key: Key('question-count-$count'),
                                     count: count,
-                                    selected: _settings.questionCount == count,
-                                    onTap: () => _save(
-                                      _settings.copyWith(questionCount: count),
-                                    ),
+                                    selected:
+                                        displayedSettings.questionCount ==
+                                        count,
+                                    locked: !isPro && count != 5,
+                                    onTap: isPro || count == 5
+                                        ? () => _save(
+                                            _settings.copyWith(
+                                              questionCount: count,
+                                            ),
+                                          )
+                                        : _openPro,
                                   ),
                                 ),
                                 if (count != 20) SizedBox(width: 10),
@@ -186,9 +222,8 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                           _ToggleOption(
                             key: Key('type-wordToDefinition'),
                             title: 'Word → Definition',
-                            selected: _settings.enabledQuestionTypes.contains(
-                              RecallQuestionType.wordToDefinition,
-                            ),
+                            selected: displayedSettings.enabledQuestionTypes
+                                .contains(RecallQuestionType.wordToDefinition),
                             onTap: () => _toggleType(
                               RecallQuestionType.wordToDefinition,
                             ),
@@ -196,21 +231,26 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
                           _ToggleOption(
                             key: Key('type-definitionToWord'),
                             title: 'Definition → Word',
-                            selected: _settings.enabledQuestionTypes.contains(
-                              RecallQuestionType.definitionToWord,
-                            ),
-                            onTap: () => _toggleType(
-                              RecallQuestionType.definitionToWord,
-                            ),
+                            selected: displayedSettings.enabledQuestionTypes
+                                .contains(RecallQuestionType.definitionToWord),
+                            locked: !isPro,
+                            onTap: isPro
+                                ? () => _toggleType(
+                                    RecallQuestionType.definitionToWord,
+                                  )
+                                : _openPro,
                           ),
                           _ToggleOption(
                             key: Key('type-wordToSynonym'),
                             title: 'Word → Synonym',
-                            selected: _settings.enabledQuestionTypes.contains(
-                              RecallQuestionType.wordToSynonym,
-                            ),
-                            onTap: () =>
-                                _toggleType(RecallQuestionType.wordToSynonym),
+                            selected: displayedSettings.enabledQuestionTypes
+                                .contains(RecallQuestionType.wordToSynonym),
+                            locked: !isPro,
+                            onTap: isPro
+                                ? () => _toggleType(
+                                    RecallQuestionType.wordToSynonym,
+                                  )
+                                : _openPro,
                           ),
                         ],
                       ),
@@ -249,6 +289,7 @@ class _SingleOption extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.onTap,
+    this.locked = false,
     super.key,
   });
 
@@ -256,6 +297,7 @@ class _SingleOption extends StatelessWidget {
   final String subtitle;
   final bool selected;
   final VoidCallback onTap;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -264,13 +306,23 @@ class _SingleOption extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 11),
       child: Row(
         children: [
-          _SelectionMark(selected: selected),
+          _SelectionMark(selected: selected && !locked),
           SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: _optionTitleStyle(context)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: _optionTitleStyle(context, muted: locked),
+                      ),
+                    ),
+                    if (locked) ...[SizedBox(width: 8), _ProLock()],
+                  ],
+                ),
                 SizedBox(height: 3),
                 Text(subtitle, style: _optionSubtitleStyle(context)),
               ],
@@ -287,11 +339,13 @@ class _CountOption extends StatelessWidget {
     required this.count,
     required this.selected,
     required this.onTap,
+    this.locked = false,
     super.key,
   });
   final int count;
   final bool selected;
   final VoidCallback onTap;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -302,21 +356,28 @@ class _CountOption extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: selected
+          color: selected && !locked
               ? InterfaceThemeScope.maybePaletteOf(context).accent
               : InterfaceThemeScope.maybePaletteOf(context).divider,
         ),
       ),
-      child: Text(
-        '$count',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: selected
-              ? InterfaceThemeScope.maybePaletteOf(context).accent
-              : InterfaceThemeScope.maybePaletteOf(context).primary,
-          fontFamily: 'Figtree',
-          fontSize: 15,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$count',
+            style: TextStyle(
+              color: selected && !locked
+                  ? InterfaceThemeScope.maybePaletteOf(context).accent
+                  : InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: locked ? 0.5 : 1),
+              fontFamily: 'Figtree',
+              fontSize: 15,
+            ),
+          ),
+          if (locked) ...[SizedBox(width: 6), _ProLock()],
+        ],
       ),
     ),
   );
@@ -327,11 +388,13 @@ class _ToggleOption extends StatelessWidget {
     required this.title,
     required this.selected,
     required this.onTap,
+    this.locked = false,
     super.key,
   });
   final String title;
   final bool selected;
   final VoidCallback onTap;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -340,8 +403,20 @@ class _ToggleOption extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: _optionTitleStyle(context))),
-          _SelectionMark(selected: selected, multiple: true),
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    style: _optionTitleStyle(context, muted: locked),
+                  ),
+                ),
+                if (locked) ...[SizedBox(width: 8), _ProLock()],
+              ],
+            ),
+          ),
+          _SelectionMark(selected: selected && !locked, multiple: true),
         ],
       ),
     ),
@@ -382,12 +457,40 @@ class _SelectionMark extends StatelessWidget {
   );
 }
 
-TextStyle _optionTitleStyle(BuildContext context) => TextStyle(
-  color: InterfaceThemeScope.maybePaletteOf(context).primary,
-  fontFamily: 'Figtree',
-  fontSize: 15,
-  fontWeight: FontWeight.w400,
-);
+class _ProLock extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(
+        CupertinoIcons.lock,
+        key: Key('pro-setting-lock'),
+        size: 12,
+        color: InterfaceThemeScope.maybePaletteOf(context).accent,
+      ),
+      SizedBox(width: 4),
+      Text(
+        'Pro',
+        style: TextStyle(
+          color: InterfaceThemeScope.maybePaletteOf(context).accent,
+          fontFamily: 'Figtree',
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
+  );
+}
+
+TextStyle _optionTitleStyle(BuildContext context, {bool muted = false}) =>
+    TextStyle(
+      color: InterfaceThemeScope.maybePaletteOf(
+        context,
+      ).primary.withValues(alpha: muted ? 0.55 : 1),
+      fontFamily: 'Figtree',
+      fontSize: 15,
+      fontWeight: FontWeight.w400,
+    );
 
 TextStyle _optionSubtitleStyle(BuildContext context) => TextStyle(
   color: InterfaceThemeScope.maybePaletteOf(

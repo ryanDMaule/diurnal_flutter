@@ -7,6 +7,7 @@ import '../models/daily_publication.dart';
 import '../models/match_session.dart';
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
+import '../models/recall_settings_policy.dart';
 import '../services/bookmark_service.dart';
 import '../services/endless_recall_service.dart';
 import '../services/match_service.dart';
@@ -158,6 +159,7 @@ class _RecallScreenState extends State<RecallScreen> {
 
   Future<void> _start() async {
     if (_isLoading) return;
+    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
     setState(() {
       _isLoading = true;
       _canRetry = false;
@@ -168,7 +170,11 @@ class _RecallScreenState extends State<RecallScreen> {
     });
 
     try {
-      final settings = await widget.settingsService.load();
+      final storedSettings = await widget.settingsService.load();
+      final settings = RecallSettingsPolicy.effectiveFor(
+        storedSettings,
+        isPro: isPro,
+      );
       List<DailyPublication>? savedSubjects;
       if (settings.wordPool == RecallWordPool.myLexicon) {
         savedSubjects = await widget.bookmarkService.getSavedPublications();

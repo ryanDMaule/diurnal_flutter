@@ -410,6 +410,48 @@ void main() {
     expect(find.byType(RecallSettingsScreen), findsOneWidget);
   });
 
+  testWidgets(
+    'Free Recall uses effective basic settings over stored Pro values',
+    (tester) async {
+      await progressService.recordAnswer(archive.first.id!, wasCorrect: false);
+      final freeController = EntitlementController(
+        EntitlementService(storage: _MemoryEntitlementStorage()),
+      );
+      await _pumpLanding(
+        tester,
+        archive,
+        bookmarkService,
+        progressService,
+        settings: const RecallSettings(
+          wordPool: RecallWordPool.revisit,
+          questionCount: 20,
+          enabledQuestionTypes: {RecallQuestionType.wordToSynonym},
+        ),
+        entitlementController: freeController,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('normal-recall')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('normal-recall')));
+      await tester.pumpAndSettle();
+
+      final session = tester.widget<RecallSessionScreen>(
+        find.byType(RecallSessionScreen),
+      );
+      expect(session.questions, hasLength(5));
+      expect(
+        session.questions.every(
+          (question) => question.type == RecallQuestionType.wordToDefinition,
+        ),
+        isTrue,
+      );
+      expect(
+        session.questions.map((question) => question.subject.id).toSet(),
+        isNot(equals({archive.first.id})),
+      );
+    },
+  );
+
   testWidgets('Endless refreshes completed personal best changes on Finish', (
     tester,
   ) async {
@@ -794,17 +836,24 @@ void main() {
     await revisitSettings.save(
       RecallSettings.defaults.copyWith(wordPool: RecallWordPool.revisit),
     );
+    final proController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await proController.update(SubscriptionTier.pro);
     await tester.pumpWidget(
-      MaterialApp(
-        home: RecallScreen(
-          apiService: _apiReturning(archive),
-          bookmarkService: bookmarkService,
-          progressService: progressService,
-          settingsService: revisitSettings,
-          endlessService: EndlessRecallService(
-            storage: _MemoryEndlessRecallStorage(),
+      EntitlementScope(
+        notifier: proController,
+        child: MaterialApp(
+          home: RecallScreen(
+            apiService: _apiReturning(archive),
+            bookmarkService: bookmarkService,
+            progressService: progressService,
+            settingsService: revisitSettings,
+            endlessService: EndlessRecallService(
+              storage: _MemoryEndlessRecallStorage(),
+            ),
+            matchService: MatchService(storage: _MemoryMatchStorage()),
           ),
-          matchService: MatchService(storage: _MemoryMatchStorage()),
         ),
       ),
     );
