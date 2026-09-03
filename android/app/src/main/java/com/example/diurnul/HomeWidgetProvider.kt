@@ -11,12 +11,23 @@ import es.antonborri.home_widget.HomeWidgetPlugin
 import es.antonborri.home_widget.HomeWidgetProvider
 
 class HomeWidgetProvider : HomeWidgetProvider() {
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        WidgetRefreshScheduler.schedulePeriodic(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        WidgetRefreshScheduler.cancelPeriodic(context)
+        super.onDisabled(context)
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
         widgetData: SharedPreferences,
     ) {
+        WidgetRefreshScheduler.schedulePeriodic(context)
         appWidgetIds.forEach { widgetId ->
             updateWidget(context, appWidgetManager, widgetData, widgetId)
         }
