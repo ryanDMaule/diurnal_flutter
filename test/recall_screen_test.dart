@@ -15,6 +15,7 @@ import 'package:diurnul/screens/endless_recall_session_screen.dart';
 import 'package:diurnul/screens/endless_recall_result_screen.dart';
 import 'package:diurnul/screens/match_session_screen.dart';
 import 'package:diurnul/screens/match_ready_screen.dart';
+import 'package:diurnul/screens/pro_screen.dart';
 import 'package:diurnul/screens/recall_result_screen.dart';
 import 'package:diurnul/screens/recall_screen.dart';
 import 'package:diurnul/screens/recall_settings_screen.dart';
@@ -58,20 +59,27 @@ void main() {
   testWidgets('Recall appears in Menu and opens its landing screen', (
     tester,
   ) async {
+    final entitlementController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await entitlementController.update(SubscriptionTier.pro);
     await _setTestSize(tester, height: 1200);
     await tester.pumpWidget(
-      MaterialApp(
-        home: MenuScreen(
-          archiveApiService: _apiReturning(archive),
-          bookmarkService: bookmarkService,
-          recallProgressService: progressService,
-          recallSettingsService: RecallSettingsService(
-            storage: _MemoryRecallSettingsStorage(),
+      EntitlementScope(
+        notifier: entitlementController,
+        child: MaterialApp(
+          home: MenuScreen(
+            archiveApiService: _apiReturning(archive),
+            bookmarkService: bookmarkService,
+            recallProgressService: progressService,
+            recallSettingsService: RecallSettingsService(
+              storage: _MemoryRecallSettingsStorage(),
+            ),
+            endlessRecallService: EndlessRecallService(
+              storage: _MemoryEndlessRecallStorage(),
+            ),
+            matchService: MatchService(storage: _MemoryMatchStorage()),
           ),
-          endlessRecallService: EndlessRecallService(
-            storage: _MemoryEndlessRecallStorage(),
-          ),
-          matchService: MatchService(storage: _MemoryMatchStorage()),
         ),
       ),
     );
@@ -134,41 +142,134 @@ void main() {
     );
   });
 
-  testWidgets('Free entitlement does not truncate Recall archive data', (
+  testWidgets('Free keeps normal Recall and full Word Progress available', (
     tester,
   ) async {
     final entitlementController = EntitlementController(
       EntitlementService(storage: _MemoryEntitlementStorage()),
     );
-    await _setTestSize(tester);
-    await tester.pumpWidget(
-      EntitlementScope(
-        notifier: entitlementController,
-        child: MaterialApp(
-          home: RecallScreen(
-            apiService: _apiReturning(archive),
-            bookmarkService: bookmarkService,
-            progressService: progressService,
-            settingsService: RecallSettingsService(
-              storage: _MemoryRecallSettingsStorage(),
-            ),
-            endlessService: EndlessRecallService(
-              storage: _MemoryEndlessRecallStorage(),
-            ),
-            matchService: MatchService(storage: _MemoryMatchStorage()),
-          ),
-        ),
-      ),
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      entitlementController: entitlementController,
     );
     await tester.pumpAndSettle();
 
     expect(entitlementController.tier, SubscriptionTier.free);
+    expect(find.text('0 of 6 recalled'), findsOneWidget);
+    expect(find.byKey(const Key('recall-word-progress')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecallSessionScreen), findsOneWidget);
+  });
+
+  testWidgets('Free Match and Endless taps route to Pro without side effects', (
+    tester,
+  ) async {
+    final entitlementController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    final matchStorage = _MemoryMatchStorage()..value = 4321;
+    final endlessStorage = _MemoryEndlessRecallStorage()..value = 7;
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      entitlementController: entitlementController,
+      matchStorage: matchStorage,
+      endlessStorage: endlessStorage,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('match-recall')), findsOneWidget);
+    expect(find.byKey(const Key('match-pro-lock')), findsOneWidget);
+    expect(find.byKey(const Key('endless-recall')), findsOneWidget);
+    expect(find.byKey(const Key('endless-pro-lock')), findsOneWidget);
+    expect(find.byKey(const Key('recall-word-progress')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProScreen), findsOneWidget);
+    expect(find.byType(MatchReadyScreen), findsNothing);
+    expect(find.byType(MatchSessionScreen), findsNothing);
+    await tester.tap(find.byTooltip('Back to Recall'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('endless-recall')));
     await tester.pumpAndSettle();
-    final session = tester.widget<EndlessRecallSessionScreen>(
-      find.byType(EndlessRecallSessionScreen),
+    expect(find.byType(ProScreen), findsOneWidget);
+    expect(find.byType(EndlessRecallSessionScreen), findsNothing);
+    await tester.tap(find.byTooltip('Back to Recall'));
+    await tester.pumpAndSettle();
+
+    expect(matchStorage.value, 4321);
+    expect(endlessStorage.value, 7);
+    for (final publication in archive) {
+      expect(
+        await progressService.stateFor(publication.id!),
+        RecallProgressState.unseen,
+      );
+    }
+  });
+
+  testWidgets('Pro opens Match and Endless with locked treatment removed', (
+    tester,
+  ) async {
+    final entitlementController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
     );
-    expect(session.archive, hasLength(archive.length));
+    await entitlementController.update(SubscriptionTier.pro);
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      entitlementController: entitlementController,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('match-pro-lock')), findsNothing);
+    expect(find.byKey(const Key('endless-pro-lock')), findsNothing);
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchReadyScreen), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Recall'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EndlessRecallSessionScreen), findsOneWidget);
+  });
+
+  testWidgets('Match and Endless locks react to entitlement changes', (
+    tester,
+  ) async {
+    final entitlementController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      entitlementController: entitlementController,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('match-pro-lock')), findsOneWidget);
+    expect(find.byKey(const Key('endless-pro-lock')), findsOneWidget);
+
+    await entitlementController.update(SubscriptionTier.pro);
+    await tester.pump();
+    expect(find.byKey(const Key('match-pro-lock')), findsNothing);
+    expect(find.byKey(const Key('endless-pro-lock')), findsNothing);
+
+    await entitlementController.update(SubscriptionTier.free);
+    await tester.pump();
+    expect(find.byKey(const Key('match-pro-lock')), findsOneWidget);
+    expect(find.byKey(const Key('endless-pro-lock')), findsOneWidget);
   });
 
   testWidgets(
@@ -1002,6 +1103,7 @@ Future<void> _pumpLanding(
   RecallSettings settings = RecallSettings.defaults,
   EndlessRecallStorage? endlessStorage,
   _MemoryMatchStorage? matchStorage,
+  EntitlementController? entitlementController,
   double height = 1000,
 }) => _pumpLandingWithApi(
   tester,
@@ -1011,6 +1113,7 @@ Future<void> _pumpLanding(
   settings: settings,
   endlessStorage: endlessStorage,
   matchStorage: matchStorage,
+  entitlementController: entitlementController,
   height: height,
 );
 
@@ -1022,6 +1125,7 @@ Future<void> _pumpLandingWithApi(
   RecallSettings settings = RecallSettings.defaults,
   EndlessRecallStorage? endlessStorage,
   _MemoryMatchStorage? matchStorage,
+  EntitlementController? entitlementController,
   double height = 1000,
 }) async {
   final settingsService = RecallSettingsService(
@@ -1029,23 +1133,30 @@ Future<void> _pumpLandingWithApi(
   );
   await settingsService.save(settings);
   await _setTestSize(tester, height: height);
-  await tester.pumpWidget(
-    MaterialApp(
-      home: RecallScreen(
-        apiService: apiService,
-        bookmarkService: bookmarkService,
-        progressService: progressService,
-        settingsService: settingsService,
-        sessionGenerator: RecallSessionGenerator(random: Random(4)),
-        endlessService: EndlessRecallService(
-          storage: endlessStorage ?? _MemoryEndlessRecallStorage(),
-        ),
-        matchService: MatchService(
-          storage: matchStorage ?? _MemoryMatchStorage(),
-        ),
+  final controller =
+      entitlementController ??
+      EntitlementController(
+        EntitlementService(storage: _MemoryEntitlementStorage()),
+      );
+  if (entitlementController == null) {
+    await controller.update(SubscriptionTier.pro);
+  }
+  final app = MaterialApp(
+    home: RecallScreen(
+      apiService: apiService,
+      bookmarkService: bookmarkService,
+      progressService: progressService,
+      settingsService: settingsService,
+      sessionGenerator: RecallSessionGenerator(random: Random(4)),
+      endlessService: EndlessRecallService(
+        storage: endlessStorage ?? _MemoryEndlessRecallStorage(),
+      ),
+      matchService: MatchService(
+        storage: matchStorage ?? _MemoryMatchStorage(),
       ),
     ),
   );
+  await tester.pumpWidget(EntitlementScope(notifier: controller, child: app));
 }
 
 Future<void> _setTestSize(WidgetTester tester, {double height = 1000}) async {
@@ -1091,11 +1202,13 @@ class _MemoryBookmarkStorage implements BookmarkStorage {
 }
 
 class _MemoryEntitlementStorage implements EntitlementStorage {
-  @override
-  Future<String?> readTier() async => SubscriptionTier.free.name;
+  String value = SubscriptionTier.free.name;
 
   @override
-  Future<void> writeTier(String tier) async {}
+  Future<String?> readTier() async => value;
+
+  @override
+  Future<void> writeTier(String tier) async => value = tier;
 }
 
 class _MemoryRecallProgressStorage implements RecallProgressStorage {

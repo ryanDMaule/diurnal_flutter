@@ -14,9 +14,11 @@ import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/entitlement_scope.dart';
 import 'endless_recall_session_screen.dart';
 import 'match_session_screen.dart';
 import 'match_ready_screen.dart';
+import 'pro_screen.dart';
 import 'recall_session_screen.dart';
 import 'recall_settings_screen.dart';
 
@@ -142,6 +144,14 @@ class _RecallScreenState extends State<RecallScreen> {
       MaterialPageRoute<void>(
         builder: (context) =>
             RecallSettingsScreen(settingsService: widget.settingsService),
+      ),
+    );
+  }
+
+  Future<void> _openPro() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ProScreen(backTooltip: 'Back to Recall'),
       ),
     );
   }
@@ -358,6 +368,7 @@ class _RecallScreenState extends State<RecallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: SafeArea(
@@ -435,7 +446,8 @@ class _RecallScreenState extends State<RecallScreen> {
                   description: 'Pair words with their meanings.',
                   footer:
                       'Best · ${_matchBestMilliseconds == null ? '—' : formatMatchTime(_matchBestMilliseconds!)}',
-                  onTap: _startMatch,
+                  isLocked: !isPro,
+                  onTap: isPro ? _startMatch : _openPro,
                 ),
                 SizedBox(height: 18),
                 _RecallCard(
@@ -444,7 +456,8 @@ class _RecallScreenState extends State<RecallScreen> {
                   title: 'Endless Recall',
                   description: 'Keep going until you miss one.',
                   footer: 'Best · ${_endlessBest ?? '—'}',
-                  onTap: _startEndless,
+                  isLocked: !isPro,
+                  onTap: isPro ? _startEndless : _openPro,
                 ),
                 SizedBox(height: 30),
                 _WordProgressSection(
@@ -530,6 +543,7 @@ class _RecallCard extends StatelessWidget {
     required this.description,
     this.onTap,
     this.footer,
+    this.isLocked = false,
     super.key,
   });
 
@@ -538,94 +552,111 @@ class _RecallCard extends StatelessWidget {
   final String description;
   final VoidCallback? onTap;
   final String? footer;
+  final bool isLocked;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-        decoration: BoxDecoration(
-          color: InterfaceThemeScope.maybePaletteOf(context).surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: InterfaceThemeScope.maybePaletteOf(context).divider,
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    return Semantics(
+      button: onTap != null,
+      label: isLocked ? '$title, Diurnus Pro' : title,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: palette.divider),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: palette.accent),
                 ),
+                child: Icon(icon, color: palette.accent, size: 23),
               ),
-              child: Icon(
-                icon,
-                color: InterfaceThemeScope.maybePaletteOf(context).accent,
-                size: 23,
-              ),
-            ),
-            SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: InterfaceThemeScope.maybePaletteOf(
-                        context,
-                      ).primary,
-                      fontFamily: 'NotoSerifJP',
-                      fontSize: 22,
+              SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: palette.primary,
+                        fontFamily: 'NotoSerifJP',
+                        fontSize: 22,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: InterfaceThemeScope.maybePaletteOf(
-                        context,
-                      ).primary.withValues(alpha: 0.56),
-                      fontFamily: 'Figtree',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w300,
-                      height: 1.45,
-                    ),
-                  ),
-                  if (footer != null) ...[
                     SizedBox(height: 8),
                     Text(
-                      footer!,
+                      description,
                       style: TextStyle(
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).accent.withValues(alpha: 0.7),
+                        color: palette.primary.withValues(
+                          alpha: isLocked ? 0.46 : 0.56,
+                        ),
                         fontFamily: 'Figtree',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w300,
+                        height: 1.45,
+                      ),
+                    ),
+                    if (footer != null) ...[
+                      SizedBox(height: 8),
+                      Text(
+                        footer!,
+                        style: TextStyle(
+                          color: palette.accent.withValues(alpha: 0.7),
+                          fontFamily: 'Figtree',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (isLocked) ...[
+                SizedBox(width: 12),
+                Row(
+                  key: Key(
+                    '${title == 'Match' ? 'match' : 'endless'}-pro-lock',
+                  ),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.lock,
+                      color: palette.accent.withValues(alpha: 0.72),
+                      size: 13,
+                    ),
+                    SizedBox(width: 5),
+                    Text(
+                      'Pro',
+                      style: TextStyle(
+                        color: palette.accent.withValues(alpha: 0.78),
+                        fontFamily: 'Figtree',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
-            if (onTap != null) ...[
-              SizedBox(width: 12),
-              Icon(
-                CupertinoIcons.chevron_right,
-                color: InterfaceThemeScope.maybePaletteOf(
-                  context,
-                ).primary.withValues(alpha: 0.6),
-                size: 18,
-              ),
+                ),
+              ] else if (onTap != null) ...[
+                SizedBox(width: 12),
+                Icon(
+                  CupertinoIcons.chevron_right,
+                  color: palette.primary.withValues(alpha: 0.6),
+                  size: 18,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
