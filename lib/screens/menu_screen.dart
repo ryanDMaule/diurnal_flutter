@@ -5,6 +5,7 @@ import '../services/bookmark_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/edition_service.dart';
 import '../services/endless_recall_service.dart';
+import '../services/match_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
@@ -26,6 +27,7 @@ class MenuScreen extends StatelessWidget {
     this.recallProgressService,
     this.recallSettingsService,
     this.endlessRecallService,
+    this.matchService,
     this.appSettingsService,
     super.key,
   });
@@ -36,6 +38,7 @@ class MenuScreen extends StatelessWidget {
   final RecallProgressService? recallProgressService;
   final RecallSettingsService? recallSettingsService;
   final EndlessRecallService? endlessRecallService;
+  final MatchService? matchService;
   final AppSettingsService? appSettingsService;
 
   void _openDestination(BuildContext context, String title) {
@@ -111,6 +114,7 @@ class MenuScreen extends StatelessWidget {
                             progressService: recallProgressService,
                             settingsService: recallSettingsService,
                             endlessService: endlessRecallService,
+                            matchService: matchService,
                           ),
                         ),
                       ),

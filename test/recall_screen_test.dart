@@ -12,12 +12,15 @@ import 'package:diurnul/models/recall_settings.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/endless_recall_session_screen.dart';
 import 'package:diurnul/screens/endless_recall_result_screen.dart';
+import 'package:diurnul/screens/match_session_screen.dart';
+import 'package:diurnul/screens/match_ready_screen.dart';
 import 'package:diurnul/screens/recall_result_screen.dart';
 import 'package:diurnul/screens/recall_screen.dart';
 import 'package:diurnul/screens/recall_settings_screen.dart';
 import 'package:diurnul/screens/recall_session_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/endless_recall_service.dart';
+import 'package:diurnul/services/match_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/services/recall_settings_service.dart';
@@ -65,6 +68,7 @@ void main() {
           endlessRecallService: EndlessRecallService(
             storage: _MemoryEndlessRecallStorage(),
           ),
+          matchService: MatchService(storage: _MemoryMatchStorage()),
         ),
       ),
     );
@@ -75,9 +79,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RecallScreen), findsOneWidget);
     expect(find.byKey(const Key('normal-recall')), findsOneWidget);
+    expect(find.byKey(const Key('match-recall')), findsOneWidget);
+    expect(find.text('Pair words with their meanings.'), findsOneWidget);
     expect(find.text('Endless Recall'), findsOneWidget);
-    expect(find.text('Best · —'), findsOneWidget);
+    expect(find.text('Best · —'), findsNWidgets(2));
     expect(find.text('My Lexicon Recall'), findsNothing);
+
+    await tester.ensureVisible(find.byKey(const Key('match-recall')));
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchReadyScreen), findsOneWidget);
+    expect(find.text('Ready to play?'), findsOneWidget);
+    expect(find.textContaining('Avoid incorrect matches'), findsOneWidget);
+    expect(find.byKey(const Key('match-timer')), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is AnimatedOpacity &&
+            widget.key.toString().contains('match-card-'),
+      ),
+      findsNothing,
+    );
+    await tester.tap(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchSessionScreen), findsOneWidget);
+    expect(find.byKey(const Key('match-timer')), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is AnimatedOpacity &&
+            widget.key.toString().contains('match-card-'),
+      ),
+      findsNWidgets(8),
+    );
   });
 
   testWidgets('Daily Recall starts with five unique Archive subjects', (
@@ -95,6 +129,125 @@ void main() {
       session.questions.map((question) => question.subject.id).toSet(),
       hasLength(5),
     );
+  });
+
+  testWidgets(
+    'Recall landing scrolls to complete Word Progress on short phones',
+    (tester) async {
+      await _pumpLanding(
+        tester,
+        archive,
+        bookmarkService,
+        progressService,
+        height: 640,
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('normal-recall')), findsOneWidget);
+      expect(find.byKey(const Key('match-recall')), findsOneWidget);
+      expect(find.byKey(const Key('endless-recall')), findsOneWidget);
+      expect(find.byKey(const Key('recall-word-progress')), findsOneWidget);
+
+      await tester.drag(
+        find.byKey(const Key('recall-landing-scroll')),
+        const Offset(0, -600),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('recall-progress-headline')), findsOneWidget);
+      expect(
+        find.byKey(const Key('recall-segmented-progress')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('recall-progress-legend')), findsOneWidget);
+      expect(
+        tester
+            .getBottomLeft(find.byKey(const Key('recall-progress-legend')))
+            .dy,
+        lessThan(640),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Match completion refreshes its landing personal best', (
+    tester,
+  ) async {
+    final matchStorage = _MemoryMatchStorage();
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      matchStorage: matchStorage,
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('match-recall')));
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
+
+    final session = tester.widget<MatchSessionScreen>(
+      find.byType(MatchSessionScreen),
+    );
+    for (final subjectId in session.session.subjectIds) {
+      await tester.tap(find.byKey(Key('match-card-$subjectId:word')));
+      await tester.pump();
+      await tester.tap(find.byKey(Key('match-card-$subjectId:definition')));
+      await tester.pump(const Duration(milliseconds: 220));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Match complete'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('finish-match')));
+    await tester.pumpAndSettle();
+
+    expect(matchStorage.value, isNotNull);
+    final matchCard = find.byKey(const Key('match-recall'));
+    expect(
+      find.descendant(
+        of: matchCard,
+        matching: find.text('Best · ${formatMatchTime(matchStorage.value!)}'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Match Ready backs out and is shown again on a new entry', (
+    tester,
+  ) async {
+    final matchStorage = _MemoryMatchStorage();
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      matchStorage: matchStorage,
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('match-recall')));
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchReadyScreen), findsOneWidget);
+    expect(find.byTooltip('Back to Recall'), findsOneWidget);
+    expect(find.byType(MatchSessionScreen), findsNothing);
+    expect(find.byKey(const Key('match-timer')), findsNothing);
+
+    await tester.tap(find.byTooltip('Back to Recall'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecallScreen), findsOneWidget);
+    expect(matchStorage.value, isNull);
+    for (final publication in archive) {
+      expect(
+        await progressService.stateFor(publication.id!),
+        RecallProgressState.unseen,
+      );
+    }
+    await tester.ensureVisible(find.byKey(const Key('match-recall')));
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchReadyScreen), findsOneWidget);
   });
 
   testWidgets('Endless is tappable and settings still opens from the header', (
@@ -128,7 +281,7 @@ void main() {
       endlessStorage: endlessStorage,
     );
     await tester.pumpAndSettle();
-    expect(find.text('Best · —'), findsOneWidget);
+    expect(find.text('Best · —'), findsNWidgets(2));
 
     await tester.tap(find.byKey(const Key('endless-recall')));
     await tester.pumpAndSettle();
@@ -510,6 +663,7 @@ void main() {
           endlessService: EndlessRecallService(
             storage: _MemoryEndlessRecallStorage(),
           ),
+          matchService: MatchService(storage: _MemoryMatchStorage()),
         ),
       ),
     );
@@ -807,6 +961,8 @@ Future<void> _pumpLanding(
   RecallProgressService progressService, {
   RecallSettings settings = RecallSettings.defaults,
   EndlessRecallStorage? endlessStorage,
+  _MemoryMatchStorage? matchStorage,
+  double height = 1000,
 }) => _pumpLandingWithApi(
   tester,
   _apiReturning(archive),
@@ -814,6 +970,8 @@ Future<void> _pumpLanding(
   progressService,
   settings: settings,
   endlessStorage: endlessStorage,
+  matchStorage: matchStorage,
+  height: height,
 );
 
 Future<void> _pumpLandingWithApi(
@@ -823,12 +981,14 @@ Future<void> _pumpLandingWithApi(
   RecallProgressService progressService, {
   RecallSettings settings = RecallSettings.defaults,
   EndlessRecallStorage? endlessStorage,
+  _MemoryMatchStorage? matchStorage,
+  double height = 1000,
 }) async {
   final settingsService = RecallSettingsService(
     storage: _MemoryRecallSettingsStorage(),
   );
   await settingsService.save(settings);
-  await _setTestSize(tester);
+  await _setTestSize(tester, height: height);
   await tester.pumpWidget(
     MaterialApp(
       home: RecallScreen(
@@ -839,6 +999,9 @@ Future<void> _pumpLandingWithApi(
         sessionGenerator: RecallSessionGenerator(random: Random(4)),
         endlessService: EndlessRecallService(
           storage: endlessStorage ?? _MemoryEndlessRecallStorage(),
+        ),
+        matchService: MatchService(
+          storage: matchStorage ?? _MemoryMatchStorage(),
         ),
       ),
     ),
@@ -919,6 +1082,18 @@ class _MemoryEndlessRecallStorage implements EndlessRecallStorage {
 
   @override
   Future<void> writeBest(int score) async => value = score;
+}
+
+class _MemoryMatchStorage implements MatchStorage {
+  int? value;
+
+  @override
+  Future<int?> readBestMilliseconds() async => value;
+
+  @override
+  Future<void> writeBestMilliseconds(int milliseconds) async {
+    value = milliseconds;
+  }
 }
 
 Future<void> _answerEndless(

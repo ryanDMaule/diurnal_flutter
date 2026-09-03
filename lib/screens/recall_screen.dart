@@ -4,15 +4,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
+import '../models/match_session.dart';
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
 import '../services/bookmark_service.dart';
 import '../services/endless_recall_service.dart';
+import '../services/match_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
 import 'endless_recall_session_screen.dart';
+import 'match_session_screen.dart';
+import 'match_ready_screen.dart';
 import 'recall_session_screen.dart';
 import 'recall_settings_screen.dart';
 
@@ -23,6 +27,8 @@ class RecallScreen extends StatefulWidget {
     RecallProgressService? progressService,
     RecallSettingsService? settingsService,
     EndlessRecallService? endlessService,
+    MatchService? matchService,
+    MatchSessionGenerator? matchGenerator,
     RecallSessionGenerator? sessionGenerator,
     super.key,
   }) : apiService = apiService ?? PublicationApiService(),
@@ -30,6 +36,8 @@ class RecallScreen extends StatefulWidget {
        progressService = progressService ?? RecallProgressService(),
        settingsService = settingsService ?? RecallSettingsService(),
        endlessService = endlessService ?? EndlessRecallService(),
+       matchService = matchService ?? MatchService(),
+       matchGenerator = matchGenerator ?? MatchSessionGenerator(),
        sessionGenerator = sessionGenerator ?? RecallSessionGenerator();
 
   final PublicationApiService apiService;
@@ -37,6 +45,8 @@ class RecallScreen extends StatefulWidget {
   final RecallProgressService progressService;
   final RecallSettingsService settingsService;
   final EndlessRecallService endlessService;
+  final MatchService matchService;
+  final MatchSessionGenerator matchGenerator;
   final RecallSessionGenerator sessionGenerator;
 
   @override
@@ -54,13 +64,25 @@ class _RecallScreenState extends State<RecallScreen> {
   String? _messageTitle;
   String? _messageBody;
   int? _endlessBest;
+  int? _matchBestMilliseconds;
   bool _retryStartsEndless = false;
+  bool _retryStartsMatch = false;
 
   @override
   void initState() {
     super.initState();
     _loadProgress();
     _loadEndlessBest();
+    _loadMatchBest();
+  }
+
+  Future<void> _loadMatchBest() async {
+    try {
+      final best = await widget.matchService.personalBestMilliseconds();
+      if (mounted) setState(() => _matchBestMilliseconds = best);
+    } catch (error) {
+      debugPrint('Error loading Match best: $error');
+    }
   }
 
   Future<void> _loadEndlessBest() async {
@@ -132,6 +154,7 @@ class _RecallScreenState extends State<RecallScreen> {
       _messageTitle = null;
       _messageBody = null;
       _retryStartsEndless = false;
+      _retryStartsMatch = false;
     });
 
     try {
@@ -224,6 +247,7 @@ class _RecallScreenState extends State<RecallScreen> {
       _messageTitle = null;
       _messageBody = null;
       _retryStartsEndless = true;
+      _retryStartsMatch = false;
     });
     try {
       final archive = await _getArchive();
@@ -274,6 +298,64 @@ class _RecallScreenState extends State<RecallScreen> {
     }
   }
 
+  Future<void> _startMatch() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _canRetry = false;
+      _messageTitle = null;
+      _messageBody = null;
+      _retryStartsEndless = false;
+      _retryStartsMatch = true;
+    });
+    try {
+      final archive = await _getArchive();
+      MatchSession generate(Set<String> avoidSubjectIds) => widget
+          .matchGenerator
+          .generate(publications: archive, avoidSubjectIds: avoidSubjectIds);
+      final session = generate({});
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (!session.isAvailable) {
+        setState(() {
+          _messageTitle = 'Match unavailable';
+          _messageBody = 'At least two published word pairs are needed.';
+        });
+        return;
+      }
+      void openSession(BuildContext readyContext) {
+        Navigator.of(readyContext).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (context) => MatchSessionScreen(
+              session: session,
+              matchService: widget.matchService,
+              progressService: widget.progressService,
+              onPlayAgain: (previousSubjectIds) async =>
+                  generate(previousSubjectIds),
+              onFinished: _loadMatchBest,
+            ),
+          ),
+        );
+      }
+
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => MatchReadyScreen(onStart: openSession),
+        ),
+      );
+      await Future.wait([_refreshProgress(), _loadMatchBest()]);
+    } catch (error) {
+      debugPrint('Error preparing Match: $error');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _canRetry = true;
+        _messageTitle = 'Match unavailable';
+        _messageBody = 'Please check your connection and try again.';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -281,139 +363,159 @@ class _RecallScreenState extends State<RecallScreen> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              IconButton(
-                tooltip: 'Back to menu',
-                onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(
-                  CupertinoIcons.back,
-                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
-                  size: 26,
+          child: SingleChildScrollView(
+            key: Key('recall-landing-scroll'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  tooltip: 'Back to menu',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(
+                    CupertinoIcons.back,
+                    color: InterfaceThemeScope.maybePaletteOf(context).primary,
+                    size: 26,
+                  ),
                 ),
-              ),
-              SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Recall',
-                      style: TextStyle(
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).primary,
-                        fontFamily: 'NotoSerifJP',
-                        fontSize: 40,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    key: Key('recall-settings'),
-                    tooltip: 'Recall Settings',
-                    onPressed: _openSettings,
-                    icon: Icon(
-                      CupertinoIcons.slider_horizontal_3,
-                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
-                      size: 23,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 6),
-              Text(
-                'Words worth remembering.',
-                style: TextStyle(
-                  color: InterfaceThemeScope.maybePaletteOf(
-                    context,
-                  ).primary.withValues(alpha: 0.58),
-                  fontFamily: 'Figtree',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w300,
-                ),
-              ),
-              SizedBox(height: 38),
-              _RecallCard(
-                key: Key('normal-recall'),
-                icon: CupertinoIcons.book,
-                title: 'Recall',
-                description: 'A short session from your selected word pool.',
-                onTap: _start,
-              ),
-              SizedBox(height: 18),
-              _RecallCard(
-                key: Key('endless-recall'),
-                icon: CupertinoIcons.infinite,
-                title: 'Endless Recall',
-                description: 'Keep going until you miss one.',
-                footer: 'Best · ${_endlessBest ?? '—'}',
-                onTap: _startEndless,
-              ),
-              SizedBox(height: 30),
-              _WordProgressSection(
-                summary: _progressSummary,
-                isLoading: _isProgressLoading,
-                isUnavailable: _progressUnavailable,
-              ),
-              SizedBox(height: 30),
-              if (_isLoading)
-                Center(
-                  child: SizedBox.square(
-                    dimension: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
-                    ),
-                  ),
-                )
-              else if (_messageTitle != null)
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        _messageTitle!,
-                        textAlign: TextAlign.center,
+                SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Recall',
                         style: TextStyle(
                           color: InterfaceThemeScope.maybePaletteOf(
                             context,
                           ).primary,
                           fontFamily: 'NotoSerifJP',
-                          fontSize: 22,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        _messageBody!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: InterfaceThemeScope.maybePaletteOf(
-                            context,
-                          ).primary.withValues(alpha: 0.55),
-                          fontFamily: 'Figtree',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w300,
-                        ),
+                    ),
+                    IconButton(
+                      key: Key('recall-settings'),
+                      tooltip: 'Recall Settings',
+                      onPressed: _openSettings,
+                      icon: Icon(
+                        CupertinoIcons.slider_horizontal_3,
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).accent,
+                        size: 23,
                       ),
-                      if (_canRetry) ...[
-                        SizedBox(height: 10),
-                        TextButton(
-                          key: Key('retry-recall'),
-                          onPressed: _retryStartsEndless
-                              ? _startEndless
-                              : _start,
-                          style: TextButton.styleFrom(
-                            foregroundColor: InterfaceThemeScope.maybePaletteOf(
-                              context,
-                            ).accent,
-                          ),
-                          child: Text('Retry'),
-                        ),
-                      ],
-                    ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Words worth remembering.',
+                  style: TextStyle(
+                    color: InterfaceThemeScope.maybePaletteOf(
+                      context,
+                    ).primary.withValues(alpha: 0.58),
+                    fontFamily: 'Figtree',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
-            ],
+                SizedBox(height: 38),
+                _RecallCard(
+                  key: Key('normal-recall'),
+                  icon: CupertinoIcons.book,
+                  title: 'Recall',
+                  description: 'A short session from your selected word pool.',
+                  onTap: _start,
+                ),
+                SizedBox(height: 18),
+                _RecallCard(
+                  key: Key('match-recall'),
+                  icon: CupertinoIcons.square_grid_2x2,
+                  title: 'Match',
+                  description: 'Pair words with their meanings.',
+                  footer:
+                      'Best · ${_matchBestMilliseconds == null ? '—' : formatMatchTime(_matchBestMilliseconds!)}',
+                  onTap: _startMatch,
+                ),
+                SizedBox(height: 18),
+                _RecallCard(
+                  key: Key('endless-recall'),
+                  icon: CupertinoIcons.infinite,
+                  title: 'Endless Recall',
+                  description: 'Keep going until you miss one.',
+                  footer: 'Best · ${_endlessBest ?? '—'}',
+                  onTap: _startEndless,
+                ),
+                SizedBox(height: 30),
+                _WordProgressSection(
+                  summary: _progressSummary,
+                  isLoading: _isProgressLoading,
+                  isUnavailable: _progressUnavailable,
+                ),
+                SizedBox(height: 30),
+                if (_isLoading)
+                  Center(
+                    child: SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).accent,
+                      ),
+                    ),
+                  )
+                else if (_messageTitle != null)
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          _messageTitle!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).primary,
+                            fontFamily: 'NotoSerifJP',
+                            fontSize: 22,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          _messageBody!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).primary.withValues(alpha: 0.55),
+                            fontFamily: 'Figtree',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        if (_canRetry) ...[
+                          SizedBox(height: 10),
+                          TextButton(
+                            key: Key('retry-recall'),
+                            onPressed: _retryStartsMatch
+                                ? _startMatch
+                                : _retryStartsEndless
+                                ? _startEndless
+                                : _start,
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  InterfaceThemeScope.maybePaletteOf(
+                                    context,
+                                  ).accent,
+                            ),
+                            child: Text('Retry'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
