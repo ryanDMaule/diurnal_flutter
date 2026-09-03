@@ -7,13 +7,15 @@
     android:clipToOutline="true">
 
     <ImageView
+        android:id="@+id/widget_background"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:contentDescription="@null"
         android:scaleType="centerCrop"
-        android:src="@drawable/widget_background_img" />
+        android:src="@drawable/widget_background_library" />
 
     <ImageView
+        android:id="@+id/widget_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:contentDescription="@null"

@@ -5,14 +5,20 @@ import 'package:flutter/material.dart';
 
 import '../models/edition.dart';
 import '../services/edition_service.dart';
+import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
 
 class AppearanceScreen extends StatefulWidget {
-  AppearanceScreen({EditionService? editionService, super.key})
-    : editionService = editionService ?? EditionService();
+  AppearanceScreen({
+    EditionService? editionService,
+    WidgetSyncService? widgetSyncService,
+    super.key,
+  }) : editionService = editionService ?? EditionService(),
+       widgetSyncService = widgetSyncService ?? WidgetSyncService();
 
   final EditionService editionService;
+  final WidgetSyncService widgetSyncService;
 
   @override
   State<AppearanceScreen> createState() => _AppearanceScreenState();
@@ -39,6 +45,12 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
     } catch (error) {
       debugPrint('Error saving Edition: $error');
       await _restoreSelection();
+      return;
+    }
+    try {
+      await widget.widgetSyncService.syncEdition(edition);
+    } catch (error) {
+      debugPrint('Error updating widget Edition: $error');
     }
   }
 

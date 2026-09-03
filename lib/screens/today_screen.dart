@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/daily_publication.dart';
@@ -9,22 +8,10 @@ import '../models/edition.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/publication_api_service.dart';
+import '../services/widget_sync_service.dart';
 import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
 import 'menu_screen.dart';
-
-Future<void> updateWidget(DailyPublication publication) async {
-  await HomeWidget.saveWidgetData<String>('word', publication.word);
-  await HomeWidget.saveWidgetData<String>('type', publication.type);
-  await HomeWidget.saveWidgetData<String>('phonetic', publication.phonetic);
-  await HomeWidget.saveWidgetData<String>('definition', publication.definition);
-  await HomeWidget.updateWidget(
-    name: 'HomeWidgetProvider',
-    androidName: 'HomeWidgetProvider',
-    iOSName: 'HomeWidget',
-    qualifiedAndroidName: 'com.example.diurnul.HomeWidgetProvider',
-  );
-}
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -36,6 +23,7 @@ class TodayScreen extends StatefulWidget {
 class _TodayScreenState extends State<TodayScreen> {
   final BookmarkService _bookmarkService = BookmarkService();
   final EditionService _editionService = EditionService();
+  final WidgetSyncService _widgetSyncService = WidgetSyncService();
   DailyPublication publication = DailyPublication.localFallback;
   Edition edition = Editions.library;
   bool isLoading = true;
@@ -67,7 +55,7 @@ class _TodayScreenState extends State<TodayScreen> {
           isBookmarked = false;
         });
         await _restoreBookmarkState(fetched);
-        await updateWidget(fetched);
+        await _widgetSyncService.syncPublication(fetched);
       } else {
         debugPrint(
           '⚠️ API returned ${response.statusCode}. Using fallback word.',
@@ -88,7 +76,7 @@ class _TodayScreenState extends State<TodayScreen> {
       isOffline = true;
       isBookmarked = false;
     });
-    await updateWidget(publication);
+    await _widgetSyncService.syncPublication(publication);
   }
 
   Future<void> _restoreBookmarkState(DailyPublication current) async {
@@ -105,6 +93,7 @@ class _TodayScreenState extends State<TodayScreen> {
     try {
       final selectedEdition = await _editionService.loadSelectedEdition();
       if (mounted) setState(() => edition = selectedEdition);
+      await _widgetSyncService.syncEdition(selectedEdition);
     } catch (error) {
       debugPrint('Error loading Edition: $error');
     }

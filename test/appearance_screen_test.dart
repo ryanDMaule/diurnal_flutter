@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/screens/appearance_screen.dart';
 import 'package:diurnul/services/edition_service.dart';
+import 'package:diurnul/services/widget_sync_service.dart';
 import 'package:diurnul/widgets/edition_background.dart';
 
 void main() {
@@ -12,10 +13,16 @@ void main() {
     tester,
   ) async {
     final service = EditionService(storage: _MemoryEditionStorage());
+    final widgetCache = _MemoryWidgetCache();
     await tester.binding.setSurfaceSize(const Size(440, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(home: AppearanceScreen(editionService: service)),
+      MaterialApp(
+        home: AppearanceScreen(
+          editionService: service,
+          widgetSyncService: WidgetSyncService(cache: widgetCache),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -40,10 +47,16 @@ void main() {
   ) async {
     final storage = _MemoryEditionStorage();
     final service = EditionService(storage: storage);
+    final widgetCache = _MemoryWidgetCache();
     await tester.binding.setSurfaceSize(const Size(440, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(home: AppearanceScreen(editionService: service)),
+      MaterialApp(
+        home: AppearanceScreen(
+          editionService: service,
+          widgetSyncService: WidgetSyncService(cache: widgetCache),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -60,6 +73,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(await service.loadSelectedEdition(), same(Editions.atrium));
+    expect(widgetCache.values[WidgetSyncService.editionKey], 'atrium');
+    expect(widgetCache.redrawCount, 1);
     expect(
       find.descendant(
         of: find.byKey(const Key('edition-selection-library')),
@@ -75,6 +90,21 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+class _MemoryWidgetCache implements WidgetCache {
+  final values = <String, String>{};
+  int redrawCount = 0;
+
+  @override
+  Future<void> saveString(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  Future<void> redraw() async {
+    redrawCount++;
+  }
 }
 
 class _MemoryEditionStorage implements EditionStorage {

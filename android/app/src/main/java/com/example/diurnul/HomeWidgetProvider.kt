@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
@@ -30,12 +29,6 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         newOptions: Bundle,
     ) {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
-        logDimensions(
-            event = "optionsChanged",
-            widgetId = appWidgetId,
-            options = newOptions,
-            presentation = WidgetPresentation.from(newOptions),
-        )
         updateWidget(
             context,
             appWidgetManager,
@@ -53,16 +46,22 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         options: Bundle = appWidgetManager.getAppWidgetOptions(widgetId),
     ) {
         val publication = CachedPublication.from(widgetData)
+        val style = WidgetStyle.fromId(widgetData.getString(WidgetCacheKeys.EDITION, null))
         val presentation = WidgetPresentation.from(options)
-        logDimensions("render", widgetId, options, presentation)
         val views = RemoteViews(context.packageName, presentation.layoutResource)
 
         views.setTextViewText(R.id.widget_word, publication.word)
         views.setTextViewText(R.id.widget_definition, publication.definition)
+        views.setTextColor(R.id.widget_word, style.primaryTextColor)
+        views.setTextColor(R.id.widget_definition, style.secondaryTextColor)
         if (presentation == WidgetPresentation.LARGE) {
             setOptionalText(views, R.id.widget_type, publication.type.uppercase())
             setOptionalText(views, R.id.widget_phonetic, publication.phonetic)
+            views.setTextColor(R.id.widget_type, style.mutedTextColor)
+            views.setTextColor(R.id.widget_phonetic, style.mutedTextColor)
         }
+        views.setImageViewResource(R.id.widget_background, style.backgroundResource)
+        views.setInt(R.id.widget_overlay, "setBackgroundColor", style.overlayColor)
 
         val launchIntent = HomeWidgetLaunchIntent.getActivity(
             context,
@@ -72,31 +71,18 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         appWidgetManager.updateAppWidget(widgetId, views)
     }
 
-    private fun logDimensions(
-        event: String,
-        widgetId: Int,
-        options: Bundle,
-        presentation: WidgetPresentation,
-    ) {
-        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-        val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
-        val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
-        Log.d(
-            LOG_TAG,
-            "$event id=$widgetId min=${minWidth}x$minHeight max=${maxWidth}x$maxHeight " +
-                "presentation=${presentation.name}",
-        )
-    }
-
     private fun setOptionalText(views: RemoteViews, viewId: Int, value: String) {
         views.setTextViewText(viewId, value)
         views.setViewVisibility(viewId, if (value.isBlank()) View.GONE else View.VISIBLE)
     }
+}
 
-    companion object {
-        private const val LOG_TAG = "DiurnusWidget"
-    }
+internal object WidgetCacheKeys {
+    const val WORD = "word"
+    const val TYPE = "type"
+    const val PHONETIC = "phonetic"
+    const val DEFINITION = "definition"
+    const val EDITION = "edition"
 }
 
 internal data class CachedPublication(
@@ -107,11 +93,65 @@ internal data class CachedPublication(
 ) {
     companion object {
         fun from(widgetData: SharedPreferences) = CachedPublication(
-            word = widgetData.getString("word", null).orEmpty().trim(),
-            type = widgetData.getString("type", null).orEmpty().trim(),
-            phonetic = widgetData.getString("phonetic", null).orEmpty().trim(),
-            definition = widgetData.getString("definition", null).orEmpty().trim(),
+            word = widgetData.getString(WidgetCacheKeys.WORD, null).orEmpty().trim(),
+            type = widgetData.getString(WidgetCacheKeys.TYPE, null).orEmpty().trim(),
+            phonetic = widgetData.getString(WidgetCacheKeys.PHONETIC, null).orEmpty().trim(),
+            definition = widgetData.getString(WidgetCacheKeys.DEFINITION, null).orEmpty().trim(),
         )
+    }
+}
+
+internal enum class WidgetStyle(
+    val id: String,
+    val backgroundResource: Int,
+    val overlayColor: Int,
+    val primaryTextColor: Int,
+    val secondaryTextColor: Int,
+    val mutedTextColor: Int,
+) {
+    LIBRARY(
+        "library",
+        R.drawable.widget_background_library,
+        0x7A000000,
+        0xFFF3EBDD.toInt(),
+        0xFFE6DED1.toInt(),
+        0xFFD8CDBD.toInt(),
+    ),
+    ATRIUM(
+        "atrium",
+        R.drawable.widget_background_atrium,
+        0x4DFFF2DD,
+        0xFF302B27.toInt(),
+        0xFF5C5048.toInt(),
+        0xFF786C65.toInt(),
+    ),
+    ARCHIVE(
+        "archive",
+        R.drawable.widget_background_archive,
+        0x665A321C,
+        0xFFEFE3D2.toInt(),
+        0xFFC7B7A3.toInt(),
+        0xFF9F8F7F.toInt(),
+    ),
+    GALLERY(
+        "gallery",
+        R.drawable.widget_background_gallery,
+        0x383B3C20,
+        0xFFF0E9D8.toInt(),
+        0xFFC9C3AC.toInt(),
+        0xFFA2A08E.toInt(),
+    ),
+    MIDNIGHT(
+        "midnight",
+        R.drawable.widget_background_midnight,
+        0x5207111F,
+        0xFFE2E7ED.toInt(),
+        0xFFB5C0CA.toInt(),
+        0xFF87939F.toInt(),
+    );
+
+    companion object {
+        fun fromId(id: String?): WidgetStyle = entries.firstOrNull { it.id == id } ?: LIBRARY
     }
 }
 
