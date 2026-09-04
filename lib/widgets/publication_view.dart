@@ -132,9 +132,10 @@ class _PublicationViewState extends State<PublicationView> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Stack(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       SizedBox(height: screenHeight * 0.4),
                       if (widget.isOffline)
                         Padding(
@@ -270,8 +271,9 @@ class _PublicationViewState extends State<PublicationView> {
                             ),
                         child: _content(),
                       ),
-                      const Spacer(),
-                    ],
+                        const SizedBox(height: 72),
+                      ],
+                    ),
                   ),
                   Positioned(
                     left: 0,

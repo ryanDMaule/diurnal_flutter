@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="@font/figtree_reg"
+            android:fontFamily="sans-serif"
             android:letterSpacing="0.08"
             android:maxLines="1"
             android:textColor="#D8CDBD"
@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:ellipsize="end"
-            android:fontFamily="@font/nsjp_reg"
+            android:fontFamily="serif"
             android:maxLines="1"
             android:textColor="#F3EBDD"
             android:textSize="32sp" />
@@ -56,7 +56,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:ellipsize="end"
-            android:fontFamily="@font/figtree_reg"
+            android:fontFamily="sans-serif"
             android:maxLines="1"
             android:textColor="#D8CDBD"
             android:textSize="13sp" />
@@ -67,7 +67,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:ellipsize="end"
-            android:fontFamily="@font/figtree_reg"
+            android:fontFamily="sans-serif"
             android:maxLines="4"
             android:textColor="#E6DED1"
             android:textSize="13sp" />

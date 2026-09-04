@@ -34,7 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="@font/nsjp_reg"
+            android:fontFamily="serif"
             android:maxLines="1"
             android:textColor="#F3EBDD"
             android:textSize="28sp" />
@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
             android:ellipsize="end"
-            android:fontFamily="@font/figtree_reg"
+            android:fontFamily="sans-serif"
             android:maxLines="2"
             android:textColor="#E6DED1"
             android:textSize="13sp" />
