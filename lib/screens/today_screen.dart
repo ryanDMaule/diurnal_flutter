@@ -133,10 +133,10 @@ class _TodayScreenState extends State<TodayScreen> {
       PageRouteBuilder<void>(
         transitionDuration: reduceMotion
             ? Duration.zero
-            : const Duration(milliseconds: 250),
+            : const Duration(milliseconds: 450),
         reverseTransitionDuration: reduceMotion
             ? Duration.zero
-            : const Duration(milliseconds: 250),
+            : const Duration(milliseconds: 450),
         pageBuilder: (context, animation, secondaryAnimation) =>
             const MenuScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) =>

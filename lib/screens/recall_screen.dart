@@ -414,12 +414,16 @@ class _RecallScreenState extends State<RecallScreen> {
                       key: Key('recall-settings'),
                       tooltip: 'Recall Settings',
                       onPressed: _openSettings,
+                      constraints: BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
                       icon: Icon(
                         CupertinoIcons.slider_horizontal_3,
                         color: InterfaceThemeScope.maybePaletteOf(
                           context,
                         ).accent,
-                        size: 23,
+                        size: 24,
                       ),
                     ),
                   ],

@@ -201,12 +201,16 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                       key: Key('open-archive-calendar'),
                       tooltip: 'Open Archive calendar',
                       onPressed: _openCalendar,
+                      constraints: BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
                       icon: Icon(
                         CupertinoIcons.calendar,
                         color: InterfaceThemeScope.maybePaletteOf(
                           context,
                         ).accent,
-                        size: 23,
+                        size: 24,
                       ),
                     ),
                 ],
