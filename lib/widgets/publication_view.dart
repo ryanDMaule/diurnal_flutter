@@ -243,13 +243,18 @@ class _PublicationViewState extends State<PublicationView> {
                       ),
                       const SizedBox(height: 16),
                       AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 600),
+                        duration: const Duration(milliseconds: 220),
                         switchInCurve: Curves.easeOutCubic,
                         switchOutCurve: Curves.easeInCubic,
                         transitionBuilder: (child, animation) => FadeTransition(
-                          opacity: CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOut,
+                          opacity: animation.drive(
+                            CurveTween(
+                              curve: const Interval(
+                                0.5,
+                                1,
+                                curve: Curves.easeOut,
+                              ),
+                            ),
                           ),
                           child: ScaleTransition(
                             scale: Tween<double>(begin: 0.98, end: 1).animate(
