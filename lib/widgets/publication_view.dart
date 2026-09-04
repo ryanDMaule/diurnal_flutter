@@ -114,8 +114,16 @@ class _PublicationViewState extends State<PublicationView> {
       backgroundColor: Colors.black,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
           statusBarIconBrightness: iconBrightness,
+          statusBarBrightness: iconBrightness == Brightness.light
+              ? Brightness.dark
+              : Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: iconBrightness,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarContrastEnforced: false,
         ),
         child: EditionBackground(
           edition: edition,

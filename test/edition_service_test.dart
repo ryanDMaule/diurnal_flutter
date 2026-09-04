@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/daily_publication.dart';
@@ -238,6 +239,47 @@ void main() {
     );
     expect(background.edition, same(Editions.evergreen));
     expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('PublicationView owns transparent Edition-aware system bars', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PublicationView(
+          publication: _publication,
+          edition: Editions.library,
+          isBookmarked: false,
+          onBookmarkToggle: null,
+        ),
+      ),
+    );
+
+    final style = tester
+        .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+          find.byType(AnnotatedRegion<SystemUiOverlayStyle>),
+        )
+        .value;
+    expect(style.statusBarColor, Colors.transparent);
+    expect(style.systemNavigationBarColor, Colors.transparent);
+    expect(style.statusBarIconBrightness, Brightness.light);
+    expect(style.systemNavigationBarIconBrightness, Brightness.light);
+    expect(style.systemStatusBarContrastEnforced, isFalse);
+    expect(style.systemNavigationBarContrastEnforced, isFalse);
+
+    final safeAreaFinder = find.descendant(
+      of: find.byType(EditionBackground),
+      matching: find.byType(SafeArea),
+    );
+    expect(safeAreaFinder, findsOneWidget);
+    expect(tester.widget<SafeArea>(safeAreaFinder).bottom, isTrue);
+    expect(
+      find.ancestor(
+        of: find.byType(EditionBackground),
+        matching: find.byType(SafeArea),
+      ),
+      findsNothing,
+    );
   });
 }
 

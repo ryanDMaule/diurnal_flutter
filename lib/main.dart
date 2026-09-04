@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import 'screens/launch_screen.dart';
 import 'screens/today_screen.dart';
 import 'services/app_settings_service.dart';
 import 'services/entitlement_service.dart';
@@ -11,6 +13,7 @@ import 'widgets/entitlement_scope.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(const DiurnalApp());
 }
 
@@ -25,6 +28,7 @@ class _DiurnalAppState extends State<DiurnalApp> {
   late final InterfaceAppearanceController _controller;
   late final EntitlementController _entitlementController;
   late final EditionEntitlementCoordinator _editionCoordinator;
+  late final Future<void> _initialization;
 
   @override
   void initState() {
@@ -35,9 +39,14 @@ class _DiurnalAppState extends State<DiurnalApp> {
       entitlementController: _entitlementController,
       editionService: EditionService(),
       widgetSyncService: WidgetSyncService(),
-    )..start();
-    _controller.load();
-    _entitlementController.load();
+    );
+    _initialization = _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await Future.wait([_controller.load(), _entitlementController.load()]);
+    _editionCoordinator.start();
+    await _editionCoordinator.syncNow();
   }
 
   @override
@@ -61,7 +70,10 @@ class _DiurnalAppState extends State<DiurnalApp> {
             primarySwatch: Colors.indigo,
             fontFamily: 'Inter',
           ),
-          home: const TodayScreen(),
+          home: LaunchGate(
+            initialization: _initialization,
+            child: const TodayScreen(),
+          ),
         ),
       ),
     );
