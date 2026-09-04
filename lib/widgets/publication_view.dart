@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/app_settings.dart';
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
 import '../theme/interface_theme.dart';
@@ -97,10 +98,18 @@ class _PublicationViewState extends State<PublicationView> {
   @override
   Widget build(BuildContext context) {
     final publication = widget.publication;
+    final interfaceSettings = InterfaceThemeScope.maybeControllerOf(
+      context,
+    )?.settings;
     final edition = resolveInterfaceColorEdition(
       widget.edition,
       InterfaceThemeScope.maybePaletteOf(context),
     );
+    final useTactileType =
+        widget.edition.id == Editions.evergreen.id &&
+        (interfaceSettings?.textureEnabled ?? true);
+    final usesPaperTreatment =
+        interfaceSettings?.interfaceColor == InterfaceColor.paper;
     final primary = edition.primaryTextColor;
     final secondary = edition.secondaryTextColor;
     final muted = edition.mutedTextColor;
@@ -162,6 +171,11 @@ class _PublicationViewState extends State<PublicationView> {
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w300,
                           letterSpacing: 1,
+                          shadows: _tactileTextShadows(
+                            enabled: useTactileType,
+                            paper: usesPaperTreatment,
+                            supporting: true,
+                          ),
                         ),
                       ),
                       Text(
@@ -171,6 +185,10 @@ class _PublicationViewState extends State<PublicationView> {
                           color: primary,
                           fontFamily: 'NotoSerifJP',
                           fontWeight: FontWeight.w400,
+                          shadows: _tactileTextShadows(
+                            enabled: useTactileType,
+                            paper: usesPaperTreatment,
+                          ),
                         ),
                       ),
                       Text(
@@ -180,6 +198,11 @@ class _PublicationViewState extends State<PublicationView> {
                           color: secondary,
                           fontFamily: 'Figtree',
                           fontWeight: FontWeight.w400,
+                          shadows: _tactileTextShadows(
+                            enabled: useTactileType,
+                            paper: usesPaperTreatment,
+                            supporting: true,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -381,3 +404,63 @@ TextStyle _footerStyle(Color accent) => TextStyle(
   fontSize: 14,
   fontWeight: FontWeight.w300,
 );
+
+List<Shadow>? _tactileTextShadows({
+  required bool enabled,
+  required bool paper,
+  bool supporting = false,
+}) {
+  if (!enabled) return null;
+  if (paper) {
+    return supporting
+        ? const [
+            Shadow(
+              color: Color(0x1D000000),
+              offset: Offset(0.6, 0.6),
+              blurRadius: 0.25,
+            ),
+            Shadow(
+              color: Color(0x1CFFFFFF),
+              offset: Offset(-0.5, -0.5),
+              blurRadius: 0.2,
+            ),
+          ]
+        : const [
+            Shadow(
+              color: Color(0x38000000),
+              offset: Offset(0.9, 1.0),
+              blurRadius: 0.4,
+            ),
+            Shadow(
+              color: Color(0x35FFFFFF),
+              offset: Offset(-0.8, -0.8),
+              blurRadius: 0.25,
+            ),
+          ];
+  }
+  return supporting
+      ? const [
+          Shadow(
+            color: Color(0x26000000),
+            offset: Offset(0.7, 0.7),
+            blurRadius: 0.3,
+          ),
+          Shadow(
+            color: Color(0x14FFFFFF),
+            offset: Offset(-0.6, -0.6),
+            blurRadius: 0.2,
+          ),
+        ]
+      : const [
+          Shadow(
+            color: Color(0x52000000),
+            offset: Offset(1.2, 1.3),
+            blurRadius: 0.5,
+          ),
+          Shadow(
+            color: Color(0x2BFFFFFF),
+            offset: Offset(-1.0, -1.1),
+            blurRadius: 0.3,
+          ),
+        ];
+}
