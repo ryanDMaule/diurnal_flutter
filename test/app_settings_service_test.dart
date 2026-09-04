@@ -24,6 +24,7 @@ void main() {
           soundEffectsEnabled: false,
           reduceAnimations: true,
           interfaceColor: InterfaceColor.navy,
+          textureEnabled: false,
         ),
       );
       final restored = await AppSettingsService(storage: storage).load();

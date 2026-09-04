@@ -242,11 +242,16 @@ Future<void> _waitForEdition(_MemoryWidgetCache cache, String id) async {
 }
 
 class _MemoryWidgetCache implements WidgetCache {
-  final values = <String, String>{};
+  final values = <String, Object>{};
   int redrawCount = 0;
 
   @override
   Future<void> saveString(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  Future<void> saveBool(String key, bool value) async {
     values[key] = value;
   }
 

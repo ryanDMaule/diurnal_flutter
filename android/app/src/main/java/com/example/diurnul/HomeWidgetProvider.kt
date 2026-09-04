@@ -60,9 +60,11 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         options: Bundle = appWidgetManager.getAppWidgetOptions(widgetId),
     ) {
         val publication = CachedPublication.from(widgetData)
+        val editionId = widgetData.getString(WidgetCacheKeys.EDITION, null)
+        val interfaceColorId = widgetData.getString(WidgetCacheKeys.INTERFACE_COLOR, null)
         val style = WidgetStyle.resolve(
-            widgetData.getString(WidgetCacheKeys.EDITION, null),
-            widgetData.getString(WidgetCacheKeys.INTERFACE_COLOR, null),
+            editionId,
+            interfaceColorId,
         )
         val sizeSelection = WidgetPresentation.select(
             options,
@@ -83,6 +85,19 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         }
         views.setImageViewResource(R.id.widget_background, style.backgroundResource ?: 0)
         views.setInt(R.id.widget_background, "setBackgroundColor", style.backgroundColor)
+        val showTexture = editionId == WidgetStyle.EVERGREEN.id &&
+            widgetData.getBoolean(WidgetCacheKeys.TEXTURE_ENABLED, true)
+        if (showTexture) {
+            val usesPaper = interfaceColorId == "paper"
+            views.setImageViewResource(
+                R.id.widget_texture,
+                if (usesPaper) R.drawable.widget_texture_paper else R.drawable.widget_texture_leather,
+            )
+            views.setInt(R.id.widget_texture, "setImageAlpha", if (usesPaper) 26 else 15)
+            views.setViewVisibility(R.id.widget_texture, View.VISIBLE)
+        } else {
+            views.setViewVisibility(R.id.widget_texture, View.GONE)
+        }
         views.setInt(R.id.widget_overlay, "setBackgroundColor", style.overlayColor)
 
         val launchIntent = HomeWidgetLaunchIntent.getActivity(
@@ -106,6 +121,7 @@ internal object WidgetCacheKeys {
     const val DEFINITION = "definition"
     const val EDITION = "edition"
     const val INTERFACE_COLOR = "interfaceColor"
+    const val TEXTURE_ENABLED = "textureEnabled"
 }
 
 internal data class CachedPublication(

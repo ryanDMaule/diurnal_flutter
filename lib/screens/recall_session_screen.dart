@@ -89,7 +89,7 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
 
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(

@@ -14,7 +14,7 @@ class PlaceholderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Stack(
           children: [
             Positioned(

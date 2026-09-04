@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/app_settings.dart';
 import '../models/edition.dart';
+import '../theme/interface_theme.dart';
 
 class EditionBackground extends StatelessWidget {
   const EditionBackground({
@@ -16,6 +18,11 @@ class EditionBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = InterfaceThemeScope.maybeControllerOf(context)?.settings;
+    final showTexture =
+        edition.id == Editions.evergreen.id &&
+        (settings?.textureEnabled ?? true);
+    final usesPaper = settings?.interfaceColor == InterfaceColor.paper;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -36,6 +43,14 @@ class EditionBackground extends StatelessWidget {
                 end: edition.gradientEnd,
               ),
             ),
+          ),
+        if (showTexture)
+          InterfaceTextureOverlay(
+            asset: usesPaper
+                ? 'assets/images/paper.png'
+                : 'assets/images/leather.png',
+            baseColor: edition.backgroundColor,
+            strength: usesPaper ? 0.10 : 0.06,
           ),
         child,
       ],

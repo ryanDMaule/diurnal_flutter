@@ -77,7 +77,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
     );
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Column(
           children: [
             Padding(

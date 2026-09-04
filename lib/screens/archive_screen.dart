@@ -148,7 +148,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(24, 16, 24, 20),
           child: Column(

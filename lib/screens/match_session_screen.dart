@@ -178,7 +178,7 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
         : Duration(milliseconds: 140);
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(18, 12, 18, 20),
           child: Column(

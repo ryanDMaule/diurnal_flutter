@@ -56,7 +56,7 @@ class _MatchResultScreenState extends State<MatchResultScreen> {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Column(

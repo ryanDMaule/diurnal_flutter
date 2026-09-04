@@ -7,6 +7,8 @@ import '../models/edition.dart';
 abstract interface class WidgetCache {
   Future<void> saveString(String key, String value);
 
+  Future<void> saveBool(String key, bool value);
+
   Future<void> redraw();
 }
 
@@ -14,6 +16,10 @@ class HomeWidgetCache implements WidgetCache {
   @override
   Future<void> saveString(String key, String value) =>
       HomeWidget.saveWidgetData<String>(key, value);
+
+  @override
+  Future<void> saveBool(String key, bool value) =>
+      HomeWidget.saveWidgetData<bool>(key, value);
 
   @override
   Future<void> redraw() => HomeWidget.updateWidget(
@@ -33,6 +39,7 @@ class WidgetSyncService {
   static const definitionKey = 'definition';
   static const editionKey = 'edition';
   static const interfaceColorKey = 'interfaceColor';
+  static const textureEnabledKey = 'textureEnabled';
 
   final WidgetCache _cache;
 
@@ -51,6 +58,12 @@ class WidgetSyncService {
 
   Future<void> syncInterfaceColor(InterfaceColor color) async {
     await _cache.saveString(interfaceColorKey, color.name);
+    await _cache.redraw();
+  }
+
+  Future<void> syncInterfaceSettings(AppSettings settings) async {
+    await _cache.saveString(interfaceColorKey, settings.interfaceColor.name);
+    await _cache.saveBool(textureEnabledKey, settings.textureEnabled);
     await _cache.redraw();
   }
 }

@@ -45,7 +45,7 @@ class EndlessRecallResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Column(

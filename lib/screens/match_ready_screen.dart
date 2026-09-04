@@ -15,7 +15,7 @@ class MatchReadyScreen extends StatelessWidget {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Stack(
           children: [
             Padding(

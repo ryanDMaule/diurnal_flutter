@@ -42,7 +42,7 @@ class _ProContent extends StatelessWidget {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: CustomScrollView(
           key: Key('pro-scroll-view'),
           slivers: [

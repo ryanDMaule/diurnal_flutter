@@ -129,7 +129,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
+        textureEnabled: _settings.textureEnabled,
         child: _loading
             ? Center(
                 child: CircularProgressIndicator(
@@ -185,6 +186,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     palette: palette,
                     onChanged: (value) =>
                         _save(_settings.copyWith(reduceAnimations: value)),
+                  ),
+                  _ToggleRow(
+                    key: const Key('texture-setting'),
+                    title: 'Texture',
+                    description: 'Add a subtle tactile finish to Diurnus.',
+                    value: _settings.textureEnabled,
+                    palette: palette,
+                    onChanged: (value) =>
+                        _save(_settings.copyWith(textureEnabled: value)),
                   ),
                   const SizedBox(height: 24),
                   Text(

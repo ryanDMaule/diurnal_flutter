@@ -136,7 +136,7 @@ class InterfaceColorController extends ChangeNotifier {
     final widgetSyncService = _widgetSyncService;
     if (widgetSyncService == null) return;
     try {
-      await widgetSyncService.syncInterfaceColor(settings.interfaceColor);
+      await widgetSyncService.syncInterfaceSettings(settings);
     } catch (error) {
       debugPrint('Error synchronizing widget Theme Colour: $error');
     }
@@ -175,4 +175,67 @@ class InterfaceThemeScope
       controller.settings.interfaceColor,
     );
   }
+}
+
+class InterfaceSafeArea extends StatelessWidget {
+  const InterfaceSafeArea({
+    required this.child,
+    this.textureEnabled = true,
+    super.key,
+  });
+
+  final Widget child;
+  final bool textureEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = InterfaceThemeScope.maybeControllerOf(context);
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    final showTexture =
+        textureEnabled && (controller?.settings.textureEnabled ?? true);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (showTexture)
+          InterfaceTextureOverlay(
+            asset: 'assets/images/paper.png',
+            baseColor: palette.background,
+            strength: 0.10,
+          ),
+        SafeArea(child: child),
+      ],
+    );
+  }
+}
+
+class InterfaceTextureOverlay extends StatelessWidget {
+  const InterfaceTextureOverlay({
+    required this.asset,
+    required this.baseColor,
+    required this.strength,
+    super.key,
+  });
+
+  final String asset;
+  final Color baseColor;
+  final double strength;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: Opacity(
+      opacity: strength,
+      child: ColorFiltered(
+        colorFilter: ColorFilter.mode(baseColor, BlendMode.modulate),
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.matrix([
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0, 0, 0, 1, 0,
+          ]),
+          child: Image.asset(asset, fit: BoxFit.cover),
+        ),
+      ),
+    ),
+  );
 }

@@ -65,7 +65,7 @@ class _RecallResultScreenState extends State<RecallResultScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Column(

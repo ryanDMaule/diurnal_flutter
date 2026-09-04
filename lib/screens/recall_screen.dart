@@ -377,7 +377,7 @@ class _RecallScreenState extends State<RecallScreen> {
     final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: SafeArea(
+      body: InterfaceSafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: SingleChildScrollView(
