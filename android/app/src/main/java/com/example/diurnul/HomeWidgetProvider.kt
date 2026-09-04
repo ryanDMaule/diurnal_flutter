@@ -60,7 +60,10 @@ class HomeWidgetProvider : HomeWidgetProvider() {
         options: Bundle = appWidgetManager.getAppWidgetOptions(widgetId),
     ) {
         val publication = CachedPublication.from(widgetData)
-        val style = WidgetStyle.fromId(widgetData.getString(WidgetCacheKeys.EDITION, null))
+        val style = WidgetStyle.resolve(
+            widgetData.getString(WidgetCacheKeys.EDITION, null),
+            widgetData.getString(WidgetCacheKeys.INTERFACE_COLOR, null),
+        )
         val sizeSelection = WidgetPresentation.select(
             options,
             context.resources.configuration.orientation,
@@ -102,6 +105,7 @@ internal object WidgetCacheKeys {
     const val PHONETIC = "phonetic"
     const val DEFINITION = "definition"
     const val EDITION = "edition"
+    const val INTERFACE_COLOR = "interfaceColor"
 }
 
 internal data class CachedPublication(
@@ -182,10 +186,57 @@ internal enum class WidgetStyle(
         0xFFF3EBDD.toInt(),
         0xFFCFC7B8.toInt(),
         0xFF9AA89F.toInt(),
+    ),
+    THEME_CHARCOAL(
+        "theme:charcoal",
+        null,
+        0xFF211F1C.toInt(),
+        0x00000000,
+        0xFFF3EBDD.toInt(),
+        0xFFC9C0B4.toInt(),
+        0xFF625C54.toInt(),
+    ),
+    THEME_NAVY(
+        "theme:navy",
+        null,
+        0xFF0B1724.toInt(),
+        0x00000000,
+        0xFFF3EBDD.toInt(),
+        0xFFB9C2CA.toInt(),
+        0xFF43515E.toInt(),
+    ),
+    THEME_OXBLOOD(
+        "theme:oxblood",
+        null,
+        0xFF351519.toInt(),
+        0x00000000,
+        0xFFF3EBDD.toInt(),
+        0xFFCDB9B5.toInt(),
+        0xFF755056.toInt(),
+    ),
+    THEME_PAPER(
+        "theme:paper",
+        null,
+        0xFFF1EBDD.toInt(),
+        0x00000000,
+        0xFF282722.toInt(),
+        0xFF665F56.toInt(),
+        0xFFC9BEA8.toInt(),
     );
 
     companion object {
-        fun fromId(id: String?): WidgetStyle = entries.firstOrNull { it.id == id } ?: LIBRARY
+        fun resolve(editionId: String?, interfaceColorId: String?): WidgetStyle {
+            if (editionId == EVERGREEN.id) {
+                return when (interfaceColorId) {
+                    "charcoal" -> THEME_CHARCOAL
+                    "navy" -> THEME_NAVY
+                    "oxblood" -> THEME_OXBLOOD
+                    "paper" -> THEME_PAPER
+                    else -> EVERGREEN
+                }
+            }
+            return entries.firstOrNull { it.id == editionId } ?: LIBRARY
+        }
     }
 }
 

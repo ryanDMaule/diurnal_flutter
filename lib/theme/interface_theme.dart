@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/app_settings.dart';
+import '../models/edition.dart';
 import '../services/app_settings_service.dart';
-import 'colors.dart';
-
+import '../services/widget_sync_service.dart';
 class InterfacePalette {
   const InterfacePalette({
+    required this.brightness,
     required this.background,
     required this.surface,
     required this.primary,
@@ -14,6 +15,7 @@ class InterfacePalette {
     required this.accent,
   });
 
+  final Brightness brightness;
   final Color background;
   final Color surface;
   final Color primary;
@@ -21,75 +23,146 @@ class InterfacePalette {
   final Color divider;
   final Color accent;
 
-  static const dark = InterfacePalette(
-    background: AppColors.menuBackground,
+  static const evergreen = InterfacePalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF032C23),
     surface: Color(0xFF0B332A),
-    primary: AppColors.textPrimary,
-    secondary: Color(0xFF8E9E99),
-    divider: AppColors.menuDivider,
-    accent: AppColors.textSecondary,
+    primary: Color(0xFFF3EBDD),
+    secondary: Color(0xFFCFC7B8),
+    divider: Color(0xFF9AA89F),
+    accent: Color(0xFFC8A363),
   );
-  static const light = InterfacePalette(
+  static const charcoal = InterfacePalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF211F1C),
+    surface: Color(0xFF2B2824),
+    primary: Color(0xFFF3EBDD),
+    secondary: Color(0xFFC9C0B4),
+    divider: Color(0xFF625C54),
+    accent: Color(0xFFC5A063),
+  );
+  static const navy = InterfacePalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF0B1724),
+    surface: Color(0xFF122131),
+    primary: Color(0xFFF3EBDD),
+    secondary: Color(0xFFB9C2CA),
+    divider: Color(0xFF43515E),
+    accent: Color(0xFFC5A063),
+  );
+  static const oxblood = InterfacePalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF351519),
+    surface: Color(0xFF421C21),
+    primary: Color(0xFFF3EBDD),
+    secondary: Color(0xFFCDB9B5),
+    divider: Color(0xFF755056),
+    accent: Color(0xFFC5A063),
+  );
+  static const paper = InterfacePalette(
+    brightness: Brightness.light,
     background: Color(0xFFF1EBDD),
     surface: Color(0xFFE7DECB),
-    primary: Color(0xFF16342D),
-    secondary: Color(0xFF52645E),
+    primary: Color(0xFF282722),
+    secondary: Color(0xFF665F56),
     divider: Color(0xFFC9BEA8),
-    accent: Color(0xFF9A7337),
+    accent: Color(0xFF8C682F),
+  );
+
+  static InterfacePalette forColor(InterfaceColor color) => switch (color) {
+    InterfaceColor.evergreen => evergreen,
+    InterfaceColor.charcoal => charcoal,
+    InterfaceColor.navy => navy,
+    InterfaceColor.oxblood => oxblood,
+    InterfaceColor.paper => paper,
+  };
+}
+
+Edition resolveInterfaceColorEdition(
+  Edition edition,
+  InterfacePalette palette,
+) {
+  if (edition.id != Editions.evergreen.id) return edition;
+  return Edition(
+    id: edition.id,
+    name: edition.name,
+    description: edition.description,
+    backgroundAsset: edition.backgroundAsset,
+    backgroundColor: palette.background,
+    tintColor: edition.tintColor,
+    tintOpacity: edition.tintOpacity,
+    gradientColors: edition.gradientColors,
+    gradientStops: edition.gradientStops,
+    gradientBegin: edition.gradientBegin,
+    gradientEnd: edition.gradientEnd,
+    primaryTextColor: palette.primary,
+    secondaryTextColor: palette.secondary,
+    mutedTextColor: palette.divider,
+    accentColor: palette.accent,
+    systemUiIconBrightness: palette.brightness == Brightness.light
+        ? Brightness.dark
+        : Brightness.light,
   );
 }
 
-Brightness resolveInterfaceBrightness(
-  InterfaceAppearance appearance,
-  Brightness platformBrightness,
-) => switch (appearance) {
-  InterfaceAppearance.system => platformBrightness,
-  InterfaceAppearance.light => Brightness.light,
-  InterfaceAppearance.dark => Brightness.dark,
-};
-
-class InterfaceAppearanceController extends ChangeNotifier {
-  InterfaceAppearanceController(this.service);
+class InterfaceColorController extends ChangeNotifier {
+  InterfaceColorController(this.service, {WidgetSyncService? widgetSyncService})
+    : _widgetSyncService = widgetSyncService;
   final AppSettingsService service;
+  final WidgetSyncService? _widgetSyncService;
   AppSettings settings = AppSettings.defaults;
 
   Future<void> load() async {
     settings = await service.load();
     notifyListeners();
+    await _syncWidget();
   }
 
   Future<void> update(AppSettings value) async {
-    await service.save(value);
+    final previous = settings;
     settings = value;
     notifyListeners();
+    try {
+      await service.save(value);
+    } catch (_) {
+      settings = previous;
+      notifyListeners();
+      rethrow;
+    }
+    await _syncWidget();
+  }
+
+  Future<void> _syncWidget() async {
+    final widgetSyncService = _widgetSyncService;
+    if (widgetSyncService == null) return;
+    try {
+      await widgetSyncService.syncInterfaceColor(settings.interfaceColor);
+    } catch (error) {
+      debugPrint('Error synchronizing widget Theme Colour: $error');
+    }
   }
 }
 
 class InterfaceThemeScope
-    extends InheritedNotifier<InterfaceAppearanceController> {
+    extends InheritedNotifier<InterfaceColorController> {
   const InterfaceThemeScope({
     required super.notifier,
     required super.child,
     super.key,
   });
 
-  static InterfaceAppearanceController controllerOf(BuildContext context) =>
+  static InterfaceColorController controllerOf(BuildContext context) =>
       context
           .dependOnInheritedWidgetOfExactType<InterfaceThemeScope>()!
           .notifier!;
 
   static InterfacePalette paletteOf(BuildContext context) {
-    final appearance = controllerOf(context).settings.interfaceAppearance;
-    final brightness = resolveInterfaceBrightness(
-      appearance,
-      MediaQuery.platformBrightnessOf(context),
+    return InterfacePalette.forColor(
+      controllerOf(context).settings.interfaceColor,
     );
-    return brightness == Brightness.light
-        ? InterfacePalette.light
-        : InterfacePalette.dark;
   }
 
-  static InterfaceAppearanceController? maybeControllerOf(
+  static InterfaceColorController? maybeControllerOf(
     BuildContext context,
   ) => context
       .dependOnInheritedWidgetOfExactType<InterfaceThemeScope>()
@@ -97,13 +170,9 @@ class InterfaceThemeScope
 
   static InterfacePalette maybePaletteOf(BuildContext context) {
     final controller = maybeControllerOf(context);
-    if (controller == null) return InterfacePalette.dark;
-    final brightness = resolveInterfaceBrightness(
-      controller.settings.interfaceAppearance,
-      MediaQuery.platformBrightnessOf(context),
+    if (controller == null) return InterfacePalette.evergreen;
+    return InterfacePalette.forColor(
+      controller.settings.interfaceColor,
     );
-    return brightness == Brightness.light
-        ? InterfacePalette.light
-        : InterfacePalette.dark;
   }
 }

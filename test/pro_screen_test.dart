@@ -76,12 +76,12 @@ void main() {
         tester,
         height: 520,
         initialTier: 'pro',
-        interfaceAppearance: InterfaceAppearance.light,
+        interfaceColor: InterfaceColor.paper,
       );
       expect(find.text('Diurnus Pro active'), findsOneWidget);
       expect(
         tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-        InterfacePalette.light.background,
+        InterfacePalette.paper.background,
       );
       expect(tester.takeException(), isNull);
 
@@ -106,7 +106,7 @@ Future<_Harness> _pumpProHarness(
   bool homeIsMenu = false,
   double height = 1100,
   String? initialTier,
-  InterfaceAppearance interfaceAppearance = InterfaceAppearance.dark,
+  InterfaceColor interfaceColor = InterfaceColor.evergreen,
 }) async {
   await tester.binding.setSurfaceSize(Size(430, height));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -115,11 +115,11 @@ Future<_Harness> _pumpProHarness(
     EntitlementService(storage: entitlementStorage),
   );
   await entitlementController.load();
-  final appController = InterfaceAppearanceController(
+  final appController = InterfaceColorController(
     AppSettingsService(storage: _AppSettingsStorage()),
   );
   await appController.update(
-    AppSettings.defaults.copyWith(interfaceAppearance: interfaceAppearance),
+    AppSettings.defaults.copyWith(interfaceColor: interfaceColor),
   );
   await tester.pumpWidget(
     EntitlementScope(
@@ -147,7 +147,7 @@ class _Harness {
 
   final _EntitlementStorage entitlementStorage;
   final EntitlementController entitlementController;
-  final InterfaceAppearanceController appController;
+  final InterfaceColorController appController;
 
   void dispose() {
     entitlementController.dispose();

@@ -25,7 +25,7 @@ class DiurnalApp extends StatefulWidget {
 }
 
 class _DiurnalAppState extends State<DiurnalApp> {
-  late final InterfaceAppearanceController _controller;
+  late final InterfaceColorController _controller;
   late final EntitlementController _entitlementController;
   late final EditionEntitlementCoordinator _editionCoordinator;
   late final Future<void> _initialization;
@@ -33,7 +33,10 @@ class _DiurnalAppState extends State<DiurnalApp> {
   @override
   void initState() {
     super.initState();
-    _controller = InterfaceAppearanceController(AppSettingsService());
+    _controller = InterfaceColorController(
+      AppSettingsService(),
+      widgetSyncService: WidgetSyncService(),
+    );
     _entitlementController = EntitlementController(EntitlementService());
     _editionCoordinator = EditionEntitlementCoordinator(
       entitlementController: _entitlementController,
@@ -63,17 +66,25 @@ class _DiurnalAppState extends State<DiurnalApp> {
       notifier: _entitlementController,
       child: InterfaceThemeScope(
         notifier: _controller,
-        child: MaterialApp(
-          title: 'Diurnal',
-          theme: ThemeData(
-            brightness: Brightness.light,
-            primarySwatch: Colors.indigo,
-            fontFamily: 'Inter',
-          ),
-          home: LaunchGate(
-            initialization: _initialization,
-            child: const TodayScreen(),
-          ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final palette = InterfacePalette.forColor(
+              _controller.settings.interfaceColor,
+            );
+            return MaterialApp(
+              title: 'Diurnal',
+              theme: ThemeData(
+                brightness: palette.brightness,
+                primarySwatch: Colors.indigo,
+                fontFamily: 'Inter',
+              ),
+              home: LaunchGate(
+                initialization: _initialization,
+                child: const TodayScreen(),
+              ),
+            );
+          },
         ),
       ),
     );

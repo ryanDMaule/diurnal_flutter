@@ -1,42 +1,47 @@
-enum InterfaceAppearance { system, light, dark }
+enum InterfaceColor { evergreen, charcoal, navy, oxblood, paper }
 
 class AppSettings {
   const AppSettings({
     required this.soundEffectsEnabled,
     required this.reduceAnimations,
-    required this.interfaceAppearance,
+    required this.interfaceColor,
   });
 
   static const defaults = AppSettings(
     soundEffectsEnabled: true,
     reduceAnimations: false,
-    interfaceAppearance: InterfaceAppearance.system,
+    interfaceColor: InterfaceColor.evergreen,
   );
 
   final bool soundEffectsEnabled;
   final bool reduceAnimations;
-  final InterfaceAppearance interfaceAppearance;
+  final InterfaceColor interfaceColor;
 
   AppSettings copyWith({
     bool? soundEffectsEnabled,
     bool? reduceAnimations,
-    InterfaceAppearance? interfaceAppearance,
+    InterfaceColor? interfaceColor,
   }) => AppSettings(
     soundEffectsEnabled: soundEffectsEnabled ?? this.soundEffectsEnabled,
     reduceAnimations: reduceAnimations ?? this.reduceAnimations,
-    interfaceAppearance: interfaceAppearance ?? this.interfaceAppearance,
+    interfaceColor: interfaceColor ?? this.interfaceColor,
   );
 
   Map<String, dynamic> toJson() => {
     'soundEffectsEnabled': soundEffectsEnabled,
     'reduceAnimations': reduceAnimations,
-    'interfaceAppearance': interfaceAppearance.name,
+    'interfaceColor': interfaceColor.name,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
-    final appearance = InterfaceAppearance.values.where(
-      (value) => value.name == json['interfaceAppearance'],
+    final storedColor = InterfaceColor.values.where(
+      (value) => value.name == json['interfaceColor'],
     );
+    final legacyColor = switch (json['interfaceAppearance']) {
+      'light' => InterfaceColor.paper,
+      'dark' || 'system' => InterfaceColor.evergreen,
+      _ => defaults.interfaceColor,
+    };
     return AppSettings(
       soundEffectsEnabled: json['soundEffectsEnabled'] is bool
           ? json['soundEffectsEnabled'] as bool
@@ -44,9 +49,7 @@ class AppSettings {
       reduceAnimations: json['reduceAnimations'] is bool
           ? json['reduceAnimations'] as bool
           : defaults.reduceAnimations,
-      interfaceAppearance: appearance.isEmpty
-          ? defaults.interfaceAppearance
-          : appearance.first,
+      interfaceColor: storedColor.isEmpty ? legacyColor : storedColor.first,
     );
   }
 }

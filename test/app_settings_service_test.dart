@@ -17,43 +17,43 @@ void main() {
       final defaults = await service.load();
       expect(defaults.soundEffectsEnabled, isTrue);
       expect(defaults.reduceAnimations, isFalse);
-      expect(defaults.interfaceAppearance, InterfaceAppearance.system);
+      expect(defaults.interfaceColor, InterfaceColor.evergreen);
 
       await service.save(
         const AppSettings(
           soundEffectsEnabled: false,
           reduceAnimations: true,
-          interfaceAppearance: InterfaceAppearance.light,
+          interfaceColor: InterfaceColor.navy,
         ),
       );
       final restored = await AppSettingsService(storage: storage).load();
       expect(restored.soundEffectsEnabled, isFalse);
       expect(restored.reduceAnimations, isTrue);
-      expect(restored.interfaceAppearance, InterfaceAppearance.light);
+      expect(restored.interfaceColor, InterfaceColor.navy);
     },
   );
 
-  test('interface appearance resolves explicit and system brightness', () {
+  test('legacy interface appearances migrate to interface colours', () async {
+    final storage = _MemoryAppSettingsStorage();
+    storage.value = '{"interfaceAppearance":"light"}';
     expect(
-      resolveInterfaceBrightness(InterfaceAppearance.light, Brightness.dark),
-      Brightness.light,
+      (await AppSettingsService(storage: storage).load()).interfaceColor,
+      InterfaceColor.paper,
     );
+    storage.value = '{"interfaceAppearance":"dark"}';
     expect(
-      resolveInterfaceBrightness(InterfaceAppearance.dark, Brightness.light),
-      Brightness.dark,
+      (await AppSettingsService(storage: storage).load()).interfaceColor,
+      InterfaceColor.evergreen,
     );
+    storage.value = '{"interfaceAppearance":"system"}';
     expect(
-      resolveInterfaceBrightness(InterfaceAppearance.system, Brightness.light),
-      Brightness.light,
-    );
-    expect(
-      resolveInterfaceBrightness(InterfaceAppearance.system, Brightness.dark),
-      Brightness.dark,
+      (await AppSettingsService(storage: storage).load()).interfaceColor,
+      InterfaceColor.evergreen,
     );
   });
 
   test(
-    'changing interface appearance does not alter selected Edition',
+    'changing interface colour does not alter selected Edition',
     () async {
       final storage = _SharedSettingsStorage();
       final editions = EditionService(storage: storage);
@@ -62,7 +62,7 @@ void main() {
 
       await settings.save(
         AppSettings.defaults.copyWith(
-          interfaceAppearance: InterfaceAppearance.light,
+          interfaceColor: InterfaceColor.paper,
         ),
       );
 

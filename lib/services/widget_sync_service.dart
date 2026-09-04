@@ -1,5 +1,6 @@
 import 'package:home_widget/home_widget.dart';
 
+import '../models/app_settings.dart';
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
 
@@ -31,6 +32,7 @@ class WidgetSyncService {
   static const phoneticKey = 'phonetic';
   static const definitionKey = 'definition';
   static const editionKey = 'edition';
+  static const interfaceColorKey = 'interfaceColor';
 
   final WidgetCache _cache;
 
@@ -44,6 +46,11 @@ class WidgetSyncService {
 
   Future<void> syncEdition(Edition edition) async {
     await _cache.saveString(editionKey, edition.id);
+    await _cache.redraw();
+  }
+
+  Future<void> syncInterfaceColor(InterfaceColor color) async {
+    await _cache.saveString(interfaceColorKey, color.name);
     await _cache.redraw();
   }
 }

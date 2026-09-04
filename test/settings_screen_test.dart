@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:diurnul/models/app_settings.dart';
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/recall_settings.dart';
 import 'package:diurnul/screens/menu_screen.dart';
@@ -40,12 +41,12 @@ void main() {
 
     await tester.tap(find.byType(Switch).at(0));
     await tester.tap(find.byType(Switch).at(1));
-    await tester.tap(find.byKey(const Key('appearance-dark')));
+    await tester.tap(find.byKey(const Key('interface-color-charcoal')));
     await tester.pumpAndSettle();
     final restored = await AppSettingsService(storage: appStorage).load();
     expect(restored.soundEffectsEnabled, isFalse);
     expect(restored.reduceAnimations, isTrue);
-    expect(restored.interfaceAppearance.name, 'dark');
+    expect(restored.interfaceColor, InterfaceColor.charcoal);
 
     await tester.tap(find.byTooltip('Back to menu'));
     await tester.pumpAndSettle();

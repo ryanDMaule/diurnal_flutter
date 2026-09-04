@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
+import '../theme/interface_theme.dart';
 import 'edition_background.dart';
 
 class PublicationView extends StatefulWidget {
@@ -96,7 +97,10 @@ class _PublicationViewState extends State<PublicationView> {
   @override
   Widget build(BuildContext context) {
     final publication = widget.publication;
-    final edition = widget.edition;
+    final edition = resolveInterfaceColorEdition(
+      widget.edition,
+      InterfaceThemeScope.maybePaletteOf(context),
+    );
     final primary = edition.primaryTextColor;
     final secondary = edition.secondaryTextColor;
     final muted = edition.mutedTextColor;

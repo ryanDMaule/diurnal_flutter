@@ -61,8 +61,8 @@ abstract final class Editions {
 
   static const evergreen = Edition(
     id: 'evergreen',
-    name: 'Evergreen',
-    description: 'Deep forest, warm cream and quiet focus',
+    name: 'Theme',
+    description: 'Uses your selected Diurnus colour',
     backgroundColor: AppColors.menuBackground,
     tintColor: Colors.transparent,
     tintOpacity: 0,

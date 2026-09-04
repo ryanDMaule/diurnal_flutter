@@ -70,6 +70,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   @override
   Widget build(BuildContext context) {
     final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
     final effectiveEdition = EditionAccessPolicy.effectiveFor(
       selectedEdition,
       isPro: isPro,
@@ -140,12 +141,16 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                 separatorBuilder: (context, index) => SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final edition = Editions.all[index];
+                  final previewEdition = resolveInterfaceColorEdition(
+                    edition,
+                    palette,
+                  );
                   final locked = !EditionAccessPolicy.canSelect(
                     edition,
                     isPro: isPro,
                   );
                   return _EditionCard(
-                    edition: edition,
+                    edition: previewEdition,
                     selected: effectiveEdition.id == edition.id,
                     locked: locked,
                     onTap: () => _select(edition, isPro: isPro),

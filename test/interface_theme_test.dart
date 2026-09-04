@@ -15,18 +15,18 @@ import 'package:diurnul/widgets/edition_background.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
-  testWidgets('Menu and About react to Light and Dark appearance', (
+  testWidgets('Menu and About react to Paper and Navy interface colours', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(700, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final storage = _AppStorage();
-    final controller = InterfaceAppearanceController(
+    final controller = InterfaceColorController(
       AppSettingsService(storage: storage),
     );
     await controller.update(
       AppSettings.defaults.copyWith(
-        interfaceAppearance: InterfaceAppearance.light,
+        interfaceColor: InterfaceColor.paper,
       ),
     );
     await tester.pumpWidget(
@@ -37,25 +37,25 @@ void main() {
     );
     expect(
       tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-      InterfacePalette.light.background,
+      InterfacePalette.paper.background,
     );
 
     await tester.tap(find.text('About Diurnus'));
     await tester.pumpAndSettle();
     expect(
       tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-      InterfacePalette.light.background,
+      InterfacePalette.paper.background,
     );
 
     await controller.update(
       controller.settings.copyWith(
-        interfaceAppearance: InterfaceAppearance.dark,
+        interfaceColor: InterfaceColor.navy,
       ),
     );
     await tester.pump();
     expect(
       tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-      InterfacePalette.dark.background,
+      InterfacePalette.navy.background,
     );
   });
 
@@ -64,10 +64,10 @@ void main() {
   ) async {
     final storage = _AppStorage();
     final service = AppSettingsService(storage: storage);
-    final controller = InterfaceAppearanceController(service);
+    final controller = InterfaceColorController(service);
     await controller.update(
       AppSettings.defaults.copyWith(
-        interfaceAppearance: InterfaceAppearance.light,
+        interfaceColor: InterfaceColor.paper,
       ),
     );
     await tester.pumpWidget(
@@ -88,24 +88,24 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('appearance-dark')));
+    await tester.tap(find.byKey(const Key('interface-color-navy')));
     await tester.pumpAndSettle();
-    expect(controller.settings.interfaceAppearance, InterfaceAppearance.dark);
+    expect(controller.settings.interfaceColor, InterfaceColor.navy);
     expect(
       tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-      InterfacePalette.dark.background,
+      InterfacePalette.navy.background,
     );
   });
 
   testWidgets(
-    'publication detail remains Edition-driven across interface appearances',
+    'publication detail remains Edition-driven across interface colours',
     (tester) async {
-      final controller = InterfaceAppearanceController(
+      final controller = InterfaceColorController(
         AppSettingsService(storage: _AppStorage()),
       );
       await controller.update(
         AppSettings.defaults.copyWith(
-          interfaceAppearance: InterfaceAppearance.light,
+          interfaceColor: InterfaceColor.paper,
         ),
       );
       final publication = DailyPublication(
@@ -144,7 +144,7 @@ void main() {
 
       await controller.update(
         AppSettings.defaults.copyWith(
-          interfaceAppearance: InterfaceAppearance.dark,
+          interfaceColor: InterfaceColor.navy,
         ),
       );
       await tester.pump();
