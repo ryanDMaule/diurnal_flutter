@@ -3,7 +3,10 @@ package com.example.diurnul
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
@@ -58,7 +61,11 @@ class HomeWidgetProvider : HomeWidgetProvider() {
     ) {
         val publication = CachedPublication.from(widgetData)
         val style = WidgetStyle.fromId(widgetData.getString(WidgetCacheKeys.EDITION, null))
-        val presentation = WidgetPresentation.from(options)
+        val sizeSelection = WidgetPresentation.select(
+            options,
+            context.resources.configuration.orientation,
+        )
+        val presentation = sizeSelection.presentation
         val views = RemoteViews(context.packageName, presentation.layoutResource)
 
         views.setTextViewText(R.id.widget_word, publication.word)
@@ -189,12 +196,22 @@ internal enum class WidgetPresentation(val layoutResource: Int) {
 
     companion object {
         private const val MEDIUM_MIN_WIDTH_DP = 250
-        private const val RICH_MIN_HEIGHT_DP = 115
+        private const val RICH_MIN_HEIGHT_DP = 180
 
-        fun from(options: Bundle): WidgetPresentation {
-            val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-            val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-            return fromDimensions(width, height)
+        fun select(options: Bundle, orientation: Int): WidgetSizeSelection {
+            val fallback = legacyCurrentSize(options, orientation)
+            val hostSizes = hostProvidedSizes(options)
+            val selected = hostSizes.minByOrNull { size ->
+                kotlin.math.abs(size.width - fallback.width) +
+                    kotlin.math.abs(size.height - fallback.height)
+            } ?: fallback
+            val width = selected.width.toInt()
+            val height = selected.height.toInt()
+            return WidgetSizeSelection(
+                width = width,
+                height = height,
+                presentation = fromDimensions(width, height),
+            )
         }
 
         fun fromDimensions(width: Int, height: Int): WidgetPresentation {
@@ -204,5 +221,31 @@ internal enum class WidgetPresentation(val layoutResource: Int) {
                 else -> COMPACT
             }
         }
+
+        private fun legacyCurrentSize(options: Bundle, orientation: Int): SizeF {
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+            val maxWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+            val maxHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+            return when (orientation) {
+                Configuration.ORIENTATION_LANDSCAPE -> SizeF(maxWidth.toFloat(), minHeight.toFloat())
+                Configuration.ORIENTATION_PORTRAIT -> SizeF(minWidth.toFloat(), maxHeight.toFloat())
+                else -> SizeF(minWidth.toFloat(), minHeight.toFloat())
+            }
+        }
+
+        @Suppress("DEPRECATION")
+        private fun hostProvidedSizes(options: Bundle): List<SizeF> {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return emptyList()
+            return options.getParcelableArrayList<SizeF>(
+                AppWidgetManager.OPTION_APPWIDGET_SIZES,
+            ).orEmpty()
+        }
     }
 }
+
+internal data class WidgetSizeSelection(
+    val width: Int,
+    val height: Int,
+    val presentation: WidgetPresentation,
+)
