@@ -439,7 +439,7 @@ class _AlphabetRailState extends State<_AlphabetRail> {
   void _selectLetter(Offset localPosition, double railHeight) {
     final index = (localPosition.dy / railHeight * _letterCount)
         .floor()
-        .clamp(0, _letterCount - 1) as int;
+        .clamp(0, _letterCount - 1);
     final letter = String.fromCharCode(65 + index);
     if (letter == _selectedLetter) return;
     setState(() {
