@@ -117,8 +117,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
     if (sectionContext != null) {
       Scrollable.ensureVisible(
         sectionContext,
-        duration: Duration(milliseconds: 220),
-        curve: Curves.easeOut,
+        duration: Duration.zero,
       );
     }
   }
@@ -422,42 +421,119 @@ class _LexiconRow extends StatelessWidget {
   }
 }
 
-class _AlphabetRail extends StatelessWidget {
+class _AlphabetRail extends StatefulWidget {
   _AlphabetRail({required this.activeLetters, required this.onLetterTap});
 
   final Set<String> activeLetters;
   final ValueChanged<String> onLetterTap;
 
   @override
+  State<_AlphabetRail> createState() => _AlphabetRailState();
+}
+
+class _AlphabetRailState extends State<_AlphabetRail> {
+  static const _letterCount = 26;
+  String? _selectedLetter;
+  String? _indicatorLetter;
+
+  void _selectLetter(Offset localPosition, double railHeight) {
+    final index = (localPosition.dy / railHeight * _letterCount)
+        .floor()
+        .clamp(0, _letterCount - 1) as int;
+    final letter = String.fromCharCode(65 + index);
+    if (letter == _selectedLetter) return;
+    setState(() {
+      _selectedLetter = letter;
+      _indicatorLetter = letter;
+    });
+    widget.onLetterTap(letter);
+  }
+
+  void _endInteraction() {
+    if (_selectedLetter == null) return;
+    setState(() => _selectedLetter = null);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var code = 65; code <= 90; code++)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: activeLetters.contains(String.fromCharCode(code))
-                ? () => onLetterTap(String.fromCharCode(code))
-                : null,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              child: Text(
-                String.fromCharCode(code),
-                style: TextStyle(
-                  color: InterfaceThemeScope.maybePaletteOf(context).accent
-                      .withValues(
-                        alpha: activeLetters.contains(String.fromCharCode(code))
-                            ? 0.9
-                            : 0.25,
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final railHeight = constraints.maxHeight < 325
+            ? constraints.maxHeight
+            : 325.0;
+        return SizedBox(
+          width: 32,
+          height: railHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerRight,
+            children: [
+              Positioned(
+                right: 44,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _selectedLetter == null ? 0 : 1,
+                    duration: Duration(milliseconds: 100),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: palette.surface.withValues(alpha: 0.94),
+                        border: Border.all(color: palette.divider),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                  fontFamily: 'Figtree',
-                  fontSize: 10,
-                  height: 1.05,
+                      child: Text(
+                        _indicatorLetter ?? '',
+                        style: TextStyle(
+                          color: palette.accent,
+                          fontFamily: 'NotoSerifJP',
+                          fontSize: 26,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanDown: (details) =>
+                    _selectLetter(details.localPosition, railHeight),
+                onPanUpdate: (details) =>
+                    _selectLetter(details.localPosition, railHeight),
+                onPanEnd: (_) => _endInteraction(),
+                onPanCancel: _endInteraction,
+                child: Column(
+                  children: [
+                    for (var code = 65; code <= 90; code++)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            String.fromCharCode(code),
+                            style: TextStyle(
+                              color: palette.accent.withValues(
+                                alpha: widget.activeLetters.contains(
+                                  String.fromCharCode(code),
+                                )
+                                    ? 0.9
+                                    : 0.25,
+                              ),
+                              fontFamily: 'Figtree',
+                              fontSize: 10,
+                              height: 1.05,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-      ],
+        );
+      },
     );
   }
 }
