@@ -70,7 +70,7 @@ class MenuScreen extends StatelessWidget {
                       isSelected: true,
                       onTap: () => Navigator.of(context).pop(),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _MenuItem(
                       icon: CupertinoIcons.bookmark,
                       title: 'My Lexicon',
@@ -81,7 +81,7 @@ class MenuScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _MenuItem(
                       icon: CupertinoIcons.archivebox,
                       title: 'Archive',
@@ -96,7 +96,7 @@ class MenuScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _MenuItem(
                       icon: CupertinoIcons.arrow_2_circlepath,
                       title: 'Recall',
@@ -126,7 +126,7 @@ class MenuScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _MenuItem(
                       icon: CupertinoIcons.star_circle,
                       title: 'Diurnus Pro',
@@ -258,7 +258,7 @@ class _MenuItem extends StatelessWidget {
                       style: TextStyle(
                         color: palette.primary,
                         fontFamily: 'NotoSerifJP',
-                        fontSize: 27,
+                        fontSize: 21,
                         fontWeight: FontWeight.w400,
                         height: 1.2,
                       ),
