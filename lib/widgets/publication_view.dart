@@ -57,7 +57,7 @@ class _PublicationViewState extends State<PublicationView> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  Widget _content() {
+  Widget _content({required Color accent}) {
     final style = TextStyle(
       fontSize: 16,
       height: 1.6,
@@ -81,7 +81,20 @@ class _PublicationViewState extends State<PublicationView> {
             for (final synonym in widget.publication.synonyms)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text('• $synonym', style: style),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: CustomPaint(
+                        size: const Size(10, 8),
+                        painter: _SynonymMarkerPainter(accent),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(child: Text(synonym, style: style)),
+                  ],
+                ),
               ),
           ],
         );
@@ -301,7 +314,7 @@ class _PublicationViewState extends State<PublicationView> {
                                 if (currentChild != null) currentChild,
                               ],
                             ),
-                        child: _content(),
+                        child: _content(accent: accent),
                       ),
                         const SizedBox(height: 72),
                       ],
@@ -463,4 +476,25 @@ List<Shadow>? _tactileTextShadows({
             blurRadius: 0.3,
           ),
         ];
+}
+
+class _SynonymMarkerPainter extends CustomPainter {
+  const _SynonymMarkerPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height * 0.5)
+      ..lineTo(size.width * 0.65, 0)
+      ..lineTo(size.width, size.height * 0.44)
+      ..lineTo(size.width * 0.58, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_SynonymMarkerPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
