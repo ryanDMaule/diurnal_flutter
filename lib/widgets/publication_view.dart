@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/app_settings.dart';
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
+import '../services/pronunciation_service.dart';
 import '../theme/interface_theme.dart';
 import 'edition_background.dart';
 
@@ -38,6 +39,12 @@ class PublicationView extends StatefulWidget {
 
 class _PublicationViewState extends State<PublicationView> {
   String selectedTab = 'definition';
+
+  @override
+  void dispose() {
+    PronunciationService.instance.stop();
+    super.dispose();
+  }
 
   String _formatDate(DateTime date) {
     const months = [
@@ -204,19 +211,41 @@ class _PublicationViewState extends State<PublicationView> {
                           ),
                         ),
                       ),
-                      Text(
-                        publication.phonetic,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: secondary,
-                          fontFamily: 'Figtree',
-                          fontWeight: FontWeight.w400,
-                          shadows: _tactileTextShadows(
-                            enabled: useTactileType,
-                            paper: usesPaperTreatment,
-                            supporting: true,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            publication.phonetic,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: secondary,
+                              fontFamily: 'Figtree',
+                              fontWeight: FontWeight.w400,
+                              shadows: _tactileTextShadows(
+                                enabled: useTactileType,
+                                paper: usesPaperTreatment,
+                                supporting: true,
+                              ),
+                            ),
                           ),
-                        ),
+                          SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: IconButton(
+                              tooltip: 'Hear pronunciation',
+                              padding: EdgeInsets.zero,
+                              iconSize: 19,
+                              color: secondary,
+                              onPressed: () => PronunciationService.instance
+                                  .speak(
+                                    publication.word,
+                                    preferred:
+                                        interfaceSettings?.pronunciationVoice,
+                                  ),
+                              icon: Icon(CupertinoIcons.speaker_2),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 32),
                       Row(

@@ -1,3 +1,5 @@
+import 'pronunciation_voice.dart';
+
 enum InterfaceColor { evergreen, charcoal, navy, oxblood, paper }
 
 class AppSettings {
@@ -6,6 +8,7 @@ class AppSettings {
     required this.reduceAnimations,
     required this.interfaceColor,
     required this.textureEnabled,
+    this.pronunciationVoice,
   });
 
   static const defaults = AppSettings(
@@ -19,17 +22,20 @@ class AppSettings {
   final bool reduceAnimations;
   final InterfaceColor interfaceColor;
   final bool textureEnabled;
+  final PronunciationVoice? pronunciationVoice;
 
   AppSettings copyWith({
     bool? soundEffectsEnabled,
     bool? reduceAnimations,
     InterfaceColor? interfaceColor,
     bool? textureEnabled,
+    PronunciationVoice? pronunciationVoice,
   }) => AppSettings(
     soundEffectsEnabled: soundEffectsEnabled ?? this.soundEffectsEnabled,
     reduceAnimations: reduceAnimations ?? this.reduceAnimations,
     interfaceColor: interfaceColor ?? this.interfaceColor,
     textureEnabled: textureEnabled ?? this.textureEnabled,
+    pronunciationVoice: pronunciationVoice ?? this.pronunciationVoice,
   );
 
   Map<String, dynamic> toJson() => {
@@ -37,6 +43,7 @@ class AppSettings {
     'reduceAnimations': reduceAnimations,
     'interfaceColor': interfaceColor.name,
     'textureEnabled': textureEnabled,
+    'pronunciationVoice': pronunciationVoice?.toJson(),
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -59,6 +66,11 @@ class AppSettings {
       textureEnabled: json['textureEnabled'] is bool
           ? json['textureEnabled'] as bool
           : defaults.textureEnabled,
+      pronunciationVoice: json['pronunciationVoice'] is Map
+          ? PronunciationVoice.fromJson(
+              Map<String, dynamic>.from(json['pronunciationVoice'] as Map),
+            )
+          : null,
     );
   }
 }

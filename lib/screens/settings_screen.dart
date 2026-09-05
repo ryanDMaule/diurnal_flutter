@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_settings.dart';
+import '../models/pronunciation_voice.dart';
 import '../services/app_settings_service.dart';
 import '../services/bookmark_service.dart';
 import '../services/endless_recall_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/pronunciation_service.dart';
 import '../theme/interface_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -32,6 +34,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   AppSettings _settings = AppSettings.defaults;
   bool _loading = true;
+  List<PronunciationVoice> _pronunciationVoices = const [];
 
   @override
   void initState() {
@@ -41,11 +44,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     final settings = await widget.settingsService.load();
+    final voices = await PronunciationService.instance.getEnglishVoices();
+    final resolvedVoice = await PronunciationService.instance.resolveVoice(
+      settings.pronunciationVoice,
+    );
     if (!mounted) return;
+    final effectiveSettings = resolvedVoice == null
+        ? settings
+        : settings.copyWith(pronunciationVoice: resolvedVoice);
     setState(() {
-      _settings = settings;
+      _settings = effectiveSettings;
+      _pronunciationVoices = voices;
       _loading = false;
     });
+    if (effectiveSettings.pronunciationVoice != settings.pronunciationVoice) {
+      try {
+        final controller = InterfaceThemeScope.maybeControllerOf(context);
+        if (controller == null) {
+          await widget.settingsService.save(effectiveSettings);
+        } else {
+          await controller.update(effectiveSettings);
+        }
+      } catch (error) {
+        debugPrint('Error saving fallback pronunciation voice: $error');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    PronunciationService.instance.stop();
+    super.dispose();
   }
 
   Future<void> _save(AppSettings settings) async {
@@ -124,6 +153,118 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _choosePronunciationVoice(InterfacePalette palette) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: palette.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.68,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 22, 24, 12),
+                child: Text(
+                  'Pronunciation Voice',
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontFamily: 'NotoSerifJP',
+                    fontSize: 22,
+                  ),
+                ),
+              ),
+              if (_pronunciationVoices.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                  child: Text(
+                    'No installed English voices are available.',
+                    style: TextStyle(
+                      color: palette.secondary,
+                      fontFamily: 'Figtree',
+                      fontSize: 14,
+                    ),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _pronunciationVoices.length,
+                    itemBuilder: (context, index) {
+                      final voice = _pronunciationVoices[index];
+                      final selected = voice == _settings.pronunciationVoice;
+                      final friendlyName = _friendlyVoiceName(
+                        voice,
+                        _pronunciationVoices,
+                      );
+                      return ListTile(
+                        minVerticalPadding: 10,
+                        title: Text(
+                          friendlyName,
+                          style: TextStyle(
+                            color: selected ? palette.primary : palette.secondary,
+                            fontFamily: 'Figtree',
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _friendlyVoiceLocale(voice),
+                          style: TextStyle(
+                            color: palette.secondary.withValues(alpha: 0.72),
+                            fontFamily: 'Figtree',
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (selected)
+                              Icon(
+                                CupertinoIcons.check_mark,
+                                color: palette.accent,
+                                size: 16,
+                              ),
+                            if (selected) const SizedBox(width: 6),
+                            IconButton(
+                              tooltip: 'Preview $friendlyName',
+                              icon: Icon(
+                                CupertinoIcons.speaker_2,
+                                color: palette.accent,
+                                size: 18,
+                              ),
+                              onPressed: () =>
+                                  PronunciationService.instance.preview(voice),
+                            ),
+                          ],
+                          ),
+                        onTap: () async {
+                          await _save(
+                            _settings.copyWith(pronunciationVoice: voice),
+                          );
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
@@ -176,6 +317,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     palette: palette,
                     onChanged: (value) =>
                         _save(_settings.copyWith(soundEffectsEnabled: value)),
+                  ),
+                  _PronunciationVoiceRow(
+                    voice: _settings.pronunciationVoice,
+                    voices: _pronunciationVoices,
+                    palette: palette,
+                    onTap: () => _choosePronunciationVoice(palette),
                   ),
                   _ToggleRow(
                     key: const Key('reduce-animations-setting'),
@@ -314,6 +461,120 @@ class _ToggleRow extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _PronunciationVoiceRow extends StatelessWidget {
+  const _PronunciationVoiceRow({
+    required this.voice,
+    required this.voices,
+    required this.palette,
+    required this.onTap,
+  });
+
+  final PronunciationVoice? voice;
+  final List<PronunciationVoice> voices;
+  final InterfacePalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Pronunciation Voice',
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 64),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: palette.divider)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pronunciation Voice',
+                    style: TextStyle(
+                      color: palette.primary,
+                      fontFamily: 'NotoSerifJP',
+                      fontSize: 19,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    voice == null
+                        ? 'Automatic English voice'
+                        : _friendlyVoiceName(voice!, voices),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.secondary,
+                      fontFamily: 'Figtree',
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              CupertinoIcons.chevron_right,
+              color: palette.secondary,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+String _friendlyVoiceName(
+  PronunciationVoice voice,
+  List<PronunciationVoice> voices,
+) {
+  final region = _voiceRegionCode(voice);
+  final baseName = switch (region) {
+    'GB' => 'British',
+    'US' => 'American',
+    'AU' => 'Australian',
+    'CA' => 'Canadian',
+    'IE' => 'Irish',
+    'IN' => 'Indian',
+    'NZ' => 'New Zealand',
+    'ZA' => 'South African',
+    _ => 'English',
+  };
+  final matching = voices
+      .where((candidate) => _voiceRegionCode(candidate) == region)
+      .toList();
+  if (matching.length <= 1) return baseName;
+  return '$baseName ${matching.indexOf(voice) + 1}';
+}
+
+String _friendlyVoiceLocale(PronunciationVoice voice) =>
+    switch (_voiceRegionCode(voice)) {
+      'GB' => 'English (United Kingdom)',
+      'US' => 'English (United States)',
+      'AU' => 'English (Australia)',
+      'CA' => 'English (Canada)',
+      'IE' => 'English (Ireland)',
+      'IN' => 'English (India)',
+      'NZ' => 'English (New Zealand)',
+      'ZA' => 'English (South Africa)',
+      _ => 'English',
+    };
+
+String? _voiceRegionCode(PronunciationVoice voice) {
+  final encodedLocale = '${voice.locale}-${voice.name}'
+      .replaceAll('_', '-')
+      .toUpperCase();
+  for (final region in const ['GB', 'US', 'AU', 'CA', 'IE', 'IN', 'NZ', 'ZA']) {
+    if (encodedLocale.contains('EN-$region')) return region;
+  }
+  return null;
 }
 
 class _ThemeColorSelector extends StatelessWidget {
