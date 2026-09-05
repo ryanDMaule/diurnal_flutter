@@ -6,6 +6,7 @@ import '../models/pronunciation_voice.dart';
 import '../services/app_settings_service.dart';
 import '../services/bookmark_service.dart';
 import '../services/endless_recall_service.dart';
+import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/pronunciation_service.dart';
 import '../theme/interface_theme.dart';
@@ -91,6 +92,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       debugPrint('Error saving app settings: $error');
       if (mounted) setState(() => _settings = previous);
     }
+  }
+
+  void _saveToggle({
+    required bool currentValue,
+    required bool newValue,
+    required AppSettings settings,
+    bool isHapticToggle = false,
+  }) {
+    if (currentValue == newValue) return;
+    HapticService.selection(
+      enabled:
+          _settings.hapticFeedbackEnabled || (isHapticToggle && newValue),
+    );
+    _save(settings);
+  }
+
+  void _selectThemeColor(InterfaceColor color) {
+    if (_settings.interfaceColor == color) return;
+    HapticService.selection(enabled: _settings.hapticFeedbackEnabled);
+    _save(_settings.copyWith(interfaceColor: color));
   }
 
   Future<void> _resetRecall(InterfacePalette palette) async {
@@ -247,6 +268,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                           ),
                         onTap: () async {
+                          if (voice == _settings.pronunciationVoice) {
+                            Navigator.of(sheetContext).pop();
+                            return;
+                          }
+                          HapticService.selection(
+                            enabled: _settings.hapticFeedbackEnabled,
+                          );
                           await _save(
                             _settings.copyWith(pronunciationVoice: voice),
                           );
@@ -315,8 +343,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Use subtle sound cues when they become available.',
                     value: _settings.soundEffectsEnabled,
                     palette: palette,
-                    onChanged: (value) =>
-                        _save(_settings.copyWith(soundEffectsEnabled: value)),
+                    onChanged: (value) => _saveToggle(
+                      currentValue: _settings.soundEffectsEnabled,
+                      newValue: value,
+                      settings: _settings.copyWith(soundEffectsEnabled: value),
+                    ),
+                  ),
+                  _ToggleRow(
+                    key: const Key('haptic-feedback-setting'),
+                    title: 'Haptic Feedback',
+                    description: 'Add subtle tactile feedback to interactions.',
+                    value: _settings.hapticFeedbackEnabled,
+                    palette: palette,
+                    onChanged: (value) => _saveToggle(
+                      currentValue: _settings.hapticFeedbackEnabled,
+                      newValue: value,
+                      settings: _settings.copyWith(
+                        hapticFeedbackEnabled: value,
+                      ),
+                      isHapticToggle: true,
+                    ),
                   ),
                   _PronunciationVoiceRow(
                     voice: _settings.pronunciationVoice,
@@ -331,8 +377,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Limit decorative movement throughout Diurnus.',
                     value: _settings.reduceAnimations,
                     palette: palette,
-                    onChanged: (value) =>
-                        _save(_settings.copyWith(reduceAnimations: value)),
+                    onChanged: (value) => _saveToggle(
+                      currentValue: _settings.reduceAnimations,
+                      newValue: value,
+                      settings: _settings.copyWith(reduceAnimations: value),
+                    ),
                   ),
                   _ToggleRow(
                     key: const Key('texture-setting'),
@@ -340,8 +389,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     description: 'Add a subtle tactile finish to Diurnus.',
                     value: _settings.textureEnabled,
                     palette: palette,
-                    onChanged: (value) =>
-                        _save(_settings.copyWith(textureEnabled: value)),
+                    onChanged: (value) => _saveToggle(
+                      currentValue: _settings.textureEnabled,
+                      newValue: value,
+                      settings: _settings.copyWith(textureEnabled: value),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -356,8 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _ThemeColorSelector(
                     selected: _settings.interfaceColor,
                     palette: palette,
-                    onSelected: (value) =>
-                        _save(_settings.copyWith(interfaceColor: value)),
+                    onSelected: _selectThemeColor,
                   ),
                   const SizedBox(height: 44),
                   _SectionLabel('YOUR DATA', color: palette.accent),

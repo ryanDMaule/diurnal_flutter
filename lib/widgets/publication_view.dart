@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/app_settings.dart';
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
+import '../services/haptic_service.dart';
 import '../services/pronunciation_service.dart';
 import '../theme/interface_theme.dart';
 import 'edition_background.dart';
@@ -259,8 +260,16 @@ class _PublicationViewState extends State<PublicationView> {
                               padding: const EdgeInsets.only(right: 28),
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
-                                onTap: () =>
-                                    setState(() => selectedTab = label),
+                                onTap: () {
+                                  if (selectedTab == label) return;
+                                  HapticService.selection(
+                                    enabled:
+                                        interfaceSettings
+                                            ?.hapticFeedbackEnabled ??
+                                        true,
+                                  );
+                                  setState(() => selectedTab = label);
+                                },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,

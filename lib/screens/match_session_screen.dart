@@ -5,9 +5,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/match_session.dart';
+import '../services/haptic_service.dart';
 import '../services/match_service.dart';
 import '../services/recall_progress_service.dart';
 import '../theme/interface_theme.dart';
@@ -56,6 +56,12 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     return appSetting == true || MediaQuery.disableAnimationsOf(context);
   }
 
+  bool get _hapticsEnabled =>
+      InterfaceThemeScope.maybeControllerOf(
+        context,
+      )?.settings.hapticFeedbackEnabled ??
+      true;
+
   @override
   void initState() {
     super.initState();
@@ -85,7 +91,6 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     final selectedId = _selectedId;
     if (selectedId == null) {
       setState(() => _selectedId = card.id);
-      unawaited(HapticFeedback.selectionClick());
       return;
     }
     if (selectedId == card.id) {
@@ -97,7 +102,6 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     );
     if (selected.type == card.type) {
       setState(() => _selectedId = card.id);
-      unawaited(HapticFeedback.selectionClick());
       return;
     }
 
@@ -113,11 +117,11 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
       _feedbackIsCorrect = isCorrect;
       _feedbackIds = {selected.id, card.id};
     });
-    unawaited(
-      isCorrect
-          ? HapticFeedback.selectionClick()
-          : HapticFeedback.lightImpact(),
-    );
+    if (isCorrect) {
+      HapticService.success(enabled: _hapticsEnabled);
+    } else {
+      HapticService.error(enabled: _hapticsEnabled);
+    }
     if (isCorrect) {
       try {
         await widget.progressService.markRecalled(card.subjectId);
@@ -156,6 +160,7 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     final elapsed = _elapsedTime.elapsedMilliseconds.clamp(1, 1 << 31);
     final completion = await widget.matchService.complete(elapsed);
     if (!mounted) return;
+    HapticService.confirmation(enabled: _hapticsEnabled);
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => MatchResultScreen(

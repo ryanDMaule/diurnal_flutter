@@ -1,14 +1,12 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/daily_publication.dart';
 import '../models/recall_question.dart';
 import '../services/endless_recall_service.dart';
+import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
 import '../theme/interface_theme.dart';
 import 'endless_recall_result_screen.dart';
@@ -61,11 +59,16 @@ class _EndlessRecallSessionScreenState
       _answerWasCorrect = isCorrect;
       if (isCorrect) _score++;
     });
-    unawaited(
-      isCorrect
-          ? HapticFeedback.selectionClick()
-          : HapticFeedback.lightImpact(),
-    );
+    final hapticsEnabled =
+        InterfaceThemeScope.maybeControllerOf(
+          context,
+        )?.settings.hapticFeedbackEnabled ??
+        true;
+    if (isCorrect) {
+      HapticService.success(enabled: hapticsEnabled);
+    } else {
+      HapticService.error(enabled: hapticsEnabled);
+    }
     try {
       await widget.progressService.recordAnswer(
         _question.subject.id!,

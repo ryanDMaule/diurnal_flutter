@@ -8,8 +8,10 @@ import '../models/edition.dart';
 import '../models/edition_access_policy.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
+import '../services/haptic_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/widget_sync_service.dart';
+import '../theme/interface_theme.dart';
 import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
 import '../widgets/entitlement_scope.dart';
@@ -112,8 +114,26 @@ class _TodayScreenState extends State<TodayScreen> {
     try {
       if (wasBookmarked) {
         await _bookmarkService.remove(id);
+        if (mounted) {
+          HapticService.selection(
+            enabled:
+                InterfaceThemeScope.maybeControllerOf(
+                  context,
+                )?.settings.hapticFeedbackEnabled ??
+                true,
+          );
+        }
       } else {
         await _bookmarkService.save(current);
+        if (mounted) {
+          HapticService.confirmation(
+            enabled:
+                InterfaceThemeScope.maybeControllerOf(
+                  context,
+                )?.settings.hapticFeedbackEnabled ??
+                true,
+          );
+        }
       }
     } catch (error) {
       debugPrint('Error updating bookmark: $error');

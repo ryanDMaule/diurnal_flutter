@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
+import '../services/haptic_service.dart';
 import '../services/edition_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/diurnus_loading_state.dart';
@@ -441,6 +442,13 @@ class _AlphabetRailState extends State<_AlphabetRail> {
         .clamp(0, _letterCount - 1);
     final letter = String.fromCharCode(65 + index);
     if (letter == _selectedLetter) return;
+    HapticService.selection(
+      enabled:
+          InterfaceThemeScope.maybeControllerOf(
+            context,
+          )?.settings.hapticFeedbackEnabled ??
+          true,
+    );
     setState(() {
       _selectedLetter = letter;
       _indicatorLetter = letter;

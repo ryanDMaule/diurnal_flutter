@@ -7,6 +7,7 @@ import '../models/app_settings.dart';
 import '../models/edition.dart';
 import '../models/edition_access_policy.dart';
 import '../services/edition_service.dart';
+import '../services/haptic_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
@@ -51,6 +52,13 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       );
       return;
     }
+    if (selectedEdition.id == edition.id) return;
+    HapticService.selection(
+      enabled:
+          InterfaceThemeScope.controllerOf(
+            context,
+          ).settings.hapticFeedbackEnabled,
+    );
     setState(() => selectedEdition = edition);
     try {
       await widget.editionService.selectEdition(edition);
@@ -70,6 +78,10 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
 
   Future<void> _selectInterfaceColor(InterfaceColor color) async {
     final controller = InterfaceThemeScope.controllerOf(context);
+    if (controller.settings.interfaceColor == color) return;
+    HapticService.selection(
+      enabled: controller.settings.hapticFeedbackEnabled,
+    );
     try {
       await controller.update(
         controller.settings.copyWith(interfaceColor: color),

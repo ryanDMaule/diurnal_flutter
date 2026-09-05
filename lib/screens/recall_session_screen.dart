@@ -1,12 +1,10 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/recall_question.dart';
+import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
 import '../theme/interface_theme.dart';
 import 'recall_result_screen.dart';
@@ -41,10 +39,15 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
       _selectedAnswer = answer;
       if (isCorrect) _correctAnswers++;
     });
+    final hapticsEnabled =
+        InterfaceThemeScope.maybeControllerOf(
+          context,
+        )?.settings.hapticFeedbackEnabled ??
+        true;
     if (isCorrect) {
-      unawaited(HapticFeedback.selectionClick());
+      HapticService.success(enabled: hapticsEnabled);
     } else {
-      unawaited(HapticFeedback.lightImpact());
+      HapticService.error(enabled: hapticsEnabled);
     }
     try {
       await widget.progressService.recordAnswer(

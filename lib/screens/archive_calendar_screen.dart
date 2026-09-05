@@ -7,6 +7,7 @@ import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/archive_access.dart';
 import '../services/edition_service.dart';
+import '../services/haptic_service.dart';
 import '../services/entitlement_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/entitlement_scope.dart';
@@ -36,6 +37,7 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
   late final DateTime _earliestMonth;
   late final DateTime _newestMonth;
   late DateTime _visibleMonth;
+  int? _selectedDateKey;
 
   @override
   void initState() {
@@ -83,6 +85,17 @@ class _ArchiveCalendarScreenState extends State<ArchiveCalendarScreen> {
   }
 
   Future<void> _openPublication(DailyPublication publication) async {
+    final dateKey = _dateKey(publication.publicationDate!);
+    if (_selectedDateKey != dateKey) {
+      _selectedDateKey = dateKey;
+      HapticService.selection(
+        enabled:
+            InterfaceThemeScope.maybeControllerOf(
+              context,
+            )?.settings.hapticFeedbackEnabled ??
+            true,
+      );
+    }
     if (!_isAccessible(publication)) {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
