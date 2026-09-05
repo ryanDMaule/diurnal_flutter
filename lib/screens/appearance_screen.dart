@@ -3,6 +3,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../models/app_settings.dart';
 import '../models/edition.dart';
 import '../models/edition_access_policy.dart';
 import '../services/edition_service.dart';
@@ -64,6 +65,17 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       );
     } catch (error) {
       debugPrint('Error updating widget Edition: $error');
+    }
+  }
+
+  Future<void> _selectInterfaceColor(InterfaceColor color) async {
+    final controller = InterfaceThemeScope.controllerOf(context);
+    try {
+      await controller.update(
+        controller.settings.copyWith(interfaceColor: color),
+      );
+    } catch (error) {
+      debugPrint('Error saving Theme Colour: $error');
     }
   }
 
@@ -134,28 +146,54 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
               ),
             ),
             Expanded(
-              child: ListView.separated(
+              child: ListView(
                 key: Key('appearance-edition-list'),
                 padding: EdgeInsets.fromLTRB(24, 0, 24, 30),
-                itemCount: Editions.all.length,
-                separatorBuilder: (context, index) => SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final edition = Editions.all[index];
-                  final previewEdition = resolveInterfaceColorEdition(
-                    edition,
-                    palette,
-                  );
-                  final locked = !EditionAccessPolicy.canSelect(
-                    edition,
-                    isPro: isPro,
-                  );
-                  return _EditionCard(
-                    edition: previewEdition,
-                    selected: effectiveEdition.id == edition.id,
-                    locked: locked,
-                    onTap: () => _select(edition, isPro: isPro),
-                  );
-                },
+                children: [
+                  _ThemeColorSelector(
+                    selected: InterfaceThemeScope.controllerOf(
+                      context,
+                    ).settings.interfaceColor,
+                    onSelected: _selectInterfaceColor,
+                  ),
+                  SizedBox(height: 22),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      const spacing = 12.0;
+                      final cardWidth =
+                          (constraints.maxWidth - (spacing * 2)) / 3;
+                      final previewHeight = cardWidth / 0.58;
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: Editions.all.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: spacing,
+                          mainAxisSpacing: 18,
+                          mainAxisExtent: previewHeight + 32,
+                        ),
+                        itemBuilder: (context, index) {
+                          final edition = Editions.all[index];
+                          final previewEdition = resolveInterfaceColorEdition(
+                            edition,
+                            palette,
+                          );
+                          final locked = !EditionAccessPolicy.canSelect(
+                            edition,
+                            isPro: isPro,
+                          );
+                          return _EditionCard(
+                            edition: previewEdition,
+                            selected: effectiveEdition.id == edition.id,
+                            locked: locked,
+                            onTap: () => _select(edition, isPro: isPro),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ],
@@ -188,172 +226,229 @@ class _EditionCard extends StatelessWidget {
         key: Key('edition-${edition.id}'),
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 150),
-          height: 122,
-          decoration: BoxDecoration(
-            color: InterfaceThemeScope.maybePaletteOf(context).surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected
-                  ? edition.accentColor.withValues(alpha: 0.68)
-                  : InterfaceThemeScope.maybePaletteOf(
-                      context,
-                    ).divider.withValues(alpha: 0.55),
-            ),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.horizontal(
-                  left: Radius.circular(13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 0.58,
+              child: AnimatedContainer(
+                key: Key('edition-selection-${edition.id}'),
+                duration: Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selected
+                        ? edition.accentColor
+                        : InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).divider.withValues(alpha: 0.42),
+                    width: selected ? 1.25 : 1,
+                  ),
                 ),
-                child: SizedBox(
-                  width: 122,
-                  height: 122,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10.75),
                   child: EditionBackground(
                     edition: edition,
-                    child: edition == Editions.evergreen
-                        ? _EvergreenPreview(edition: edition)
-                        : SizedBox.expand(),
+                    child: _EditionPreviewContent(edition: edition),
                   ),
                 ),
               ),
-              SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      edition.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).primary,
-                        fontFamily: 'NotoSerifJP',
-                        fontSize: 22,
-                        fontWeight: FontWeight.w400,
-                      ),
+            ),
+            SizedBox(height: 7),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    edition.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: selected
+                          ? InterfaceThemeScope.maybePaletteOf(context).primary
+                          : InterfaceThemeScope.maybePaletteOf(
+                              context,
+                            ).primary.withValues(alpha: 0.6),
+                      fontFamily: 'NotoSerifJP',
+                      fontSize: 13,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
-                    SizedBox(height: 7),
-                    Text(
-                      edition.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                  ),
+                ),
+                if (locked) ...[
+                  SizedBox(width: 5),
+                  Container(
+                    key: Key('edition-lock-${edition.id}'),
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      border: Border.all(
                         color: InterfaceThemeScope.maybePaletteOf(
                           context,
-                        ).primary.withValues(alpha: 0.48),
+                        ).accent.withValues(alpha: 0.7),
+                      ),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Text(
+                      'PRO',
+                      style: TextStyle(
+                        color: InterfaceThemeScope.maybePaletteOf(context).accent,
                         fontFamily: 'Figtree',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w300,
-                        height: 1.3,
+                        fontSize: 7,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 14),
-              if (locked) ...[
-                Icon(
-                  CupertinoIcons.lock,
-                  key: Key('edition-lock-${edition.id}'),
-                  size: 13,
-                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
-                ),
-                SizedBox(width: 5),
-                Text(
-                  'Pro',
-                  style: TextStyle(
-                    color: InterfaceThemeScope.maybePaletteOf(context).accent,
-                    fontFamily: 'Figtree',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
-                SizedBox(width: 10),
+                ],
               ],
-              _SelectionIndicator(
-                key: Key('edition-selection-${edition.id}'),
-                selected: selected,
-                accentColor: edition.accentColor,
-              ),
-              SizedBox(width: 18),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _EvergreenPreview extends StatelessWidget {
-  const _EvergreenPreview({required this.edition});
+class _EditionPreviewContent extends StatelessWidget {
+  const _EditionPreviewContent({required this.edition});
 
   final Edition edition;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(18),
+      padding: EdgeInsets.fromLTRB(10, 12, 10, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          Container(width: 32, height: 2, color: edition.accentColor),
+          SizedBox(height: 6),
           Text(
             'Aa',
             style: TextStyle(
               color: edition.primaryTextColor,
               fontFamily: 'NotoSerifJP',
               fontSize: 27,
+              fontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(height: 8),
-          Container(width: 30, height: 2, color: edition.accentColor),
+          Container(height: 1, color: edition.accentColor.withValues(alpha: 0.7)),
+          SizedBox(height: 7),
+          _PreviewLine(color: edition.secondaryTextColor, widthFactor: 0.92),
+          SizedBox(height: 4),
+          _PreviewLine(color: edition.mutedTextColor, widthFactor: 0.72),
         ],
       ),
     );
   }
 }
 
-class _SelectionIndicator extends StatelessWidget {
-  _SelectionIndicator({
+class _PreviewLine extends StatelessWidget {
+  const _PreviewLine({required this.color, required this.widthFactor});
+
+  final Color color;
+  final double widthFactor;
+
+  @override
+  Widget build(BuildContext context) => FractionallySizedBox(
+    widthFactor: widthFactor,
+    alignment: Alignment.centerLeft,
+    child: Container(
+      height: 1,
+      color: color.withValues(alpha: 0.55),
+    ),
+  );
+}
+
+class _ThemeColorSelector extends StatelessWidget {
+  const _ThemeColorSelector({
     required this.selected,
-    required this.accentColor,
-    super.key,
+    required this.onSelected,
   });
 
-  final bool selected;
-  final Color accentColor;
+  final InterfaceColor selected;
+  final ValueChanged<InterfaceColor> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 150),
-      width: 28,
-      height: 28,
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    return Container(
+      padding: EdgeInsets.fromLTRB(14, 12, 14, 13),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: selected ? accentColor : Colors.transparent,
-        border: Border.all(
-          color: selected
-              ? accentColor
-              : InterfaceThemeScope.maybePaletteOf(
-                  context,
-                ).primary.withValues(alpha: 0.42),
-          width: 1.5,
-        ),
+        color: palette.surface.withValues(alpha: 0.7),
+        border: Border.all(color: palette.divider.withValues(alpha: 0.45)),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: selected
-          ? Icon(
-              CupertinoIcons.check_mark,
-              color: InterfaceThemeScope.maybePaletteOf(context).background,
-              size: 18,
-            )
-          : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Theme Colour',
+                  style: TextStyle(
+                    color: palette.secondary,
+                    fontFamily: 'Figtree',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  _interfaceColorLabel(selected),
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontFamily: 'NotoSerifJP',
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final color in InterfaceColor.values) ...[
+            if (color != InterfaceColor.values.first) SizedBox(width: 8),
+            Semantics(
+              button: true,
+              selected: color == selected,
+              label: _interfaceColorLabel(color),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelected(color),
+                child: Padding(
+                  padding: EdgeInsets.all(3),
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 150),
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: InterfacePalette.forColor(color).background,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: color == selected
+                            ? palette.accent
+                            : palette.divider.withValues(alpha: 0.5),
+                        width: color == selected ? 1.5 : 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
+
+String _interfaceColorLabel(InterfaceColor color) => switch (color) {
+  InterfaceColor.evergreen => 'Evergreen',
+  InterfaceColor.charcoal => 'Charcoal',
+  InterfaceColor.navy => 'Navy',
+  InterfaceColor.oxblood => 'Oxblood',
+  InterfaceColor.paper => 'Paper',
+};
