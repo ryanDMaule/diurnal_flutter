@@ -19,32 +19,59 @@ class LaunchScreen extends StatelessWidget {
         systemNavigationBarColor: backgroundColor,
         systemNavigationBarIconBrightness: Brightness.light,
       ),
-      child: const ColoredBox(
+      child: ColoredBox(
         color: backgroundColor,
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DiurnusBrandLockup(
-                markColor: goldColor,
-                wordmarkColor: primaryColor,
-                markSize: 132,
-                wordmarkWidth: 220,
-                spacing: 0,
-              ),
-              SizedBox(height: 19),
-              Text(
-                'ONE REMARKABLE WORD, EVERY DAY.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: primaryColor,
-                  fontFamily: 'Figtree',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 2.1,
+          child: Transform.translate(
+            offset: Offset(0, -24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRect(
+                  child: SizedBox(
+                    width: 132,
+                    height: 72,
+                    child: OverflowBox(
+                      minWidth: 132,
+                      maxWidth: 132,
+                      minHeight: 132,
+                      maxHeight: 132,
+                      child: DiurnusSunriseMark(color: goldColor, size: 132),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: 38),
+                ClipRect(
+                  child: SizedBox(
+                    width: 220,
+                    height: 42,
+                    child: OverflowBox(
+                      minWidth: 220,
+                      maxWidth: 220,
+                      minHeight: 75.5,
+                      maxHeight: 75.5,
+                      child: DiurnusWordmark(
+                        color: primaryColor,
+                        width: 220,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 30),
+                Text(
+                  'ONE REMARKABLE WORD, EVERY DAY.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontFamily: 'Figtree',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 2.1,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

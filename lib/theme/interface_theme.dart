@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/app_settings.dart';
@@ -112,10 +114,14 @@ class InterfaceColorController extends ChangeNotifier {
   final WidgetSyncService? _widgetSyncService;
   AppSettings settings = AppSettings.defaults;
 
-  Future<void> load() async {
+  Future<void> load({bool syncWidget = true}) async {
     settings = await service.load();
     notifyListeners();
-    await _syncWidget();
+    if (syncWidget) {
+      await _syncWidget();
+    } else {
+      unawaited(_syncWidget());
+    }
   }
 
   Future<void> update(AppSettings value) async {

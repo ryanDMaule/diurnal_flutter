@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -29,6 +31,8 @@ class _DiurnalAppState extends State<DiurnalApp> {
   late final EntitlementController _entitlementController;
   late final EditionEntitlementCoordinator _editionCoordinator;
   late final Future<void> _initialization;
+  late final Completer<void> _initializationCompleter;
+  late final Completer<TodayPublicationLoad> _publicationCompleter;
 
   @override
   void initState() {
@@ -43,13 +47,47 @@ class _DiurnalAppState extends State<DiurnalApp> {
       editionService: EditionService(),
       widgetSyncService: WidgetSyncService(),
     );
-    _initialization = _initialize();
+    _initializationCompleter = Completer<void>();
+    _initialization = _initializationCompleter.future;
+    _publicationCompleter = Completer<TodayPublicationLoad>();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final publicationLoad = loadTodayPublication();
+        unawaited(publicationLoad.then(_publicationCompleter.complete));
+        await _initialize(publicationLoad);
+        _initializationCompleter.complete();
+      } catch (error, stackTrace) {
+        _initializationCompleter.completeError(error, stackTrace);
+      }
+    });
   }
 
-  Future<void> _initialize() async {
-    await Future.wait([_controller.load(), _entitlementController.load()]);
+  Future<void> _loadRequiredState() async {
+    try {
+      await Future.wait([
+        _controller.load(syncWidget: false),
+        _entitlementController.load(),
+      ]);
+    } catch (error) {
+      debugPrint('Error loading startup state: $error');
+    }
     _editionCoordinator.start();
-    await _editionCoordinator.syncNow();
+    unawaited(_editionCoordinator.syncNow());
+  }
+
+  Future<void> _initialize(
+    Future<TodayPublicationLoad> publicationLoad,
+  ) async {
+    final requiredState = _loadRequiredState();
+    final preferredReadiness = Future.wait([
+      requiredState,
+      publicationLoad,
+      Future<void>.delayed(const Duration(milliseconds: 850)),
+    ]);
+    await Future.any([
+      preferredReadiness,
+      Future<void>.delayed(const Duration(milliseconds: 2000)),
+    ]);
   }
 
   @override
@@ -81,7 +119,9 @@ class _DiurnalAppState extends State<DiurnalApp> {
               ),
               home: LaunchGate(
                 initialization: _initialization,
-                child: const TodayScreen(),
+                child: TodayScreen(
+                  initialPublication: _publicationCompleter.future,
+                ),
               ),
             );
           },
