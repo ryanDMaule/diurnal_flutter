@@ -11,6 +11,7 @@ import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/diurnus_brand_lockup.dart';
 import '../widgets/morphing_menu_button.dart';
 import 'about_screen.dart';
 import 'archive_screen.dart';
@@ -189,21 +190,32 @@ class _MenuHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Image.asset(
-          'assets/images/branding.png',
-          width: 136,
-          fit: BoxFit.contain,
-        ),
-        MorphingMenuButton(
-          isOpen: true,
-          color: palette.primary,
-          tooltip: 'Close menu',
-          onPressed: onClose,
-        ),
-      ],
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: DiurnusBrandLockup(
+              markColor: palette.accent,
+              wordmarkColor: palette.primary,
+              markSize: 44,
+              wordmarkWidth: 120,
+              spacing: 9,
+              direction: Axis.horizontal,
+            ),
+          ),
+          Align(
+            alignment: Alignment.topRight,
+            child: MorphingMenuButton(
+              isOpen: true,
+              color: palette.primary,
+              tooltip: 'Close menu',
+              onPressed: onClose,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

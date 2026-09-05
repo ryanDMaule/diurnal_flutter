@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/diurnus_brand_lockup.dart';
+
 class LaunchScreen extends StatelessWidget {
   const LaunchScreen({super.key});
 
@@ -10,34 +12,25 @@ class LaunchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
         statusBarColor: backgroundColor,
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: backgroundColor,
         systemNavigationBarIconBrightness: Brightness.light,
       ),
-      child: ColoredBox(
+      child: const ColoredBox(
         color: backgroundColor,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 100,
-                height: 60,
-                child: CustomPaint(painter: DiurnusSunrisePainter()),
-              ),
-              SizedBox(height: 24),
-              Text(
-                'Diurnus',
-                style: TextStyle(
-                  color: primaryColor,
-                  fontFamily: 'NotoSerifJP',
-                  fontSize: 58,
-                  fontWeight: FontWeight.w300,
-                  height: 1,
-                ),
+              DiurnusBrandLockup(
+                markColor: goldColor,
+                wordmarkColor: primaryColor,
+                markSize: 132,
+                wordmarkWidth: 220,
+                spacing: 0,
               ),
               SizedBox(height: 19),
               Text(
@@ -57,51 +50,6 @@ class LaunchScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class DiurnusSunrisePainter extends CustomPainter {
-  const DiurnusSunrisePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = LaunchScreen.goldColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final center = Offset(size.width / 2, size.height * 0.68);
-    final radius = size.width * 0.19;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      3.141592653589793,
-      3.141592653589793,
-      false,
-      paint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.12, center.dy),
-      Offset(size.width * 0.88, center.dy),
-      paint,
-    );
-
-    for (final ray in <(Offset, Offset)>[
-      (Offset(0.5, 0.06), Offset(0.5, 0.31)),
-      (Offset(0.25, 0.17), Offset(0.36, 0.36)),
-      (Offset(0.75, 0.17), Offset(0.64, 0.36)),
-      (Offset(0.1, 0.4), Offset(0.29, 0.48)),
-      (Offset(0.9, 0.4), Offset(0.71, 0.48)),
-    ]) {
-      canvas.drawLine(
-        Offset(ray.$1.dx * size.width, ray.$1.dy * size.height),
-        Offset(ray.$2.dx * size.width, ray.$2.dy * size.height),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant DiurnusSunrisePainter oldDelegate) => false;
 }
 
 /// TODO: Revisit the Android cold-start transition. The native forest splash is

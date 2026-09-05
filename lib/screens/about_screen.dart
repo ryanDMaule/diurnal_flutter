@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/interface_theme.dart';
+import '../widgets/diurnus_brand_lockup.dart';
 
 class AboutScreen extends StatelessWidget {
   AboutScreen({super.key});
@@ -32,6 +33,22 @@ class AboutScreen extends StatelessWidget {
                         ).primary,
                         size: 26,
                       ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: DiurnusBrandLockup(
+                      markColor: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).accent,
+                      wordmarkColor: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
+                      markSize: 52,
+                      wordmarkWidth: 148,
+                      spacing: 10,
+                      direction: Axis.horizontal,
                     ),
                   ),
                   SizedBox(height: 24),
