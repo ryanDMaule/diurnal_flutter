@@ -210,20 +210,33 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                     ),
                   ),
                   if (!_isLoading && _error == null && _publications.isNotEmpty)
-                    IconButton(
-                      key: Key('open-archive-calendar'),
-                      tooltip: 'Open Archive calendar',
-                      onPressed: _openCalendar,
-                      constraints: BoxConstraints(
-                        minWidth: 48,
-                        minHeight: 48,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).accent.withValues(alpha: 0.45),
+                        ),
                       ),
-                      icon: Icon(
-                        CupertinoIcons.calendar,
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).accent,
-                        size: 24,
+                      child: IconButton(
+                        key: Key('open-archive-calendar'),
+                        tooltip: 'Open Archive calendar',
+                        onPressed: _openCalendar,
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        icon: Icon(
+                          CupertinoIcons.calendar,
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).accent,
+                          size: 24,
+                        ),
                       ),
                     ),
                 ],
