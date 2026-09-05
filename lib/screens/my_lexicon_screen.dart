@@ -7,6 +7,7 @@ import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/diurnus_loading_state.dart';
 import 'saved_publication_screen.dart';
 
 List<DailyPublication> sortLexiconPublications(
@@ -175,11 +176,9 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
 
   Widget _body() {
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: InterfaceThemeScope.maybePaletteOf(context).accent,
-        ),
+      return DiurnusLoadingState(
+        title: 'Opening your lexicon…',
+        message: 'Gathering your saved words.',
       );
     }
     if (_publications.isEmpty) return _emptyState();

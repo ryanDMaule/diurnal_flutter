@@ -10,6 +10,7 @@ import '../services/edition_service.dart';
 import '../services/entitlement_service.dart';
 import '../services/publication_api_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/diurnus_loading_state.dart';
 import '../widgets/entitlement_scope.dart';
 import 'archive_calendar_screen.dart';
 import 'pro_screen.dart';
@@ -73,12 +74,23 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   }
 
   Future<void> _loadPublications() async {
+    final loadingTimer = Stopwatch()..start();
+    Future<void> waitForMinimumDuration() async {
+      final remainingMilliseconds = 850 - loadingTimer.elapsedMilliseconds;
+      if (remainingMilliseconds > 0) {
+        await Future<void>.delayed(
+          Duration(milliseconds: remainingMilliseconds),
+        );
+      }
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final publications = await widget.apiService.fetchPublications();
+      await waitForMinimumDuration();
       if (!mounted) return;
       setState(() {
         _publications = sortArchivePublications(publications);
@@ -86,6 +98,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       });
     } catch (error) {
       debugPrint('Error loading Archive: $error');
+      await waitForMinimumDuration();
       if (!mounted) return;
       setState(() {
         _error = error;
@@ -226,14 +239,9 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
 
   Widget _body() {
     if (_isLoading) {
-      return Center(
-        child: SizedBox.square(
-          dimension: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: InterfaceThemeScope.maybePaletteOf(context).accent,
-          ),
-        ),
+      return DiurnusLoadingState(
+        title: 'Assembling the library…',
+        message: 'Gathering your published words.',
       );
     }
     if (_error != null) {
