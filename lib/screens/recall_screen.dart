@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/daily_publication.dart';
+import '../models/edition.dart';
 import '../models/match_session.dart';
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
@@ -15,13 +16,33 @@ import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
+import '../widgets/edition_background.dart';
 import '../widgets/entitlement_scope.dart';
 import 'endless_recall_session_screen.dart';
 import 'match_session_screen.dart';
 import 'match_ready_screen.dart';
 import 'pro_screen.dart';
 import 'recall_session_screen.dart';
+import 'recall_ready_screen.dart';
 import 'recall_settings_screen.dart';
+
+const _recallEdition = Edition(
+  id: 'recall-background',
+  name: 'Recall',
+  description: '',
+  backgroundAsset: 'assets/images/bust.png',
+  tintColor: Color(0xFF000000),
+  tintOpacity: 0.32,
+  gradientColors: [Color(0x10000000), Color(0xB5000000), Color(0xF2000000)],
+  gradientStops: [0, 0.55, 1],
+  gradientBegin: Alignment.topCenter,
+  gradientEnd: Alignment.bottomCenter,
+  primaryTextColor: Color(0xFFE7E0D4),
+  secondaryTextColor: Color(0xFFD2C7B5),
+  mutedTextColor: Color(0xFF9E988E),
+  accentColor: Color(0xFFC49A52),
+  systemUiIconBrightness: Brightness.light,
+);
 
 class RecallScreen extends StatefulWidget {
   RecallScreen({
@@ -232,13 +253,27 @@ class _RecallScreenState extends State<RecallScreen> {
         return;
       }
 
+      void openSession(BuildContext readyContext) {
+        Navigator.of(readyContext).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (context) => RecallSessionScreen(
+              questions: questions,
+              progressService: widget.progressService,
+              onRecallAgain: (previousSubjectIds) async =>
+                  generate(previousSubjectIds),
+            ),
+          ),
+        );
+      }
+
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (context) => RecallSessionScreen(
-            questions: questions,
-            progressService: widget.progressService,
-            onRecallAgain: (previousSubjectIds) async =>
-                generate(previousSubjectIds),
+          builder: (context) => RecallReadyScreen(
+            heading: 'Ready to recall?',
+            body:
+                'You\'ll be shown ${settings.questionCount} questions from your '
+                'selected word pool. Take your time and choose the answer you remember.',
+            onStart: openSession,
           ),
         ),
       );
@@ -290,14 +325,27 @@ class _RecallScreenState extends State<RecallScreen> {
         });
         return;
       }
+      void openSession(BuildContext readyContext) {
+        Navigator.of(readyContext).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (context) => EndlessRecallSessionScreen(
+              archive: List.unmodifiable(eligible),
+              generator: widget.sessionGenerator,
+              progressService: widget.progressService,
+              endlessService: widget.endlessService,
+              onFinished: _loadEndlessBest,
+            ),
+          ),
+        );
+      }
+
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (context) => EndlessRecallSessionScreen(
-            archive: List.unmodifiable(eligible),
-            generator: widget.sessionGenerator,
-            progressService: widget.progressService,
-            endlessService: widget.endlessService,
-            onFinished: _loadEndlessBest,
+          builder: (context) => RecallReadyScreen(
+            heading: 'Ready to go endless?',
+            body:
+                'Keep recalling words for as long as you can. One incorrect answer ends the session.',
+            onStart: openSession,
           ),
         ),
       );
@@ -376,71 +424,87 @@ class _RecallScreenState extends State<RecallScreen> {
   Widget build(BuildContext context) {
     final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
     return Scaffold(
-      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
-      body: InterfaceSafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: SingleChildScrollView(
-            key: Key('recall-landing-scroll'),
-            child: Column(
+      backgroundColor: Colors.black,
+      body: EditionBackground(
+        edition: _recallEdition,
+        child: InterfaceSafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: SingleChildScrollView(
+              key: Key('recall-landing-scroll'),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  tooltip: 'Back to menu',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(
-                    CupertinoIcons.back,
-                    color: InterfaceThemeScope.maybePaletteOf(context).primary,
-                    size: 26,
-                  ),
-                ),
-                SizedBox(height: 28),
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        'Recall',
-                        style: TextStyle(
-                          color: InterfaceThemeScope.maybePaletteOf(
-                            context,
-                          ).primary,
-                          fontFamily: 'NotoSerifJP',
-                          fontSize: 40,
-                          fontWeight: FontWeight.w400,
-                        ),
+                    IconButton(
+                      tooltip: 'Back to menu',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        CupertinoIcons.back,
+                        color: _recallEdition.primaryTextColor,
+                        size: 26,
                       ),
                     ),
-                    IconButton(
-                      key: Key('recall-settings'),
-                      tooltip: 'Recall Settings',
-                      onPressed: _openSettings,
-                      constraints: BoxConstraints(
-                        minWidth: 48,
-                        minHeight: 48,
+                    Spacer(),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withValues(alpha: 0.32),
+                        border: Border.all(
+                          color: _recallEdition.accentColor.withValues(
+                            alpha: 0.34,
+                          ),
+                        ),
                       ),
-                      icon: Icon(
-                        CupertinoIcons.slider_horizontal_3,
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).accent,
-                        size: 24,
+                      child: IconButton(
+                        key: Key('recall-settings'),
+                        tooltip: 'Recall Settings',
+                        onPressed: _openSettings,
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        icon: Icon(
+                          CupertinoIcons.slider_horizontal_3,
+                          color: _recallEdition.accentColor,
+                          size: 24,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 6),
+                SizedBox(height: 70),
+                Text(
+                  'Recall',
+                  style: TextStyle(
+                    color: _recallEdition.primaryTextColor,
+                    fontFamily: 'NotoSerifJP',
+                    fontSize: 48,
+                    fontWeight: FontWeight.w400,
+                    height: 1,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Container(
+                  width: 36,
+                  height: 1.5,
+                  color: _recallEdition.accentColor,
+                ),
+                SizedBox(height: 24),
                 Text(
                   'Words worth remembering.',
                   style: TextStyle(
-                    color: InterfaceThemeScope.maybePaletteOf(
-                      context,
-                    ).primary.withValues(alpha: 0.58),
-                    fontFamily: 'Figtree',
-                    fontSize: 15,
+                    color: _recallEdition.secondaryTextColor,
+                    fontFamily: 'NotoSerifJP',
+                    fontSize: 21,
                     fontWeight: FontWeight.w300,
                   ),
                 ),
-                SizedBox(height: 38),
+                SizedBox(height: 42),
                 _RecallCard(
                   key: Key('normal-recall'),
                   icon: CupertinoIcons.book,
@@ -448,7 +512,7 @@ class _RecallScreenState extends State<RecallScreen> {
                   description: 'A short session from your selected word pool.',
                   onTap: _start,
                 ),
-                SizedBox(height: 18),
+                SizedBox(height: 8),
                 _RecallCard(
                   key: Key('match-recall'),
                   icon: CupertinoIcons.square_grid_2x2,
@@ -459,7 +523,7 @@ class _RecallScreenState extends State<RecallScreen> {
                   isLocked: !isPro,
                   onTap: isPro ? _startMatch : _openPro,
                 ),
-                SizedBox(height: 18),
+                SizedBox(height: 8),
                 _RecallCard(
                   key: Key('endless-recall'),
                   icon: CupertinoIcons.infinite,
@@ -482,9 +546,7 @@ class _RecallScreenState extends State<RecallScreen> {
                       dimension: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: InterfaceThemeScope.maybePaletteOf(
-                          context,
-                        ).accent,
+                        color: _recallEdition.accentColor,
                       ),
                     ),
                   )
@@ -496,9 +558,7 @@ class _RecallScreenState extends State<RecallScreen> {
                           _messageTitle!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: InterfaceThemeScope.maybePaletteOf(
-                              context,
-                            ).primary,
+                            color: _recallEdition.primaryTextColor,
                             fontFamily: 'NotoSerifJP',
                             fontSize: 22,
                           ),
@@ -508,9 +568,9 @@ class _RecallScreenState extends State<RecallScreen> {
                           _messageBody!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: InterfaceThemeScope.maybePaletteOf(
-                              context,
-                            ).primary.withValues(alpha: 0.55),
+                            color: _recallEdition.secondaryTextColor.withValues(
+                              alpha: 0.72,
+                            ),
                             fontFamily: 'Figtree',
                             fontSize: 14,
                             fontWeight: FontWeight.w300,
@@ -526,10 +586,7 @@ class _RecallScreenState extends State<RecallScreen> {
                                 ? _startEndless
                                 : _start,
                             style: TextButton.styleFrom(
-                              foregroundColor:
-                                  InterfaceThemeScope.maybePaletteOf(
-                                    context,
-                                  ).accent,
+                              foregroundColor: _recallEdition.accentColor,
                             ),
                             child: Text('Retry'),
                           ),
@@ -537,7 +594,8 @@ class _RecallScreenState extends State<RecallScreen> {
                       ],
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -566,30 +624,30 @@ class _RecallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = InterfaceThemeScope.maybePaletteOf(context);
     return Semantics(
       button: onTap != null,
       label: isLocked ? '$title, Diurnus Pro' : title,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: palette.divider),
-          ),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: palette.accent),
+                  color: Colors.black.withValues(alpha: 0.28),
+                  border: Border.all(color: _recallEdition.accentColor),
                 ),
-                child: Icon(icon, color: palette.accent, size: 23),
+                child: Icon(
+                  icon,
+                  color: _recallEdition.accentColor,
+                  size: 24,
+                ),
               ),
               SizedBox(width: 18),
               Expanded(
@@ -599,17 +657,17 @@ class _RecallCard extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color: palette.primary,
+                        color: _recallEdition.primaryTextColor,
                         fontFamily: 'NotoSerifJP',
-                        fontSize: 22,
+                        fontSize: 23,
                       ),
                     ),
                     SizedBox(height: 8),
                     Text(
                       description,
                       style: TextStyle(
-                        color: palette.primary.withValues(
-                          alpha: isLocked ? 0.46 : 0.56,
+                        color: _recallEdition.secondaryTextColor.withValues(
+                          alpha: isLocked ? 0.58 : 0.76,
                         ),
                         fontFamily: 'Figtree',
                         fontSize: 14,
@@ -622,7 +680,9 @@ class _RecallCard extends StatelessWidget {
                       Text(
                         footer!,
                         style: TextStyle(
-                          color: palette.accent.withValues(alpha: 0.7),
+                          color: _recallEdition.accentColor.withValues(
+                            alpha: 0.86,
+                          ),
                           fontFamily: 'Figtree',
                           fontSize: 12,
                           fontWeight: FontWeight.w300,
@@ -642,14 +702,16 @@ class _RecallCard extends StatelessWidget {
                   children: [
                     Icon(
                       CupertinoIcons.lock,
-                      color: palette.accent.withValues(alpha: 0.72),
+                      color: _recallEdition.accentColor.withValues(alpha: 0.8),
                       size: 13,
                     ),
                     SizedBox(width: 5),
                     Text(
                       'Pro',
                       style: TextStyle(
-                        color: palette.accent.withValues(alpha: 0.78),
+                        color: _recallEdition.accentColor.withValues(
+                          alpha: 0.88,
+                        ),
                         fontFamily: 'Figtree',
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -657,11 +719,14 @@ class _RecallCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ] else if (onTap != null) ...[
-                SizedBox(width: 12),
+              ],
+              if (onTap != null) ...[
+                SizedBox(width: isLocked ? 8 : 12),
                 Icon(
                   CupertinoIcons.chevron_right,
-                  color: palette.primary.withValues(alpha: 0.6),
+                  color: _recallEdition.secondaryTextColor.withValues(
+                    alpha: 0.72,
+                  ),
                   size: 18,
                 ),
               ],
@@ -693,9 +758,9 @@ class _WordProgressSection extends StatelessWidget {
         Text(
           'Word progress',
           style: TextStyle(
-            color: InterfaceThemeScope.maybePaletteOf(context).primary,
+            color: _recallEdition.primaryTextColor,
             fontFamily: 'NotoSerifJP',
-            fontSize: 20,
+            fontSize: 24,
           ),
         ),
         SizedBox(height: 8),
@@ -739,9 +804,7 @@ class _SegmentedProgressBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
         child: summary.total == 0
             ? ColoredBox(
-                color: InterfaceThemeScope.maybePaletteOf(
-                  context,
-                ).divider.withValues(alpha: 0.45),
+                color: _recallEdition.mutedTextColor.withValues(alpha: 0.45),
               )
             : LayoutBuilder(
                 builder: (context, constraints) {
@@ -763,9 +826,9 @@ class _SegmentedProgressBar extends StatelessWidget {
                           bottom: 0,
                           child: ColoredBox(
                             key: Key('recall-progress-unseen'),
-                            color: InterfaceThemeScope.maybePaletteOf(
-                              context,
-                            ).divider.withValues(alpha: 0.55),
+                            color: _recallEdition.mutedTextColor.withValues(
+                              alpha: 0.55,
+                            ),
                           ),
                         ),
                       if (summary.revisit > 0)
@@ -776,9 +839,7 @@ class _SegmentedProgressBar extends StatelessWidget {
                           bottom: 0,
                           child: ColoredBox(
                             key: Key('recall-progress-revisit'),
-                            color: InterfaceThemeScope.maybePaletteOf(
-                              context,
-                            ).accent,
+                            color: _recallEdition.accentColor,
                           ),
                         ),
                       if (summary.recalled > 0)
@@ -806,9 +867,7 @@ String recallProgressHeadline(RecallProgressSummary summary) =>
 
 TextStyle _progressDetailStyle(BuildContext context, {double fontSize = 14}) =>
     TextStyle(
-      color: InterfaceThemeScope.maybePaletteOf(
-        context,
-      ).primary.withValues(alpha: 0.56),
+      color: _recallEdition.secondaryTextColor.withValues(alpha: 0.72),
       fontFamily: 'Figtree',
       fontSize: fontSize,
       fontWeight: FontWeight.w300,
