@@ -199,8 +199,8 @@ class _PublicationViewState extends State<PublicationView> {
                           ),
                         ),
                       ),
-                      Text(
-                        publication.word,
+                      _TodayHeroWord(
+                        word: publication.word,
                         style: TextStyle(
                           fontSize: 54,
                           color: primary,
@@ -445,6 +445,87 @@ class _PublicationViewState extends State<PublicationView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TodayHeroWord extends StatelessWidget {
+  const _TodayHeroWord({required this.word, required this.style});
+
+  static const double _normalSize = 54;
+  static const double _minimumSize = 20;
+
+  final String word;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final textScaler = MediaQuery.textScalerOf(context);
+        final textDirection = Directionality.of(context);
+        final locale = Localizations.maybeLocaleOf(context);
+
+        double measuredWidth(double fontSize) {
+          final painter = TextPainter(
+            text: TextSpan(text: word, style: style.copyWith(fontSize: fontSize)),
+            maxLines: 1,
+            textDirection: textDirection,
+            textScaler: textScaler,
+            locale: locale,
+          )..layout();
+          return painter.width;
+        }
+
+        final normalPainter = TextPainter(
+          text: TextSpan(
+            text: word,
+            style: style.copyWith(fontSize: _normalSize),
+          ),
+          maxLines: 1,
+          textDirection: textDirection,
+          textScaler: textScaler,
+          locale: locale,
+        )..layout();
+
+        var fittedSize = _normalSize;
+        final requiresFallback =
+            availableWidth.isFinite &&
+            measuredWidth(_minimumSize) > availableWidth;
+        if (availableWidth.isFinite && normalPainter.width > availableWidth) {
+          var lower = _minimumSize;
+          var upper = _normalSize;
+          for (var iteration = 0; iteration < 12; iteration++) {
+            final candidate = (lower + upper) / 2;
+            if (measuredWidth(candidate) <= availableWidth) {
+              lower = candidate;
+            } else {
+              upper = candidate;
+            }
+          }
+          fittedSize = lower;
+        }
+
+        final hero = Text(
+          word,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.clip,
+          style: style.copyWith(fontSize: fittedSize),
+        );
+        return SizedBox(
+          width: double.infinity,
+          height: normalPainter.height,
+          child: requiresFallback
+              ? FittedBox(
+                  alignment: Alignment.centerLeft,
+                  fit: BoxFit.scaleDown,
+                  child: hero,
+                )
+              : Align(alignment: Alignment.centerLeft, child: hero),
+        );
+      },
     );
   }
 }
