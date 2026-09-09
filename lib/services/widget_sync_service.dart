@@ -22,12 +22,34 @@ class HomeWidgetCache implements WidgetCache {
       HomeWidget.saveWidgetData<bool>(key, value);
 
   @override
-  Future<void> redraw() => HomeWidget.updateWidget(
-    name: 'HomeWidgetProvider',
-    androidName: 'HomeWidgetProvider',
-    iOSName: 'HomeWidget',
-    qualifiedAndroidName: 'com.example.diurnul.HomeWidgetProvider',
-  );
+  Future<void> redraw() async {
+    await HomeWidget.updateWidget(
+      name: 'HomeWidgetProvider',
+      androidName: 'HomeWidgetProvider',
+      iOSName: 'HomeWidget',
+      qualifiedAndroidName: 'com.example.diurnul.HomeWidgetProvider',
+    );
+    await HomeWidget.updateWidget(
+      name: 'MediumWidgetProvider',
+      androidName: 'MediumWidgetProvider',
+      qualifiedAndroidName: 'com.example.diurnul.MediumWidgetProvider',
+    );
+    await HomeWidget.updateWidget(
+      name: 'LargeWidgetProvider',
+      androidName: 'LargeWidgetProvider',
+      qualifiedAndroidName: 'com.example.diurnul.LargeWidgetProvider',
+    );
+    await HomeWidget.updateWidget(
+      name: 'MarkWidgetProvider',
+      androidName: 'MarkWidgetProvider',
+      qualifiedAndroidName: 'com.example.diurnul.MarkWidgetProvider',
+    );
+    await HomeWidget.updateWidget(
+      name: 'BrandWidgetProvider',
+      androidName: 'BrandWidgetProvider',
+      qualifiedAndroidName: 'com.example.diurnul.BrandWidgetProvider',
+    );
+  }
 }
 
 class WidgetSyncService {
@@ -37,6 +59,7 @@ class WidgetSyncService {
   static const typeKey = 'type';
   static const phoneticKey = 'phonetic';
   static const definitionKey = 'definition';
+  static const sequenceKey = 'sequence';
   static const editionKey = 'edition';
   static const interfaceColorKey = 'interfaceColor';
   static const textureEnabledKey = 'textureEnabled';
@@ -48,6 +71,10 @@ class WidgetSyncService {
     await _cache.saveString(typeKey, publication.type);
     await _cache.saveString(phoneticKey, publication.phonetic);
     await _cache.saveString(definitionKey, publication.definition);
+    await _cache.saveString(
+      sequenceKey,
+      publication.sequence?.toString() ?? '',
+    );
     await _cache.redraw();
   }
 

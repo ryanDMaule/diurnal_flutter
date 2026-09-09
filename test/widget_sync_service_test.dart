@@ -33,6 +33,7 @@ void main() {
         WidgetSyncService.typeKey: 'Adjective',
         WidgetSyncService.phoneticKey: 'di·ur·nal',
         WidgetSyncService.definitionKey: 'Active during the daytime.',
+        WidgetSyncService.sequenceKey: '1',
       });
       expect(cache.redrawCount, 1);
     },

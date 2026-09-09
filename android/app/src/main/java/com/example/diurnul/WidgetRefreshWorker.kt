@@ -1,7 +1,6 @@
 package com.example.diurnul
 
 import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
@@ -57,9 +56,11 @@ class WidgetRefreshWorker(
 
     private fun redrawWidgets(context: Context, widgetData: SharedPreferences) {
         val manager = AppWidgetManager.getInstance(context)
-        val widgetIds = manager.getAppWidgetIds(ComponentName(context, HomeWidgetProvider::class.java))
-        if (widgetIds.isNotEmpty()) {
-            HomeWidgetProvider().onUpdate(context, manager, widgetIds, widgetData)
+        DiurnusWidgetProviders.registrations.forEach { registration ->
+            val widgetIds = manager.getAppWidgetIds(registration.componentName(context))
+            if (widgetIds.isNotEmpty()) {
+                registration.provider.onUpdate(context, manager, widgetIds, widgetData)
+            }
         }
     }
 
@@ -102,7 +103,7 @@ internal object WidgetRefreshScheduler {
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             MANUAL_WORK_NAME,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             request,
         )
     }
@@ -174,12 +175,14 @@ internal data class WidgetPublication(
     val type: String,
     val phonetic: String,
     val definition: String,
+    val sequence: String,
 ) {
     fun cacheValues(): Map<String, String> = linkedMapOf(
         WidgetCacheKeys.WORD to word,
         WidgetCacheKeys.TYPE to type,
         WidgetCacheKeys.PHONETIC to phonetic,
         WidgetCacheKeys.DEFINITION to definition,
+        WidgetCacheKeys.SEQUENCE to sequence,
     )
 
     companion object {
@@ -193,6 +196,10 @@ internal data class WidgetPublication(
                 type = data.optionalString("type"),
                 phonetic = data.optionalString("phonetic"),
                 definition = definition,
+                sequence = data.optInt("sequence")
+                    .takeIf { it > 0 }
+                    ?.toString()
+                    .orEmpty(),
             )
         }
 

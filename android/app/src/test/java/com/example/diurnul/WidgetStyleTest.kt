@@ -9,7 +9,7 @@ import org.junit.Test
 class WidgetStyleTest {
     @Test
     fun evergreenUsesStableIdAndSolidForestBackground() {
-        val style = WidgetStyle.fromId("evergreen")
+        val style = WidgetStyle.resolve("evergreen", "evergreen")
 
         assertSame(WidgetStyle.EVERGREEN, style)
         assertNull(style.backgroundResource)
@@ -19,8 +19,8 @@ class WidgetStyleTest {
 
     @Test
     fun invalidIdStillFallsBackToLibrary() {
-        assertSame(WidgetStyle.LIBRARY, WidgetStyle.fromId("unknown"))
-        assertSame(WidgetStyle.LIBRARY, WidgetStyle.fromId(null))
+        assertSame(WidgetStyle.LIBRARY, WidgetStyle.resolve("unknown", null))
+        assertSame(WidgetStyle.LIBRARY, WidgetStyle.resolve(null, null))
     }
 
     @Test

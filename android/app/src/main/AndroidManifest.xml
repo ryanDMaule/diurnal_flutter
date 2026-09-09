@@ -31,6 +31,7 @@
 
         <receiver
             android:name=".HomeWidgetProvider"
+            android:label="Diurnus — Small"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -39,6 +40,58 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/home_widget_provider" />
+        </receiver>
+
+        <receiver
+            android:name=".MediumWidgetProvider"
+            android:label="Diurnus — Medium"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_provider_medium" />
+        </receiver>
+
+        <receiver
+            android:name=".LargeWidgetProvider"
+            android:label="Diurnus — Large"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_provider_large" />
+        </receiver>
+
+        <receiver
+            android:name=".MarkWidgetProvider"
+            android:label="Diurnus — Mark"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_provider_mark" />
+        </receiver>
+
+        <receiver
+            android:name=".BrandWidgetProvider"
+            android:label="Diurnus — Brand"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_provider_brand" />
         </receiver>
 
         <!-- Don't delete the meta-data below.

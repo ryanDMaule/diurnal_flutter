@@ -39,7 +39,7 @@ class WidgetRefreshWorkerTest {
 
     @Test
     fun publicationCacheValuesNeverIncludeEdition() {
-        val values = WidgetPublication("Word", "Noun", "word", "Definition").cacheValues()
+        val values = WidgetPublication("Word", "Noun", "word", "Definition", "36").cacheValues()
 
         assertEquals(
             setOf(
@@ -47,6 +47,7 @@ class WidgetRefreshWorkerTest {
                 WidgetCacheKeys.TYPE,
                 WidgetCacheKeys.PHONETIC,
                 WidgetCacheKeys.DEFINITION,
+                WidgetCacheKeys.SEQUENCE,
             ),
             values.keys,
         )

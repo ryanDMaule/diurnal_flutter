@@ -32,10 +32,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="top"
+        android:gravity="center_vertical"
         android:orientation="vertical"
-        android:paddingHorizontal="22dp"
-        android:paddingVertical="6dp">
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="4dp">
 
         <TextView
             android:id="@+id/widget_word"
@@ -51,7 +51,7 @@
             android:id="@+id/widget_definition"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif"
             android:maxLines="2"
