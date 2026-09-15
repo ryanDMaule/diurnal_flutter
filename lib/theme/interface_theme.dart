@@ -61,6 +61,15 @@ class InterfacePalette {
     divider: Color(0xFF755056),
     accent: Color(0xFFC5A063),
   );
+  static const slate = InterfacePalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF111416),
+    surface: Color(0xFF191D1F),
+    primary: Color(0xFFF3EBDD),
+    secondary: Color(0xFFBFC2BF),
+    divider: Color(0xFF464D4F),
+    accent: Color(0xFFC5A063),
+  );
   static const paper = InterfacePalette(
     brightness: Brightness.light,
     background: Color(0xFFF1EBDD),
@@ -76,6 +85,7 @@ class InterfacePalette {
     InterfaceColor.charcoal => charcoal,
     InterfaceColor.navy => navy,
     InterfaceColor.oxblood => oxblood,
+    InterfaceColor.slate => slate,
     InterfaceColor.paper => paper,
   };
 }

@@ -42,7 +42,7 @@ void main() {
     'Free users can open an old saved publication without Archive gating',
     (tester) async {
       await service.save(diurnal);
-      await editionService.selectEdition(Editions.gallery);
+      await editionService.selectEdition(Editions.gilded);
       await tester.binding.setSurfaceSize(const Size(700, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final entitlementController = EntitlementController(

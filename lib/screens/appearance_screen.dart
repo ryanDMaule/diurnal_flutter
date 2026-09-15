@@ -1,29 +1,38 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_settings.dart';
+import '../models/daily_publication.dart';
 import '../models/edition.dart';
 import '../models/edition_access_policy.dart';
+import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/haptic_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
 import '../widgets/entitlement_scope.dart';
+import '../widgets/publication_view.dart';
 import 'pro_screen.dart';
 
 class AppearanceScreen extends StatefulWidget {
   AppearanceScreen({
     EditionService? editionService,
+    BookmarkService? bookmarkService,
+    this.previewPublication,
     WidgetSyncService? widgetSyncService,
     super.key,
   }) : editionService = editionService ?? EditionService(),
+       bookmarkService = bookmarkService ?? BookmarkService(),
        widgetSyncService = widgetSyncService ?? WidgetSyncService();
 
   final EditionService editionService;
+  final BookmarkService bookmarkService;
   final WidgetSyncService widgetSyncService;
+  final DailyPublication? previewPublication;
 
   @override
   State<AppearanceScreen> createState() => _AppearanceScreenState();
@@ -31,11 +40,82 @@ class AppearanceScreen extends StatefulWidget {
 
 class _AppearanceScreenState extends State<AppearanceScreen> {
   Edition selectedEdition = Editions.library;
+  bool _previewIsBookmarked = false;
+  OverlayEntry? _previewOverlay;
+  GlobalKey<_EditionFullScreenPreviewState>? _previewKey;
 
   @override
   void initState() {
     super.initState();
     _restoreSelection();
+    _restorePreviewBookmarkState();
+  }
+
+  @override
+  void dispose() {
+    _removePreviewImmediately();
+    super.dispose();
+  }
+
+  Future<void> _restorePreviewBookmarkState() async {
+    try {
+      final isBookmarked = await widget.bookmarkService.isSaved(
+        widget.previewPublication?.id,
+      );
+      if (mounted) setState(() => _previewIsBookmarked = isBookmarked);
+    } catch (error) {
+      debugPrint('Error loading preview bookmark state: $error');
+    }
+  }
+
+  void _showPreview(Edition edition) {
+    _removePreviewImmediately();
+    final overlay = Overlay.of(context);
+    final reduceAnimations =
+        InterfaceThemeScope.controllerOf(context).settings.reduceAnimations ||
+        MediaQuery.of(context).disableAnimations;
+    final key = GlobalKey<_EditionFullScreenPreviewState>();
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => Positioned.fill(
+        child: _EditionFullScreenPreview(
+          key: key,
+          publication:
+              widget.previewPublication ?? DailyPublication.localFallback,
+          edition: edition,
+          isBookmarked: _previewIsBookmarked,
+          reduceAnimations: reduceAnimations,
+          onDismissed: () => _removePreviewEntry(entry),
+        ),
+      ),
+    );
+    _previewKey = key;
+    _previewOverlay = entry;
+    overlay.insert(entry);
+  }
+
+  void _hidePreview() {
+    final entry = _previewOverlay;
+    if (entry == null) return;
+    final state = _previewKey?.currentState;
+    if (state == null) {
+      _removePreviewEntry(entry);
+      return;
+    }
+    state.dismiss();
+  }
+
+  void _removePreviewEntry(OverlayEntry entry) {
+    if (_previewOverlay != entry) return;
+    entry.remove();
+    _previewOverlay = null;
+    _previewKey = null;
+  }
+
+  void _removePreviewImmediately() {
+    _previewOverlay?.remove();
+    _previewOverlay = null;
+    _previewKey = null;
   }
 
   Future<void> _restoreSelection() async {
@@ -169,6 +249,26 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                     onSelected: _selectInterfaceColor,
                   ),
                   SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Text(
+                        'Tap to select · Hold to preview',
+                        style: TextStyle(
+                          color: palette.secondary,
+                          fontFamily: 'Figtree',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(
+                        Icons.visibility_outlined,
+                        color: palette.accent,
+                        size: 19,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
                   LayoutBuilder(
                     builder: (context, constraints) {
                       const spacing = 12.0;
@@ -200,6 +300,8 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                             selected: effectiveEdition.id == edition.id,
                             locked: locked,
                             onTap: () => _select(edition, isPro: isPro),
+                            onPreviewStart: () => _showPreview(previewEdition),
+                            onPreviewEnd: _hidePreview,
                           );
                         },
                       );
@@ -215,17 +317,98 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   }
 }
 
+class _EditionFullScreenPreview extends StatefulWidget {
+  const _EditionFullScreenPreview({
+    required this.publication,
+    required this.edition,
+    required this.isBookmarked,
+    required this.reduceAnimations,
+    required this.onDismissed,
+    super.key,
+  });
+
+  final DailyPublication publication;
+  final Edition edition;
+  final bool isBookmarked;
+  final bool reduceAnimations;
+  final VoidCallback onDismissed;
+
+  @override
+  State<_EditionFullScreenPreview> createState() =>
+      _EditionFullScreenPreviewState();
+}
+
+class _EditionFullScreenPreviewState
+    extends State<_EditionFullScreenPreview>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  bool _dismissing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.reduceAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 240),
+      reverseDuration: widget.reduceAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 120),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    );
+    _controller.forward();
+  }
+
+  Future<void> dismiss() async {
+    if (_dismissing) return;
+    _dismissing = true;
+    await _controller.reverse();
+    if (mounted) widget.onDismissed();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: _opacity,
+    child: AbsorbPointer(
+      child: ExcludeSemantics(
+        child: PublicationView(
+          publication: widget.publication,
+          edition: widget.edition,
+          isBookmarked: widget.isBookmarked,
+          onBookmarkToggle: null,
+        ),
+      ),
+    ),
+  );
+}
+
 class _EditionCard extends StatelessWidget {
   _EditionCard({
     required this.edition,
     required this.selected,
     required this.onTap,
+    required this.onPreviewStart,
+    required this.onPreviewEnd,
     required this.locked,
   });
 
   final Edition edition;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback onPreviewStart;
+  final VoidCallback onPreviewEnd;
   final bool locked;
 
   @override
@@ -234,10 +417,27 @@ class _EditionCard extends StatelessWidget {
       button: true,
       selected: selected,
       label: '${edition.name} Edition',
-      child: GestureDetector(
+      child: RawGestureDetector(
         key: Key('edition-${edition.id}'),
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        gestures: {
+          TapGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                () => TapGestureRecognizer(),
+                (recognizer) => recognizer.onTap = onTap,
+              ),
+          LongPressGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer(
+                  duration: const Duration(milliseconds: 275),
+                ),
+                (recognizer) {
+                  recognizer.onLongPressStart = (_) => onPreviewStart();
+                  recognizer.onLongPressEnd = (_) => onPreviewEnd();
+                  recognizer.onLongPressCancel = onPreviewEnd;
+                },
+              ),
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -422,7 +622,7 @@ class _ThemeColorSelector extends StatelessWidget {
             ),
           ),
           for (final color in InterfaceColor.values) ...[
-            if (color != InterfaceColor.values.first) SizedBox(width: 8),
+            if (color != InterfaceColor.values.first) SizedBox(width: 6),
             Semantics(
               button: true,
               selected: color == selected,
@@ -462,5 +662,6 @@ String _interfaceColorLabel(InterfaceColor color) => switch (color) {
   InterfaceColor.charcoal => 'Charcoal',
   InterfaceColor.navy => 'Navy',
   InterfaceColor.oxblood => 'Oxblood',
+  InterfaceColor.slate => 'Slate',
   InterfaceColor.paper => 'Paper',
 };

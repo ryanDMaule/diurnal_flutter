@@ -54,7 +54,7 @@ void main() {
     () async {
       final editionStorage = _MemoryEditionStorage();
       final editionService = EditionService(storage: editionStorage);
-      await editionService.selectEdition(Editions.gallery);
+      await editionService.selectEdition(Editions.gilded);
       final cache = _MemoryWidgetCache();
       final entitlementController = EntitlementController(
         EntitlementService(storage: _MemoryEntitlementStorage()),
@@ -67,15 +67,15 @@ void main() {
       addTearDown(coordinator.dispose);
 
       await entitlementController.update(SubscriptionTier.pro);
-      await _waitForEdition(cache, 'gallery');
+      await _waitForEdition(cache, 'gilded');
       await entitlementController.update(SubscriptionTier.free);
       await _waitForEdition(cache, 'library');
       expect(
         await editionService.loadSelectedEdition(),
-        same(Editions.gallery),
+        same(Editions.gilded),
       );
       await entitlementController.update(SubscriptionTier.pro);
-      await _waitForEdition(cache, 'gallery');
+      await _waitForEdition(cache, 'gilded');
     },
   );
 }

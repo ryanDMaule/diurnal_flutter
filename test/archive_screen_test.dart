@@ -150,7 +150,7 @@ void main() {
   testWidgets(
     'opens the supplied snapshot without requesting the Today endpoint',
     (tester) async {
-      await editionService.selectEdition(Editions.gallery);
+      await editionService.selectEdition(Editions.gilded);
       final requestedUris = <Uri>[];
       final service = PublicationApiService(
         client: MockClient((request) async {
@@ -185,7 +185,7 @@ void main() {
       expect(find.byTooltip('Back to Archive'), findsOneWidget);
       expect(
         tester.widget<PublicationView>(find.byType(PublicationView)).edition,
-        same(Editions.gallery),
+        same(Editions.gilded),
       );
       expect(requestedUris, [PublicationApiService.publicationsUri]);
 

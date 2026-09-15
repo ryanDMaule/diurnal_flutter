@@ -28,7 +28,11 @@ class EditionBackground extends StatelessWidget {
       children: [
         ColoredBox(color: edition.backgroundColor),
         if (edition.backgroundAsset case final asset?)
-          Image.asset(asset, fit: imageFit),
+          Image.asset(
+            asset,
+            fit: imageFit,
+            alignment: edition.imageAlignment,
+          ),
         if (edition.tintOpacity > 0)
           ColoredBox(
             color: edition.tintColor.withValues(alpha: edition.tintOpacity),

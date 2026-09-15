@@ -1,7 +1,17 @@
 import 'edition.dart';
 
 abstract final class EditionAccessPolicy {
-  static const _proEditionIds = {'atrium', 'archive', 'gallery'};
+  static const _proEditionIds = {
+    'atrium',
+    'foundry',
+    'ascent',
+    'hearth',
+    'reverie',
+    'monolith',
+    'oak',
+    'gilded',
+    'palindrome',
+  };
 
   static bool requiresPro(Edition edition) =>
       _proEditionIds.contains(edition.id);

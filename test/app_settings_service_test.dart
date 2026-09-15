@@ -59,7 +59,7 @@ void main() {
       final storage = _SharedSettingsStorage();
       final editions = EditionService(storage: storage);
       final settings = AppSettingsService(storage: storage);
-      await editions.selectEdition(Editions.gallery);
+      await editions.selectEdition(Editions.gilded);
 
       await settings.save(
         AppSettings.defaults.copyWith(
@@ -67,7 +67,7 @@ void main() {
         ),
       );
 
-      expect(await editions.loadSelectedEdition(), Editions.gallery);
+      expect(await editions.loadSelectedEdition(), Editions.gilded);
     },
   );
 }

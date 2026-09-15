@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/edition_service.dart';
@@ -32,6 +33,7 @@ class MenuScreen extends StatelessWidget {
     this.matchService,
     this.appSettingsService,
     this.entitlementController,
+    this.currentPublication,
     super.key,
   });
 
@@ -44,6 +46,7 @@ class MenuScreen extends StatelessWidget {
   final MatchService? matchService;
   final AppSettingsService? appSettingsService;
   final EntitlementController? entitlementController;
+  final DailyPublication? currentPublication;
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +126,11 @@ class MenuScreen extends StatelessWidget {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (context) =>
-                              AppearanceScreen(editionService: editionService),
+                              AppearanceScreen(
+                                editionService: editionService,
+                                bookmarkService: bookmarkService,
+                                previewPublication: currentPublication,
+                              ),
                         ),
                       ),
                     ),

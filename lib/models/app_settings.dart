@@ -1,6 +1,6 @@
 import 'pronunciation_voice.dart';
 
-enum InterfaceColor { evergreen, charcoal, navy, oxblood, paper }
+enum InterfaceColor { evergreen, charcoal, navy, oxblood, slate, paper }
 
 class AppSettings {
   const AppSettings({

@@ -69,8 +69,15 @@ flutter:
     - assets/images/default.png
     - assets/images/library-white.png
     - assets/images/bust.png
-    - assets/images/vibrant.png
     - assets/images/midnight.png
+    - assets/images/abstract.png
+    - assets/images/ascent.png
+    - assets/images/cosy.png
+    - assets/images/dream.png
+    - assets/images/monolith.png
+    - assets/images/oak.png
+    - assets/images/ornate.png
+    - assets/images/palindrome.png
     - assets/images/leather.png
     - assets/images/paper.png
     - assets/images/pro.png

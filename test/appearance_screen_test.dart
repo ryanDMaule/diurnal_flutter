@@ -32,14 +32,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('appearance-edition-list')), findsOneWidget);
-    expect(find.byType(EditionBackground), findsNWidgets(6));
+    expect(find.byType(EditionBackground), findsNWidgets(12));
     expect(Editions.all.map((edition) => edition.name), [
       'Library',
-      'Evergreen',
+      'Theme',
       'Midnight',
       'Atrium',
-      'Archive',
-      'Gallery',
+      'Foundry',
+      'Ascent',
+      'Hearth',
+      'Reverie',
+      'Monolith',
+      'Oak',
+      'Gilded',
+      'Palindrome',
     ]);
 
     final list = tester.widget<ListView>(
@@ -121,16 +127,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(EditionBackground), findsNWidgets(6));
+    expect(find.byType(EditionBackground), findsNWidgets(12));
     expect(find.byKey(const Key('edition-lock-atrium')), findsOneWidget);
-    expect(find.byKey(const Key('edition-lock-archive')), findsOneWidget);
-    expect(find.byKey(const Key('edition-lock-gallery')), findsOneWidget);
+    for (final id in const [
+      'foundry',
+      'ascent',
+      'hearth',
+      'reverie',
+      'monolith',
+      'oak',
+      'gilded',
+      'palindrome',
+    ]) {
+      expect(find.byKey(Key('edition-lock-$id')), findsOneWidget);
+    }
     expect(find.byKey(const Key('edition-lock-library')), findsNothing);
     expect(find.byKey(const Key('edition-lock-evergreen')), findsNothing);
     expect(find.byKey(const Key('edition-lock-midnight')), findsNothing);
 
-    await tester.ensureVisible(find.byKey(const Key('edition-gallery')));
-    await tester.tap(find.byKey(const Key('edition-gallery')));
+    await tester.ensureVisible(find.byKey(const Key('edition-gilded')));
+    await tester.tap(find.byKey(const Key('edition-gilded')));
     await tester.pumpAndSettle();
     expect(find.byType(ProScreen), findsOneWidget);
     expect(find.byTooltip('Back to Appearance'), findsOneWidget);
@@ -147,7 +163,7 @@ void main() {
     expect(widgetCache.values[WidgetSyncService.editionKey], 'midnight');
   });
 
-  testWidgets('Pro removes locks and can persist and sync Gallery', (
+  testWidgets('Pro removes locks and can persist and sync Gilded', (
     tester,
   ) async {
     final storage = _MemoryEditionStorage();
@@ -171,18 +187,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('edition-lock-gallery')), findsNothing);
-    await tester.ensureVisible(find.byKey(const Key('edition-gallery')));
-    await tester.tap(find.byKey(const Key('edition-gallery')));
+    expect(find.byKey(const Key('edition-lock-gilded')), findsNothing);
+    await tester.ensureVisible(find.byKey(const Key('edition-gilded')));
+    await tester.tap(find.byKey(const Key('edition-gilded')));
     await tester.pumpAndSettle();
-    expect(storage.value, Editions.gallery.id);
-    expect(widgetCache.values[WidgetSyncService.editionKey], 'gallery');
+    expect(storage.value, Editions.gilded.id);
+    expect(widgetCache.values[WidgetSyncService.editionKey], 'gilded');
   });
 
-  testWidgets('stored Gallery falls back to Library and restores with Pro', (
+  testWidgets('stored Gilded falls back to Library and restores with Pro', (
     tester,
   ) async {
-    final storage = _MemoryEditionStorage()..value = Editions.gallery.id;
+    final storage = _MemoryEditionStorage()..value = Editions.gilded.id;
     final service = EditionService(storage: storage);
     final widgetCache = _MemoryWidgetCache();
     final widgetSync = WidgetSyncService(cache: widgetCache);
@@ -211,17 +227,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_isSelected(tester, 'library'), isTrue);
-    expect(_isSelected(tester, 'gallery'), isFalse);
-    expect(storage.value, Editions.gallery.id);
+    expect(_isSelected(tester, 'gilded'), isFalse);
+    expect(storage.value, Editions.gilded.id);
     await controller.update(SubscriptionTier.free);
     await _waitForEdition(widgetCache, 'library');
 
     await controller.update(SubscriptionTier.pro);
     await tester.pumpAndSettle();
-    await _waitForEdition(widgetCache, 'gallery');
+    await _waitForEdition(widgetCache, 'gilded');
     expect(_isSelected(tester, 'library'), isFalse);
-    expect(_isSelected(tester, 'gallery'), isTrue);
-    expect(storage.value, Editions.gallery.id);
+    expect(_isSelected(tester, 'gilded'), isTrue);
+    expect(storage.value, Editions.gilded.id);
   });
 }
 

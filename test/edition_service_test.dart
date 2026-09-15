@@ -19,7 +19,7 @@ void main() {
     final service = EditionService(storage: _MemoryEditionStorage());
     expect(await service.loadSelectedEdition(), same(Editions.library));
     expect(Editions.all.first, same(Editions.library));
-    expect(Editions.all, hasLength(6));
+    expect(Editions.all, hasLength(12));
   });
 
   test('Edition access policy applies the Free and Pro matrix', () {
@@ -36,8 +36,14 @@ void main() {
     }
     for (final edition in [
       Editions.atrium,
-      Editions.archive,
-      Editions.gallery,
+      Editions.foundry,
+      Editions.ascent,
+      Editions.hearth,
+      Editions.reverie,
+      Editions.monolith,
+      Editions.oak,
+      Editions.gilded,
+      Editions.palindrome,
     ]) {
       expect(EditionAccessPolicy.requiresPro(edition), isTrue);
       expect(
@@ -91,6 +97,18 @@ void main() {
       storage: storage,
     ).loadSelectedEdition();
     expect(restored, same(Editions.library));
+    expect(storage.value, Editions.library.id);
+  });
+
+  test('removed Edition selections migrate to Library', () async {
+    for (final removedId in ['archive', 'gallery']) {
+      final storage = _MemoryEditionStorage()..value = removedId;
+      expect(
+        await EditionService(storage: storage).loadSelectedEdition(),
+        same(Editions.library),
+      );
+      expect(storage.value, Editions.library.id);
+    }
   });
 
   test('legacy Original Library selection migrates to Library', () async {
@@ -126,11 +144,11 @@ void main() {
         greaterThan(0.7),
       );
       expect(
-        Editions.archive.primaryTextColor.computeLuminance(),
+        Editions.oak.primaryTextColor.computeLuminance(),
         greaterThan(0.7),
       );
       expect(Editions.midnight.systemUiIconBrightness, Brightness.light);
-      expect(Editions.gallery.accentColor, const Color(0xFFD8C66A));
+      expect(Editions.gilded.accentColor, const Color(0xFFC3A066));
     },
   );
 
@@ -140,13 +158,13 @@ void main() {
       final publication = _publication;
       final view = PublicationView(
         publication: publication,
-        edition: Editions.archive,
+        edition: Editions.oak,
         isBookmarked: true,
         onBookmarkToggle: () {},
       );
 
       expect(view.publication, same(publication));
-      expect(view.edition, same(Editions.archive));
+      expect(view.edition, same(Editions.oak));
     },
   );
 
@@ -186,7 +204,7 @@ void main() {
   ) async {
     final editionStorage = _MemoryEditionStorage();
     final editionService = EditionService(storage: editionStorage);
-    await editionService.selectEdition(Editions.gallery);
+    await editionService.selectEdition(Editions.gilded);
     final bookmarkService = BookmarkService(storage: _MemoryBookmarkStorage());
     final controller = EntitlementController(
       EntitlementService(storage: _MemoryEntitlementStorage()),
@@ -215,9 +233,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.widget<PublicationView>(find.byType(PublicationView)).edition,
-      same(Editions.gallery),
+      same(Editions.gilded),
     );
-    expect(await editionService.loadSelectedEdition(), same(Editions.gallery));
+    expect(await editionService.loadSelectedEdition(), same(Editions.gilded));
   });
 
   testWidgets('PublicationView renders Evergreen as a solid Edition', (

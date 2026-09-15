@@ -735,6 +735,7 @@ String _interfaceColorLabel(InterfaceColor color) => switch (color) {
   InterfaceColor.charcoal => 'Charcoal',
   InterfaceColor.navy => 'Navy',
   InterfaceColor.oxblood => 'Oxblood',
+  InterfaceColor.slate => 'Slate',
   InterfaceColor.paper => 'Paper',
 };
 

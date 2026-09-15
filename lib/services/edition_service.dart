@@ -34,7 +34,11 @@ class EditionService {
       await _storage.write(_selectedEditionKey, Editions.library.id);
       return Editions.library;
     }
-    return Editions.fromId(id);
+    final edition = Editions.fromId(id);
+    if (id != null && edition.id != id) {
+      await _storage.write(_selectedEditionKey, Editions.library.id);
+    }
+    return edition;
   }
 
   Future<void> selectEdition(Edition edition) =>

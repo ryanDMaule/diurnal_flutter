@@ -155,7 +155,10 @@ class _TodayScreenState extends State<TodayScreen> {
             ? Duration.zero
             : const Duration(milliseconds: 450),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const MenuScreen(),
+            MenuScreen(
+              currentPublication: publication,
+              bookmarkService: _bookmarkService,
+            ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
             FadeTransition(
               opacity: CurvedAnimation(
