@@ -66,18 +66,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/branding.png
-    - assets/images/default.png
-    - assets/images/library-white.png
+    - assets/images/editions/app/
     - assets/images/bust.png
-    - assets/images/midnight.png
-    - assets/images/abstract.png
-    - assets/images/ascent.png
-    - assets/images/cosy.png
-    - assets/images/dream.png
-    - assets/images/monolith.png
-    - assets/images/oak.png
-    - assets/images/ornate.png
-    - assets/images/palindrome.png
     - assets/images/leather.png
     - assets/images/paper.png
     - assets/images/pro.png

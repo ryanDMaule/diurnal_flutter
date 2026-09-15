@@ -101,13 +101,13 @@ internal object WidgetRenderer {
             WidgetComposition.SMALL -> {
                 setWord(views, publication, style, composition)
                 setOptionalText(views, R.id.widget_type, publication.type.uppercase())
-                views.setTextColor(R.id.widget_type, style.mutedTextColor)
+                views.setTextColor(R.id.widget_type, style.widgetMutedTextColor)
             }
 
             WidgetComposition.MEDIUM -> {
                 setWord(views, publication, style, composition)
                 views.setTextViewText(R.id.widget_definition, publication.definition)
-                views.setTextColor(R.id.widget_definition, style.secondaryTextColor)
+                views.setTextColor(R.id.widget_definition, style.widgetSecondaryTextColor)
             }
 
             WidgetComposition.LARGE -> {
@@ -120,27 +120,30 @@ internal object WidgetRenderer {
                     R.id.widget_sequence,
                     publication.sequence.takeIf { it.isNotBlank() }?.let { "#$it" }.orEmpty(),
                 )
-                views.setTextColor(R.id.widget_type, style.mutedTextColor)
-                views.setTextColor(R.id.widget_phonetic, style.mutedTextColor)
-                views.setTextColor(R.id.widget_definition, style.secondaryTextColor)
-                views.setTextColor(R.id.widget_sequence, style.secondaryTextColor)
+                views.setTextColor(R.id.widget_type, style.widgetMutedTextColor)
+                views.setTextColor(R.id.widget_phonetic, style.widgetMutedTextColor)
+                views.setTextColor(R.id.widget_definition, style.widgetSecondaryTextColor)
+                views.setTextColor(R.id.widget_sequence, style.widgetSecondaryTextColor)
             }
 
             WidgetComposition.MARK -> {
-                views.setTextColor(R.id.widget_brand_name, style.primaryTextColor)
+                views.setTextColor(R.id.widget_brand_name, style.widgetPrimaryTextColor)
                 views.setInt(R.id.widget_mark, "setColorFilter", style.accentColor)
             }
 
             WidgetComposition.BRAND -> {
-                views.setTextColor(R.id.widget_brand_name, style.primaryTextColor)
-                views.setTextColor(R.id.widget_brand_tagline, style.secondaryTextColor)
+                views.setTextColor(R.id.widget_brand_name, style.widgetPrimaryTextColor)
+                views.setTextColor(R.id.widget_brand_tagline, style.widgetSecondaryTextColor)
                 views.setInt(R.id.widget_mark, "setColorFilter", style.accentColor)
             }
         }
 
         val showTexture = editionId == WidgetStyle.EVERGREEN.id &&
             widgetData.getBoolean(WidgetCacheKeys.TEXTURE_ENABLED, true)
-        views.setImageViewResource(R.id.widget_background, style.backgroundResource ?: 0)
+        views.setImageViewResource(
+            R.id.widget_background,
+            style.backgroundResourceFor(composition) ?: 0,
+        )
         views.setInt(R.id.widget_background, "setBackgroundColor", style.backgroundColor)
         if (showTexture) {
             val usesPaper = interfaceColorId == "paper"
@@ -153,7 +156,7 @@ internal object WidgetRenderer {
         } else {
             views.setViewVisibility(R.id.widget_texture, View.GONE)
         }
-        views.setInt(R.id.widget_overlay, "setBackgroundColor", style.overlayColor)
+        views.setInt(R.id.widget_overlay, "setBackgroundColor", style.overlayColorFor(composition))
         views.setViewVisibility(R.id.widget_overlay, View.VISIBLE)
 
         val launchIntent = HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java)
@@ -173,7 +176,7 @@ internal object WidgetRenderer {
         composition: WidgetComposition,
     ) {
         views.setTextViewText(R.id.widget_word, publication.word)
-        views.setTextColor(R.id.widget_word, style.primaryTextColor)
+        views.setTextColor(R.id.widget_word, style.widgetPrimaryTextColor)
         views.setTextViewTextSize(
             R.id.widget_word,
             TypedValue.COMPLEX_UNIT_SP,
@@ -273,9 +276,10 @@ internal data class CachedPublication(
 
 internal enum class WidgetStyle(
     val id: String,
-    val backgroundResource: Int?,
+    val landscapeBackgroundResource: Int?,
+    val portraitBackgroundResource: Int?,
     val backgroundColor: Int,
-    val overlayColor: Int,
+    val largeOverlayColor: Int,
     val primaryTextColor: Int,
     val secondaryTextColor: Int,
     val mutedTextColor: Int,
@@ -283,7 +287,8 @@ internal enum class WidgetStyle(
 ) {
     LIBRARY(
         "library",
-        R.drawable.widget_background_library,
+        R.drawable.edition_library_widget,
+        R.drawable.edition_library_large,
         0xFF000000.toInt(),
         0x7A000000,
         0xFFF3EBDD.toInt(),
@@ -293,7 +298,8 @@ internal enum class WidgetStyle(
     ),
     ATRIUM(
         "atrium",
-        R.drawable.widget_background_atrium,
+        R.drawable.edition_atrium_widget,
+        R.drawable.edition_atrium_large,
         0xFF000000.toInt(),
         0x4DFFF2DD,
         0xFF302B27.toInt(),
@@ -301,29 +307,98 @@ internal enum class WidgetStyle(
         0xFF786C65.toInt(),
         0xFFB85C5C.toInt(),
     ),
-    ARCHIVE(
-        "archive",
-        R.drawable.widget_background_archive,
+    FOUNDRY(
+        "foundry",
+        R.drawable.edition_foundry_widget,
+        R.drawable.edition_foundry_large,
         0xFF000000.toInt(),
-        0x665A321C,
-        0xFFEFE3D2.toInt(),
-        0xFFC7B7A3.toInt(),
-        0xFF9F8F7F.toInt(),
-        0xFFA97842.toInt(),
+        0x33000000,
+        0xFFF3EBDD.toInt(),
+        0xFFCED8DB.toInt(),
+        0xFF8E9CA1.toInt(),
+        0xFFB9C9CF.toInt(),
     ),
-    GALLERY(
-        "gallery",
-        R.drawable.widget_background_gallery,
+    ASCENT(
+        "ascent",
+        R.drawable.edition_ascent_widget,
+        R.drawable.edition_ascent_large,
         0xFF000000.toInt(),
-        0x383B3C20,
-        0xFFF0E9D8.toInt(),
-        0xFFC9C3AC.toInt(),
-        0xFFA2A08E.toInt(),
-        0xFFD8C66A.toInt(),
+        0x61000000,
+        0xFFF3EBDD.toInt(),
+        0xFFD2C3C0.toInt(),
+        0xFF9A8583.toInt(),
+        0xFFB8B5AD.toInt(),
+    ),
+    HEARTH(
+        "hearth",
+        R.drawable.edition_hearth_widget,
+        R.drawable.edition_hearth_large,
+        0xFF000000.toInt(),
+        0x29000000,
+        0xFFF3EBDD.toInt(),
+        0xFFDDC9B9.toInt(),
+        0xFFA99584.toInt(),
+        0xFFC97863.toInt(),
+    ),
+    REVERIE(
+        "reverie",
+        R.drawable.edition_reverie_widget,
+        R.drawable.edition_reverie_large,
+        0xFF000000.toInt(),
+        0x29000000,
+        0xFFF3EBDD.toInt(),
+        0xFFE1D2BC.toInt(),
+        0xFFAFA08B.toInt(),
+        0xFFC9B98D.toInt(),
+    ),
+    MONOLITH(
+        "monolith",
+        R.drawable.edition_monolith_widget,
+        R.drawable.edition_monolith_large,
+        0xFF000000.toInt(),
+        0x2E000000,
+        0xFFF3EBDD.toInt(),
+        0xFFD8C5AE.toInt(),
+        0xFFA28B75.toInt(),
+        0xFFD19A55.toInt(),
+    ),
+    OAK(
+        "oak",
+        R.drawable.edition_oak_widget,
+        R.drawable.edition_oak_large,
+        0xFF000000.toInt(),
+        0x33000000,
+        0xFFF3EBDD.toInt(),
+        0xFFD6C2AA.toInt(),
+        0xFF9E8973.toInt(),
+        0xFFB88A51.toInt(),
+    ),
+    GILDED(
+        "gilded",
+        R.drawable.edition_gilded_widget,
+        R.drawable.edition_gilded_large,
+        0xFF000000.toInt(),
+        0x2E000000,
+        0xFFF3EBDD.toInt(),
+        0xFFD9C8B1.toInt(),
+        0xFFA28E79.toInt(),
+        0xFFC9A65F.toInt(),
+    ),
+    PALINDROME(
+        "palindrome",
+        R.drawable.edition_palindrome_widget,
+        R.drawable.edition_palindrome_large,
+        0xFF000000.toInt(),
+        0x3D000000,
+        0xFFF3EBDD.toInt(),
+        0xFFD4C2AF.toInt(),
+        0xFF9B8878.toInt(),
+        0xFFB88756.toInt(),
     ),
     MIDNIGHT(
         "midnight",
-        R.drawable.widget_background_midnight,
+        R.drawable.edition_midnight_widget,
+        R.drawable.edition_midnight_large,
         0xFF000000.toInt(),
         0x5207111F,
         0xFFE2E7ED.toInt(),
@@ -333,6 +408,7 @@ internal enum class WidgetStyle(
     ),
     EVERGREEN(
         "evergreen",
+        null,
         null,
         0xFF032C23.toInt(),
         0x00000000,
@@ -344,6 +420,7 @@ internal enum class WidgetStyle(
     THEME_CHARCOAL(
         "theme:charcoal",
         null,
+        null,
         0xFF211F1C.toInt(),
         0x00000000,
         0xFFF3EBDD.toInt(),
@@ -353,6 +430,7 @@ internal enum class WidgetStyle(
     ),
     THEME_NAVY(
         "theme:navy",
+        null,
         null,
         0xFF0B1724.toInt(),
         0x00000000,
@@ -364,6 +442,7 @@ internal enum class WidgetStyle(
     THEME_OXBLOOD(
         "theme:oxblood",
         null,
+        null,
         0xFF351519.toInt(),
         0x00000000,
         0xFFF3EBDD.toInt(),
@@ -371,8 +450,20 @@ internal enum class WidgetStyle(
         0xFF755056.toInt(),
         0xFFC5A063.toInt(),
     ),
+    THEME_SLATE(
+        "theme:slate",
+        null,
+        null,
+        0xFF111416.toInt(),
+        0x00000000,
+        0xFFF3EBDD.toInt(),
+        0xFFBFC2BF.toInt(),
+        0xFF464D4F.toInt(),
+        0xFFC5A063.toInt(),
+    ),
     THEME_PAPER(
         "theme:paper",
+        null,
         null,
         0xFFF1EBDD.toInt(),
         0x00000000,
@@ -382,13 +473,41 @@ internal enum class WidgetStyle(
         0xFF8C682F.toInt(),
     );
 
+    fun backgroundResourceFor(composition: WidgetComposition): Int? =
+        if (landscapeBackgroundResource == null && portraitBackgroundResource == null) {
+            null
+        } else if (composition == WidgetComposition.LARGE) {
+            portraitBackgroundResource ?: LIBRARY.portraitBackgroundResource
+        } else {
+            landscapeBackgroundResource ?: LIBRARY.landscapeBackgroundResource
+        }
+
+    fun overlayColorFor(composition: WidgetComposition): Int =
+        if (composition == WidgetComposition.LARGE) largeOverlayColor else 0x00000000
+
+    private val isPhotographic: Boolean
+        get() = landscapeBackgroundResource != null || portraitBackgroundResource != null
+
+    val widgetPrimaryTextColor: Int
+        get() = if (isPhotographic) PHOTO_PRIMARY_TEXT else primaryTextColor
+
+    val widgetSecondaryTextColor: Int
+        get() = if (isPhotographic) PHOTO_SECONDARY_TEXT else secondaryTextColor
+
+    val widgetMutedTextColor: Int
+        get() = if (isPhotographic) PHOTO_SECONDARY_TEXT else mutedTextColor
+
     companion object {
+        private val PHOTO_PRIMARY_TEXT = 0xFFF3EBDD.toInt()
+        private val PHOTO_SECONDARY_TEXT = 0xFFCFC7B8.toInt()
+
         fun resolve(editionId: String?, interfaceColorId: String?): WidgetStyle {
             if (editionId == EVERGREEN.id) {
                 return when (interfaceColorId) {
                     "charcoal" -> THEME_CHARCOAL
                     "navy" -> THEME_NAVY
                     "oxblood" -> THEME_OXBLOOD
+                    "slate" -> THEME_SLATE
                     "paper" -> THEME_PAPER
                     else -> EVERGREEN
                 }
