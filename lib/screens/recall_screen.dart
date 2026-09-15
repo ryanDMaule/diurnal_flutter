@@ -30,11 +30,18 @@ const _recallEdition = Edition(
   id: 'recall-background',
   name: 'Recall',
   description: '',
-  backgroundAsset: 'assets/images/bust.png',
+  backgroundAsset: 'assets/images/editions/app/hall.png',
+  imageAlignment: Alignment.topCenter,
   tintColor: Color(0xFF000000),
-  tintOpacity: 0.32,
-  gradientColors: [Color(0x10000000), Color(0xB5000000), Color(0xF2000000)],
-  gradientStops: [0, 0.55, 1],
+  tintOpacity: 0.27,
+  gradientColors: [
+    Color(0x00000000),
+    Color(0x18000000),
+    Color(0x66000000),
+    Color(0xC7000000),
+    Color(0xFF000000),
+  ],
+  gradientStops: [0, 0.35, 0.6, 0.8, 1],
   gradientBegin: Alignment.topCenter,
   gradientEnd: Alignment.bottomCenter,
   primaryTextColor: Color(0xFFE7E0D4),
@@ -666,8 +673,8 @@ class _RecallCard extends StatelessWidget {
                     Text(
                       description,
                       style: TextStyle(
-                        color: _recallEdition.secondaryTextColor.withValues(
-                          alpha: isLocked ? 0.58 : 0.76,
+                        color: InterfacePalette.evergreen.secondary.withValues(
+                          alpha: 0.9,
                         ),
                         fontFamily: 'Figtree',
                         fontSize: 14,
