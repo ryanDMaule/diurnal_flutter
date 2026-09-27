@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
@@ -176,36 +173,5 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 }
 
-class TodayPublicationLoad {
-  const TodayPublicationLoad({
-    required this.publication,
-    required this.isOffline,
-  });
-
-  final DailyPublication publication;
-  final bool isOffline;
-}
-
-Future<TodayPublicationLoad> loadTodayPublication() async {
-  try {
-    final response = await http.get(PublicationApiService.wordOfTheDayUri);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data is! Map<String, dynamic>) {
-        throw const FormatException('Invalid publication response.');
-      }
-      final fetched = DailyPublication.fromJson(data);
-      return TodayPublicationLoad(publication: fetched, isOffline: false);
-    } else {
-      debugPrint(
-        '⚠️ API returned ${response.statusCode}. Using fallback word.',
-      );
-    }
-  } catch (error) {
-    debugPrint('❌ Error fetching word: $error');
-  }
-  return TodayPublicationLoad(
-    publication: DailyPublication.localFallback,
-    isOffline: true,
-  );
-}
+Future<TodayPublicationLoad> loadTodayPublication() =>
+    PublicationApiService().loadTodayPublication();

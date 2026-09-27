@@ -9,6 +9,7 @@ import 'services/app_settings_service.dart';
 import 'services/entitlement_service.dart';
 import 'services/edition_entitlement_coordinator.dart';
 import 'services/edition_service.dart';
+import 'services/publication_api_service.dart';
 import 'services/widget_sync_service.dart';
 import 'theme/interface_theme.dart';
 import 'widgets/entitlement_scope.dart';
