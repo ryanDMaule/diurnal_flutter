@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
@@ -139,6 +140,7 @@ void main() {
   testWidgets('shows a distinct error state with retry', (tester) async {
     final service = PublicationApiService(
       client: MockClient((request) async => http.Response('Error', 500)),
+      archiveStorage: _MemoryArchiveStorage(),
     );
     await _pumpArchive(tester, service, bookmarkService, editionService);
 
@@ -162,6 +164,7 @@ void main() {
             200,
           );
         }),
+        archiveStorage: _MemoryArchiveStorage(),
       );
       final controller = EntitlementController(
         EntitlementService(storage: _MemoryEntitlementStorage()),
@@ -254,6 +257,50 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('archive-lock-day-2')), findsOneWidget);
   });
+
+  testWidgets('renders cached Archive before quiet refresh completes', (
+    tester,
+  ) async {
+    final refreshResponse = Completer<http.Response>();
+    final storage = _MemoryArchiveStorage()
+      ..values[PublicationApiService.archivePublicationsStorageKey] =
+          jsonEncode([
+            _publication('cached', 1, 'Cached Word', '2026-09-28'),
+          ]);
+    final service = PublicationApiService(
+      client: MockClient((request) => refreshResponse.future),
+      archiveStorage: storage,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ArchiveScreen(
+          apiService: service,
+          bookmarkService: bookmarkService,
+          editionService: editionService,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('archive-row-cached')), findsOneWidget);
+    expect(find.text('Assembling the library…'), findsNothing);
+
+    refreshResponse.complete(
+      http.Response(
+        jsonEncode([
+          _publication('cached', 1, 'Cached Word', '2026-09-28'),
+          _publication('fresh', 2, 'Fresh Word', '2026-09-29'),
+        ]),
+        200,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('archive-row-cached')), findsOneWidget);
+    expect(find.byKey(const Key('archive-row-fresh')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpArchive(
@@ -285,6 +332,7 @@ PublicationApiService _apiReturning(List<Map<String, dynamic>> publications) {
     client: MockClient(
       (request) async => http.Response(jsonEncode(publications), 200),
     ),
+    archiveStorage: _MemoryArchiveStorage(),
   );
 }
 
@@ -342,4 +390,14 @@ class _MemoryEntitlementStorage implements EntitlementStorage {
   Future<void> writeTier(String tier) async {
     value = tier;
   }
+}
+
+class _MemoryArchiveStorage implements ArchivePublicationStorage {
+  final values = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
 }

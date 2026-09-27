@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -25,8 +27,9 @@ void main() {
             "usage": "An apocryphal account.",
             "synonyms": ["Dubious"]
           }]
-        ''', 200);
+          ''', 200);
         }),
+        archiveStorage: _MemoryArchivePublicationStorage(),
       );
 
       final publications = await service.fetchPublications();
@@ -151,6 +154,110 @@ void main() {
     expect(result.publication, same(DailyPublication.localFallback));
     expect(result.isOffline, isTrue);
   });
+
+  test('successful publications response persists validated collection', () async {
+    final storage = _MemoryArchivePublicationStorage();
+    final service = PublicationApiService(
+      client: MockClient(
+        (request) async => http.Response(
+          jsonEncode([_archivePublication('one', 1, 'First')]),
+          200,
+        ),
+      ),
+      archiveStorage: storage,
+    );
+
+    final publications = await service.fetchPublications();
+    final restored = await PublicationApiService(
+      client: MockClient((request) async => throw Exception('offline')),
+      archiveStorage: storage,
+    ).readCachedPublications();
+
+    expect(publications.single.id, 'one');
+    expect(restored!.single.id, 'one');
+    expect(restored.single.publicationDate, DateTime.utc(2026, 9, 28));
+  });
+
+  test('refresh adds records without duplicates and fresh identity wins', () async {
+    final storage = _MemoryArchivePublicationStorage()
+      ..values[PublicationApiService.archivePublicationsStorageKey] =
+          jsonEncode([
+            _archivePublication('one', 1, 'Old First'),
+            _archivePublication('two', 2, 'Second'),
+          ]);
+    final service = PublicationApiService(
+      client: MockClient(
+        (request) async => http.Response(
+          jsonEncode([
+            _archivePublication('one', 1, 'First'),
+            _archivePublication('three', 3, 'Third'),
+          ]),
+          200,
+        ),
+      ),
+      archiveStorage: storage,
+    );
+
+    final publications = await service.fetchPublications();
+
+    expect(publications.map((item) => item.id), ['one', 'two', 'three']);
+    expect(publications.first.word, 'First');
+  });
+
+  test('smaller successful response does not destroy a healthy cache', () async {
+    final storage = _MemoryArchivePublicationStorage()
+      ..values[PublicationApiService.archivePublicationsStorageKey] =
+          jsonEncode([
+            _archivePublication('one', 1, 'First'),
+            _archivePublication('two', 2, 'Second'),
+            _archivePublication('three', 3, 'Third'),
+          ]);
+    final service = PublicationApiService(
+      client: MockClient(
+        (request) async => http.Response(
+          jsonEncode([_archivePublication('three', 3, 'Third')]),
+          200,
+        ),
+      ),
+      archiveStorage: storage,
+    );
+
+    final publications = await service.fetchPublications();
+
+    expect(publications.map((item) => item.id), ['one', 'two', 'three']);
+    expect((await service.readCachedPublications())!.length, 3);
+  });
+
+  test('malformed response does not overwrite a healthy Archive cache', () async {
+    final storage = _MemoryArchivePublicationStorage()
+      ..values[PublicationApiService.archivePublicationsStorageKey] =
+          jsonEncode([_archivePublication('one', 1, 'First')]);
+    final storedBefore =
+        storage.values[PublicationApiService.archivePublicationsStorageKey];
+    final service = PublicationApiService(
+      client: MockClient(
+        (request) async => http.Response('[{"id":"incomplete"}]', 200),
+      ),
+      archiveStorage: storage,
+    );
+
+    await expectLater(service.fetchPublications(), throwsFormatException);
+
+    expect(
+      storage.values[PublicationApiService.archivePublicationsStorageKey],
+      storedBefore,
+    );
+    expect((await service.readCachedPublications())!.single.id, 'one');
+  });
+
+  test('malformed Archive cache is ignored without crashing', () async {
+    final storage = _MemoryArchivePublicationStorage()
+      ..values[PublicationApiService.archivePublicationsStorageKey] =
+          '[{"id":"incomplete"}]';
+    final service = PublicationApiService(archiveStorage: storage);
+
+    expect(await service.readCachedPublications(), isNull);
+  });
 }
 
 const _todayResponse = '''
@@ -176,3 +283,29 @@ class _MemoryTodayPublicationStorage implements TodayPublicationStorage {
   @override
   Future<void> write(String key, String value) async => values[key] = value;
 }
+
+class _MemoryArchivePublicationStorage implements ArchivePublicationStorage {
+  final values = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+}
+
+Map<String, dynamic> _archivePublication(
+  String id,
+  int sequence,
+  String word,
+) => {
+  'id': id,
+  'sequence': sequence,
+  'publicationDate': '2026-09-28',
+  'word': word,
+  'type': 'Adjective',
+  'phonetic': word.toLowerCase(),
+  'definition': 'Definition for $word',
+  'usage': 'Usage for $word',
+  'synonyms': ['Literary'],
+};

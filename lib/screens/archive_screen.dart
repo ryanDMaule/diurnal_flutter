@@ -84,13 +84,25 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       }
     }
 
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    final cached = await widget.apiService.readCachedPublications();
+    if (!mounted) return;
+    final hasCache = cached != null;
+    if (cached != null) {
+      setState(() {
+        _publications = sortArchivePublications(cached);
+        _isLoading = false;
+        _error = null;
+      });
+    } else {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
+
     try {
       final publications = await widget.apiService.fetchPublications();
-      await waitForMinimumDuration();
+      if (!hasCache) await waitForMinimumDuration();
       if (!mounted) return;
       setState(() {
         _publications = sortArchivePublications(publications);
@@ -98,6 +110,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       });
     } catch (error) {
       debugPrint('Error loading Archive: $error');
+      if (hasCache) return;
       await waitForMinimumDuration();
       if (!mounted) return;
       setState(() {
