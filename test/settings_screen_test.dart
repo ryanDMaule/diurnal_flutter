@@ -36,11 +36,21 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.byType(SettingsScreen), findsOneWidget);
-    expect(tester.widget<Switch>(find.byType(Switch).at(0)).value, isTrue);
-    expect(tester.widget<Switch>(find.byType(Switch).at(1)).value, isFalse);
+    final soundSwitch = find.descendant(
+      of: find.byKey(const Key('sound-effects-setting')),
+      matching: find.byType(Switch),
+    );
+    final reduceAnimationsSwitch = find.descendant(
+      of: find.byKey(const Key('reduce-animations-setting')),
+      matching: find.byType(Switch),
+    );
+    expect(tester.widget<Switch>(soundSwitch).value, isTrue);
+    expect(tester.widget<Switch>(reduceAnimationsSwitch).value, isFalse);
 
-    await tester.tap(find.byType(Switch).at(0));
-    await tester.tap(find.byType(Switch).at(1));
+    await tester.tap(soundSwitch);
+    await tester.tap(reduceAnimationsSwitch);
+    await tester.tap(find.byKey(const Key('theme-color-selector')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('interface-color-charcoal')));
     await tester.pumpAndSettle();
     final restored = await AppSettingsService(storage: appStorage).load();

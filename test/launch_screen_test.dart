@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/screens/launch_screen.dart';
+import 'package:diurnul/widgets/diurnus_brand_lockup.dart';
 
 void main() {
   testWidgets('LaunchScreen renders the intended branding and system UI', (
@@ -23,7 +24,7 @@ void main() {
       launchSystemUi.systemNavigationBarColor,
       LaunchScreen.backgroundColor,
     );
-    expect(find.text('Diurnus'), findsOneWidget);
+    expect(find.byType(DiurnusWordmark), findsOneWidget);
     expect(find.text('ONE REMARKABLE WORD, EVERY DAY.'), findsOneWidget);
     expect(find.textContaining('Loading'), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsNothing);

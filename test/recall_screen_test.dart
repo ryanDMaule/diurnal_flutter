@@ -129,8 +129,7 @@ void main() {
     tester,
   ) async {
     await _pumpLanding(tester, archive, bookmarkService, progressService);
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     final session = tester.widget<RecallSessionScreen>(
       find.byType(RecallSessionScreen),
@@ -160,8 +159,7 @@ void main() {
     expect(entitlementController.tier, SubscriptionTier.free);
     expect(find.text('0 of 6 recalled'), findsOneWidget);
     expect(find.byKey(const Key('recall-word-progress')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
     expect(find.byType(RecallSessionScreen), findsOneWidget);
   });
 
@@ -239,8 +237,7 @@ void main() {
     await tester.tap(find.byTooltip('Back to Recall'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     expect(find.byType(EndlessRecallSessionScreen), findsOneWidget);
   });
 
@@ -397,8 +394,7 @@ void main() {
     await _pumpLanding(tester, archive, bookmarkService, progressService);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     expect(find.byType(EndlessRecallSessionScreen), findsOneWidget);
     expect(find.byKey(const Key('endless-question-counter')), findsOneWidget);
     expect(find.byKey(const Key('recall-progress')), findsNothing);
@@ -432,8 +428,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('normal-recall')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('normal-recall')));
-      await tester.pumpAndSettle();
+      await _startNormalRecall(tester);
 
       final session = tester.widget<RecallSessionScreen>(
         find.byType(RecallSessionScreen),
@@ -466,8 +461,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Best · —'), findsNWidgets(2));
 
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     for (var index = 0; index < 3; index++) {
       await _answerEndless(tester, correctly: true);
     }
@@ -477,8 +471,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Best · 3'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     for (var index = 0; index < 2; index++) {
       await _answerEndless(tester, correctly: true);
     }
@@ -487,8 +480,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Best · 3'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     for (var index = 0; index < 5; index++) {
       await _answerEndless(tester, correctly: true);
     }
@@ -510,8 +502,7 @@ void main() {
       endlessStorage: endlessStorage,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     await _answerEndless(tester, correctly: false);
     await tester.tap(find.byKey(const Key('endless-try-again')));
     await tester.pumpAndSettle();
@@ -523,8 +514,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Best · 3'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('endless-recall')));
-    await tester.pumpAndSettle();
+    await _startEndlessRecall(tester);
     await _answerEndless(tester, correctly: true);
     await tester.tap(find.byTooltip('Exit Endless Recall'));
     await tester.pumpAndSettle();
@@ -547,8 +537,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('endless-recall')));
-      await tester.pumpAndSettle();
+      await _startEndlessRecall(tester);
 
       final firstContent = tester
           .widget<Text>(find.byKey(const Key('endless-question-content')))
@@ -626,8 +615,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const Key('normal-recall')));
-      await tester.pumpAndSettle();
+      await _startNormalRecall(tester);
       final questions = tester
           .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
           .questions;
@@ -652,8 +640,7 @@ void main() {
         wordPool: RecallWordPool.myLexicon,
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     expect(
       tester
@@ -678,8 +665,7 @@ void main() {
         wordPool: RecallWordPool.myLexicon,
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     final questions = tester
         .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -713,8 +699,7 @@ void main() {
         wordPool: RecallWordPool.myLexicon,
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     expect(find.text('Your Lexicon is empty'), findsOneWidget);
     expect(find.text('Save words to practise them here.'), findsOneWidget);
@@ -726,8 +711,7 @@ void main() {
       client: MockClient((request) async => http.Response('Error', 500)),
     );
     await _pumpLandingWithApi(tester, api, bookmarkService, progressService);
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     expect(find.text('Recall unavailable'), findsOneWidget);
     expect(find.byKey(const Key('retry-recall')), findsOneWidget);
@@ -748,8 +732,7 @@ void main() {
         enabledQuestionTypes: {RecallQuestionType.definitionToWord},
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     final questions = tester
         .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -777,8 +760,7 @@ void main() {
         wordPool: RecallWordPool.unrecalled,
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     final ids = tester
         .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -800,8 +782,7 @@ void main() {
         wordPool: RecallWordPool.revisit,
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     final questions = tester
         .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
@@ -825,8 +806,7 @@ void main() {
         wordPool: RecallWordPool.unrecalled,
       ),
     );
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
     expect(find.text('All caught up'), findsOneWidget);
     expect(find.text('You\'ve recalled every published word.'), findsOneWidget);
 
@@ -858,8 +838,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
     expect(find.text('Nothing to revisit'), findsOneWidget);
     expect(find.text('Words you miss will appear here.'), findsOneWidget);
   });
@@ -916,8 +895,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('0 of 1 recalled'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
     final question = tester
         .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
         .questions
@@ -949,6 +927,62 @@ void main() {
       ),
     );
   });
+
+  testWidgets(
+    'normal Recall refreshes once after its full route flow, including early exit',
+    (tester) async {
+      final countingProgressService = _CountingRecallProgressService(
+        storage: progressStorage,
+      );
+      final visibleArchive = archive.take(2).toList();
+      await _pumpLanding(
+        tester,
+        visibleArchive,
+        bookmarkService,
+        countingProgressService,
+      );
+      await tester.pumpAndSettle();
+      expect(countingProgressService.summaryCalls, 1);
+
+      await tester.tap(find.byKey(const Key('normal-recall')));
+      await tester.pumpAndSettle();
+      expect(find.text('Ready to recall?'), findsOneWidget);
+      expect(countingProgressService.summaryCalls, 1);
+
+      final startButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Start recall'),
+      );
+      startButton.onPressed!();
+      startButton.onPressed!();
+      await tester.pumpAndSettle();
+      expect(find.byType(RecallSessionScreen), findsOneWidget);
+      expect(countingProgressService.summaryCalls, 1);
+
+      final question = tester
+          .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
+          .questions
+          .first;
+      final wrongAnswer = question.answers.firstWhere(
+        (answer) => answer != question.correctAnswer,
+      );
+      await tester.tap(find.text(wrongAnswer));
+      await tester.pumpAndSettle();
+      expect(countingProgressService.summaryCalls, 1);
+
+      await tester.tap(find.byTooltip('Exit Recall'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RecallScreen), findsOneWidget);
+      expect(countingProgressService.summaryCalls, 2);
+      expect(find.text('Unseen 1 · Revisit 1 · Recalled 0'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('normal-recall')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Back to Recall'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RecallScreen), findsOneWidget);
+      expect(countingProgressService.summaryCalls, 2);
+    },
+  );
 
   testWidgets(
     'landing shows Archive-wide Unseen, Revisit, and Recalled counts',
@@ -998,8 +1032,7 @@ void main() {
       progressService,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('normal-recall')));
-    await tester.pumpAndSettle();
+    await _startNormalRecall(tester);
 
     var session = tester.widget<RecallSessionScreen>(
       find.byType(RecallSessionScreen),
@@ -1046,8 +1079,7 @@ void main() {
           enabledQuestionTypes: {RecallQuestionType.wordToDefinition},
         ),
       );
-      await tester.tap(find.byKey(const Key('normal-recall')));
-      await tester.pumpAndSettle();
+      await _startNormalRecall(tester);
       final firstIds = tester
           .widget<RecallSessionScreen>(find.byType(RecallSessionScreen))
           .questions
@@ -1092,8 +1124,7 @@ void main() {
           wordPool: RecallWordPool.myLexicon,
         ),
       );
-      await tester.tap(find.byKey(const Key('normal-recall')));
-      await tester.pumpAndSettle();
+      await _startNormalRecall(tester);
 
       await _completeSession(tester);
       await tester.tap(find.byKey(const Key('recall-again')));
@@ -1165,6 +1196,26 @@ Future<void> _pumpLanding(
   entitlementController: entitlementController,
   height: height,
 );
+
+Future<void> _startNormalRecall(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('normal-recall')));
+  await tester.pumpAndSettle();
+  final start = find.text('Start recall');
+  if (start.evaluate().isNotEmpty) {
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+  }
+}
+
+Future<void> _startEndlessRecall(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('endless-recall')));
+  await tester.pumpAndSettle();
+  final start = find.text('Start recall');
+  if (start.evaluate().isNotEmpty) {
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+  }
+}
 
 Future<void> _pumpLandingWithApi(
   WidgetTester tester,
@@ -1269,6 +1320,20 @@ class _MemoryRecallProgressStorage implements RecallProgressStorage {
   @override
   Future<void> write(String key, String value) async {
     _values[key] = value;
+  }
+}
+
+class _CountingRecallProgressService extends RecallProgressService {
+  _CountingRecallProgressService({required super.storage});
+
+  int summaryCalls = 0;
+
+  @override
+  Future<RecallProgressSummary> summaryFor(
+    Iterable<DailyPublication> publications,
+  ) {
+    summaryCalls++;
+    return super.summaryFor(publications);
   }
 }
 

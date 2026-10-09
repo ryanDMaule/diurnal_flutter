@@ -148,7 +148,7 @@ void main() {
         greaterThan(0.7),
       );
       expect(Editions.midnight.systemUiIconBrightness, Brightness.light);
-      expect(Editions.gilded.accentColor, const Color(0xFFC3A066));
+      expect(Editions.gilded.accentColor, const Color(0xFFC9A65F));
     },
   );
 
@@ -194,8 +194,11 @@ void main() {
     expect(view.edition, same(Editions.evergreen));
     expect(view.publication, same(_publication));
     expect(
-      tester.widget<EditionBackground>(find.byType(EditionBackground)).edition,
-      same(Editions.evergreen),
+      tester
+          .widget<EditionBackground>(find.byType(EditionBackground))
+          .edition
+          .id,
+      Editions.evergreen.id,
     );
   });
 
@@ -238,7 +241,7 @@ void main() {
     expect(await editionService.loadSelectedEdition(), same(Editions.gilded));
   });
 
-  testWidgets('PublicationView renders Evergreen as a solid Edition', (
+  testWidgets('PublicationView renders Evergreen with its texture treatment', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -255,8 +258,9 @@ void main() {
     final background = tester.widget<EditionBackground>(
       find.byType(EditionBackground),
     );
-    expect(background.edition, same(Editions.evergreen));
-    expect(find.byType(Image), findsNothing);
+    expect(background.edition.id, Editions.evergreen.id);
+    final texture = tester.widget<Image>(find.byType(Image));
+    expect((texture.image as AssetImage).assetName, 'assets/images/leather.png');
   });
 
   testWidgets('PublicationView owns transparent Edition-aware system bars', (

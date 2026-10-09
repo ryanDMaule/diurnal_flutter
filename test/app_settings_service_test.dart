@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/app_settings.dart';
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/services/app_settings_service.dart';
 import 'package:diurnul/services/edition_service.dart';
-import 'package:diurnul/theme/interface_theme.dart';
 
 void main() {
   test(
@@ -53,23 +51,18 @@ void main() {
     );
   });
 
-  test(
-    'changing interface colour does not alter selected Edition',
-    () async {
-      final storage = _SharedSettingsStorage();
-      final editions = EditionService(storage: storage);
-      final settings = AppSettingsService(storage: storage);
-      await editions.selectEdition(Editions.gilded);
+  test('changing interface colour does not alter selected Edition', () async {
+    final storage = _SharedSettingsStorage();
+    final editions = EditionService(storage: storage);
+    final settings = AppSettingsService(storage: storage);
+    await editions.selectEdition(Editions.gilded);
 
-      await settings.save(
-        AppSettings.defaults.copyWith(
-          interfaceColor: InterfaceColor.paper,
-        ),
-      );
+    await settings.save(
+      AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.paper),
+    );
 
-      expect(await editions.loadSelectedEdition(), Editions.gilded);
-    },
-  );
+    expect(await editions.loadSelectedEdition(), Editions.gilded);
+  });
 }
 
 class _MemoryAppSettingsStorage implements AppSettingsStorage {

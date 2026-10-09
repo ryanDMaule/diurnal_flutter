@@ -1,15 +1,16 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
+import 'package:diurnul/services/app_settings_service.dart';
 import 'package:diurnul/screens/pro_screen.dart';
 import 'package:diurnul/screens/appearance_screen.dart';
 import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/services/edition_entitlement_coordinator.dart';
 import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/widget_sync_service.dart';
+import 'package:diurnul/theme/interface_theme.dart';
 import 'package:diurnul/widgets/edition_background.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 
@@ -19,10 +20,10 @@ void main() {
   ) async {
     final service = EditionService(storage: _MemoryEditionStorage());
     final widgetCache = _MemoryWidgetCache();
-    await tester.binding.setSurfaceSize(const Size(440, 956));
+    await tester.binding.setSurfaceSize(const Size(700, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(
+      _testApp(
         home: AppearanceScreen(
           editionService: service,
           widgetSyncService: WidgetSyncService(cache: widgetCache),
@@ -60,10 +61,10 @@ void main() {
     final storage = _MemoryEditionStorage();
     final service = EditionService(storage: storage);
     final widgetCache = _MemoryWidgetCache();
-    await tester.binding.setSurfaceSize(const Size(440, 956));
+    await tester.binding.setSurfaceSize(const Size(700, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(
+      _testApp(
         home: AppearanceScreen(
           editionService: service,
           widgetSyncService: WidgetSyncService(cache: widgetCache),
@@ -73,13 +74,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('edition-selection-library')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('edition-selection-library')),
-        matching: find.byIcon(CupertinoIcons.check_mark),
-      ),
-      findsOneWidget,
-    );
+    expect(_isSelected(tester, 'library'), isTrue);
 
     await tester.tap(find.byKey(const Key('edition-evergreen')));
     await tester.pumpAndSettle();
@@ -87,20 +82,8 @@ void main() {
     expect(await service.loadSelectedEdition(), same(Editions.evergreen));
     expect(widgetCache.values[WidgetSyncService.editionKey], 'evergreen');
     expect(widgetCache.redrawCount, 1);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('edition-selection-library')),
-        matching: find.byIcon(CupertinoIcons.check_mark),
-      ),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('edition-selection-evergreen')),
-        matching: find.byIcon(CupertinoIcons.check_mark),
-      ),
-      findsOneWidget,
-    );
+    expect(_isSelected(tester, 'library'), isFalse);
+    expect(_isSelected(tester, 'evergreen'), isTrue);
   });
 
   testWidgets('Free locks Pro Editions without persisting or syncing them', (
@@ -112,12 +95,12 @@ void main() {
     final controller = EntitlementController(
       EntitlementService(storage: _MemoryEntitlementStorage()),
     );
-    await tester.binding.setSurfaceSize(const Size(440, 956));
+    await tester.binding.setSurfaceSize(const Size(700, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       EntitlementScope(
         notifier: controller,
-        child: MaterialApp(
+        child: _testApp(
           home: AppearanceScreen(
             editionService: service,
             widgetSyncService: WidgetSyncService(cache: widgetCache),
@@ -145,7 +128,7 @@ void main() {
     expect(find.byKey(const Key('edition-lock-evergreen')), findsNothing);
     expect(find.byKey(const Key('edition-lock-midnight')), findsNothing);
 
-    await tester.ensureVisible(find.byKey(const Key('edition-gilded')));
+    await _scrollToEdition(tester, 'gilded');
     await tester.tap(find.byKey(const Key('edition-gilded')));
     await tester.pumpAndSettle();
     expect(find.byType(ProScreen), findsOneWidget);
@@ -156,7 +139,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Back to Appearance'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('edition-midnight')));
+    await _scrollToEdition(tester, 'midnight');
     await tester.tap(find.byKey(const Key('edition-midnight')));
     await tester.pumpAndSettle();
     expect(storage.value, Editions.midnight.id);
@@ -172,12 +155,12 @@ void main() {
       EntitlementService(storage: _MemoryEntitlementStorage()),
     );
     await controller.update(SubscriptionTier.pro);
-    await tester.binding.setSurfaceSize(const Size(440, 956));
+    await tester.binding.setSurfaceSize(const Size(700, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       EntitlementScope(
         notifier: controller,
-        child: MaterialApp(
+        child: _testApp(
           home: AppearanceScreen(
             editionService: EditionService(storage: storage),
             widgetSyncService: WidgetSyncService(cache: widgetCache),
@@ -188,7 +171,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('edition-lock-gilded')), findsNothing);
-    await tester.ensureVisible(find.byKey(const Key('edition-gilded')));
+    await _scrollToEdition(tester, 'gilded');
     await tester.tap(find.byKey(const Key('edition-gilded')));
     await tester.pumpAndSettle();
     expect(storage.value, Editions.gilded.id);
@@ -211,12 +194,12 @@ void main() {
       widgetSyncService: widgetSync,
     )..start();
     addTearDown(coordinator.dispose);
-    await tester.binding.setSurfaceSize(const Size(440, 956));
+    await tester.binding.setSurfaceSize(const Size(700, 956));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       EntitlementScope(
         notifier: controller,
-        child: MaterialApp(
+        child: _testApp(
           home: AppearanceScreen(
             editionService: service,
             widgetSyncService: widgetSync,
@@ -230,29 +213,67 @@ void main() {
     expect(_isSelected(tester, 'gilded'), isFalse);
     expect(storage.value, Editions.gilded.id);
     await controller.update(SubscriptionTier.free);
-    await _waitForEdition(widgetCache, 'library');
+    await _waitForEdition(tester, widgetCache, 'library');
 
     await controller.update(SubscriptionTier.pro);
-    await tester.pumpAndSettle();
-    await _waitForEdition(widgetCache, 'gilded');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    await _waitForEdition(tester, widgetCache, 'gilded');
     expect(_isSelected(tester, 'library'), isFalse);
     expect(_isSelected(tester, 'gilded'), isTrue);
     expect(storage.value, Editions.gilded.id);
   });
 }
 
-bool _isSelected(WidgetTester tester, String id) => find
-    .descendant(
-      of: find.byKey(Key('edition-selection-$id')),
-      matching: find.byIcon(CupertinoIcons.check_mark),
-    )
-    .evaluate()
-    .isNotEmpty;
+Widget _testApp({required Widget home}) {
+  return InterfaceThemeScope(
+    notifier: InterfaceColorController(
+      AppSettingsService(storage: _MemoryAppSettingsStorage()),
+    ),
+    child: MaterialApp(home: home),
+  );
+}
 
-Future<void> _waitForEdition(_MemoryWidgetCache cache, String id) async {
+class _MemoryAppSettingsStorage implements AppSettingsStorage {
+  String? value;
+
+  @override
+  Future<String?> read(String key) async => value;
+
+  @override
+  Future<void> write(String key, String value) async => this.value = value;
+}
+
+bool _isSelected(WidgetTester tester, String id) {
+  final container = tester.widget<AnimatedContainer>(
+    find.byKey(Key('edition-selection-$id')),
+  );
+  final decoration = container.decoration! as BoxDecoration;
+  return decoration.border!.top.width == 1.25;
+}
+
+Future<void> _scrollToEdition(WidgetTester tester, String id) async {
+  await tester.scrollUntilVisible(
+    find.byKey(Key('edition-$id')),
+    300,
+    scrollable: find
+        .descendant(
+          of: find.byKey(const Key('appearance-edition-list')),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _waitForEdition(
+  WidgetTester tester,
+  _MemoryWidgetCache cache,
+  String id,
+) async {
   for (var attempt = 0; attempt < 20; attempt++) {
     if (cache.values[WidgetSyncService.editionKey] == id) return;
-    await Future<void>.delayed(Duration.zero);
+    await tester.pump();
   }
   fail('Widget Edition never became $id.');
 }

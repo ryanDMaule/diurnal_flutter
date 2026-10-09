@@ -18,21 +18,18 @@ void main() {
     await tester.tap(find.text('Diurnus Pro'));
     await tester.pumpAndSettle();
     expect(find.byType(ProScreen), findsOneWidget);
-    expect(find.text('Diurnus Pro'), findsOneWidget);
-    expect(find.text('Go beyond the word of the day.'), findsOneWidget);
-    expect(
-      find.text('Remember more. Explore further. Make Diurnus yours.'),
-      findsOneWidget,
-    );
+    expect(find.text('Diurnus'), findsOneWidget);
+    expect(find.text('PRO'), findsOneWidget);
+    expect(find.text('Go deeper into the language.'), findsOneWidget);
     for (final title in [
       'Full Archive',
+      'Recall Games',
       'Advanced Recall',
-      'Match & Endless',
-      'All Editions',
+      'Premium Editions',
     ]) {
       expect(find.text(title), findsOneWidget);
     }
-    expect(find.text('Diurnus Free'), findsOneWidget);
+    expect(find.text('Enter Pro'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to menu'));
     await tester.pumpAndSettle();
@@ -41,30 +38,26 @@ void main() {
     harness.dispose();
   });
 
-  testWidgets('debug entitlement control updates status and persistence', (
+  testWidgets('entitlement control updates status and persistence', (
     tester,
   ) async {
     final harness = await _pumpProHarness(tester);
-    await tester.drag(
-      find.byKey(const Key('pro-scroll-view')),
-      const Offset(0, -500),
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pro-entitlement-toggle')),
+      300,
+      scrollable: find.byType(Scrollable),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('developer-entitlement-control')),
-      findsOneWidget,
-    );
-    expect(find.text('Diurnus Free'), findsOneWidget);
+    expect(find.text('Enter Pro'), findsOneWidget);
 
-    await tester.ensureVisible(find.byKey(const Key('developer-tier-pro')));
-    await tester.tap(find.byKey(const Key('developer-tier-pro')));
+    await tester.tap(find.byKey(const Key('pro-entitlement-toggle')));
     await tester.pumpAndSettle();
-    expect(find.text('Diurnus Pro active'), findsOneWidget);
+    expect(find.text('Return to Free'), findsOneWidget);
     expect(harness.entitlementStorage.value, 'pro');
 
-    await tester.tap(find.byKey(const Key('developer-tier-free')));
+    await tester.tap(find.byKey(const Key('pro-entitlement-toggle')));
     await tester.pumpAndSettle();
-    expect(find.text('Diurnus Free'), findsOneWidget);
+    expect(find.text('Enter Pro'), findsOneWidget);
     expect(harness.entitlementStorage.value, 'free');
     harness.dispose();
   });
@@ -78,23 +71,20 @@ void main() {
         initialTier: 'pro',
         interfaceColor: InterfaceColor.paper,
       );
-      expect(find.text('Diurnus Pro active'), findsOneWidget);
       expect(
         tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-        InterfacePalette.paper.background,
+        Colors.black,
       );
       expect(tester.takeException(), isNull);
 
       await tester.scrollUntilVisible(
-        find.byKey(const Key('developer-entitlement-control')),
+        find.byKey(const Key('pro-entitlement-toggle')),
         250,
         scrollable: find.byType(Scrollable),
       );
-      expect(find.text('All Editions'), findsOneWidget);
-      expect(
-        find.byKey(const Key('developer-entitlement-control')),
-        findsOneWidget,
-      );
+      expect(find.text('Return to Free'), findsOneWidget);
+      expect(find.text('Premium Editions'), findsOneWidget);
+      expect(find.byKey(const Key('pro-entitlement-toggle')), findsOneWidget);
       expect(tester.takeException(), isNull);
       harness.dispose();
     },
@@ -108,7 +98,7 @@ Future<_Harness> _pumpProHarness(
   String? initialTier,
   InterfaceColor interfaceColor = InterfaceColor.evergreen,
 }) async {
-  await tester.binding.setSurfaceSize(Size(430, height));
+  await tester.binding.setSurfaceSize(Size(700, height));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final entitlementStorage = _EntitlementStorage()..value = initialTier;
   final entitlementController = EntitlementController(

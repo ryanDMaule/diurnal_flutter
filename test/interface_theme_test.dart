@@ -25,9 +25,7 @@ void main() {
       AppSettingsService(storage: storage),
     );
     await controller.update(
-      AppSettings.defaults.copyWith(
-        interfaceColor: InterfaceColor.paper,
-      ),
+      AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.paper),
     );
     await tester.pumpWidget(
       InterfaceThemeScope(
@@ -48,9 +46,7 @@ void main() {
     );
 
     await controller.update(
-      controller.settings.copyWith(
-        interfaceColor: InterfaceColor.navy,
-      ),
+      controller.settings.copyWith(interfaceColor: InterfaceColor.navy),
     );
     await tester.pump();
     expect(
@@ -66,9 +62,7 @@ void main() {
     final service = AppSettingsService(storage: storage);
     final controller = InterfaceColorController(service);
     await controller.update(
-      AppSettings.defaults.copyWith(
-        interfaceColor: InterfaceColor.paper,
-      ),
+      AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.paper),
     );
     await tester.pumpWidget(
       InterfaceThemeScope(
@@ -88,6 +82,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('theme-color-selector')),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('settings-list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const Key('theme-color-selector')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('interface-color-navy')));
     await tester.pumpAndSettle();
     expect(controller.settings.interfaceColor, InterfaceColor.navy);
@@ -104,9 +110,7 @@ void main() {
         AppSettingsService(storage: _AppStorage()),
       );
       await controller.update(
-        AppSettings.defaults.copyWith(
-          interfaceColor: InterfaceColor.paper,
-        ),
+        AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.paper),
       );
       final publication = DailyPublication(
         id: 'one',
@@ -135,24 +139,26 @@ void main() {
         tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         Colors.black,
       );
+      final initialEdition = tester
+          .widget<EditionBackground>(find.byType(EditionBackground))
+          .edition;
+      expect(initialEdition.id, Editions.evergreen.id);
       expect(
-        tester
-            .widget<EditionBackground>(find.byType(EditionBackground))
-            .edition,
-        same(Editions.evergreen),
+        initialEdition.backgroundAsset,
+        Editions.evergreen.backgroundAsset,
       );
 
       await controller.update(
-        AppSettings.defaults.copyWith(
-          interfaceColor: InterfaceColor.navy,
-        ),
+        AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.navy),
       );
       await tester.pump();
+      final updatedEdition = tester
+          .widget<EditionBackground>(find.byType(EditionBackground))
+          .edition;
+      expect(updatedEdition.id, Editions.evergreen.id);
       expect(
-        tester
-            .widget<EditionBackground>(find.byType(EditionBackground))
-            .edition,
-        same(Editions.evergreen),
+        updatedEdition.backgroundAsset,
+        Editions.evergreen.backgroundAsset,
       );
     },
   );

@@ -260,17 +260,25 @@ class _RecallScreenState extends State<RecallScreen> {
         return;
       }
 
+      var sessionStarted = false;
       void openSession(BuildContext readyContext) {
-        Navigator.of(readyContext).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (context) => RecallSessionScreen(
-              questions: questions,
-              progressService: widget.progressService,
-              onRecallAgain: (previousSubjectIds) async =>
-                  generate(previousSubjectIds),
-            ),
-          ),
-        );
+        if (sessionStarted) return;
+        sessionStarted = true;
+
+        Navigator.of(readyContext)
+            .pushReplacement(
+              MaterialPageRoute<void>(
+                builder: (context) => RecallSessionScreen(
+                  questions: questions,
+                  progressService: widget.progressService,
+                  onRecallAgain: (previousSubjectIds) async =>
+                      generate(previousSubjectIds),
+                ),
+              ),
+            )
+            .then((_) {
+              if (mounted) return _refreshProgress();
+            });
       }
 
       await Navigator.of(context).push(
@@ -284,7 +292,6 @@ class _RecallScreenState extends State<RecallScreen> {
           ),
         ),
       );
-      await _refreshProgress();
     } catch (error) {
       debugPrint('Error preparing Recall: $error');
       if (!mounted) return;
@@ -440,167 +447,167 @@ class _RecallScreenState extends State<RecallScreen> {
             child: SingleChildScrollView(
               key: Key('recall-landing-scroll'),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Back to menu',
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(
-                        CupertinoIcons.back,
-                        color: _recallEdition.primaryTextColor,
-                        size: 26,
-                      ),
-                    ),
-                    Spacer(),
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black.withValues(alpha: 0.32),
-                        border: Border.all(
-                          color: _recallEdition.accentColor.withValues(
-                            alpha: 0.34,
-                          ),
-                        ),
-                      ),
-                      child: IconButton(
-                        key: Key('recall-settings'),
-                        tooltip: 'Recall Settings',
-                        onPressed: _openSettings,
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(
-                          minWidth: 48,
-                          minHeight: 48,
-                        ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Back to menu',
+                        onPressed: () => Navigator.of(context).pop(),
                         icon: Icon(
-                          CupertinoIcons.slider_horizontal_3,
+                          CupertinoIcons.back,
+                          color: _recallEdition.primaryTextColor,
+                          size: 26,
+                        ),
+                      ),
+                      Spacer(),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(alpha: 0.32),
+                          border: Border.all(
+                            color: _recallEdition.accentColor.withValues(
+                              alpha: 0.34,
+                            ),
+                          ),
+                        ),
+                        child: IconButton(
+                          key: Key('recall-settings'),
+                          tooltip: 'Recall Settings',
+                          onPressed: _openSettings,
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          icon: Icon(
+                            CupertinoIcons.slider_horizontal_3,
+                            color: _recallEdition.accentColor,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 70),
+                  Text(
+                    'Recall',
+                    style: TextStyle(
+                      color: _recallEdition.primaryTextColor,
+                      fontFamily: 'NotoSerifJP',
+                      fontSize: 48,
+                      fontWeight: FontWeight.w400,
+                      height: 1,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Container(
+                    width: 36,
+                    height: 1.5,
+                    color: _recallEdition.accentColor,
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Words worth remembering.',
+                    style: TextStyle(
+                      color: _recallEdition.secondaryTextColor,
+                      fontFamily: 'NotoSerifJP',
+                      fontSize: 21,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                  SizedBox(height: 42),
+                  _RecallCard(
+                    key: Key('normal-recall'),
+                    icon: CupertinoIcons.book,
+                    title: 'Recall',
+                    description:
+                        'A short session from your selected word pool.',
+                    onTap: _start,
+                  ),
+                  SizedBox(height: 8),
+                  _RecallCard(
+                    key: Key('match-recall'),
+                    icon: CupertinoIcons.square_grid_2x2,
+                    title: 'Match',
+                    description: 'Pair words with their meanings.',
+                    footer:
+                        'Best · ${_matchBestMilliseconds == null ? '—' : formatMatchTime(_matchBestMilliseconds!)}',
+                    isLocked: !isPro,
+                    onTap: isPro ? _startMatch : _openPro,
+                  ),
+                  SizedBox(height: 8),
+                  _RecallCard(
+                    key: Key('endless-recall'),
+                    icon: CupertinoIcons.infinite,
+                    title: 'Endless Recall',
+                    description: 'Keep going until you miss one.',
+                    footer: 'Best · ${_endlessBest ?? '—'}',
+                    isLocked: !isPro,
+                    onTap: isPro ? _startEndless : _openPro,
+                  ),
+                  SizedBox(height: 30),
+                  _WordProgressSection(
+                    summary: _progressSummary,
+                    isLoading: _isProgressLoading,
+                    isUnavailable: _progressUnavailable,
+                  ),
+                  SizedBox(height: 30),
+                  if (_isLoading)
+                    Center(
+                      child: SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
                           color: _recallEdition.accentColor,
-                          size: 24,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 70),
-                Text(
-                  'Recall',
-                  style: TextStyle(
-                    color: _recallEdition.primaryTextColor,
-                    fontFamily: 'NotoSerifJP',
-                    fontSize: 48,
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Container(
-                  width: 36,
-                  height: 1.5,
-                  color: _recallEdition.accentColor,
-                ),
-                SizedBox(height: 24),
-                Text(
-                  'Words worth remembering.',
-                  style: TextStyle(
-                    color: _recallEdition.secondaryTextColor,
-                    fontFamily: 'NotoSerifJP',
-                    fontSize: 21,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-                SizedBox(height: 42),
-                _RecallCard(
-                  key: Key('normal-recall'),
-                  icon: CupertinoIcons.book,
-                  title: 'Recall',
-                  description: 'A short session from your selected word pool.',
-                  onTap: _start,
-                ),
-                SizedBox(height: 8),
-                _RecallCard(
-                  key: Key('match-recall'),
-                  icon: CupertinoIcons.square_grid_2x2,
-                  title: 'Match',
-                  description: 'Pair words with their meanings.',
-                  footer:
-                      'Best · ${_matchBestMilliseconds == null ? '—' : formatMatchTime(_matchBestMilliseconds!)}',
-                  isLocked: !isPro,
-                  onTap: isPro ? _startMatch : _openPro,
-                ),
-                SizedBox(height: 8),
-                _RecallCard(
-                  key: Key('endless-recall'),
-                  icon: CupertinoIcons.infinite,
-                  title: 'Endless Recall',
-                  description: 'Keep going until you miss one.',
-                  footer: 'Best · ${_endlessBest ?? '—'}',
-                  isLocked: !isPro,
-                  onTap: isPro ? _startEndless : _openPro,
-                ),
-                SizedBox(height: 30),
-                _WordProgressSection(
-                  summary: _progressSummary,
-                  isLoading: _isProgressLoading,
-                  isUnavailable: _progressUnavailable,
-                ),
-                SizedBox(height: 30),
-                if (_isLoading)
-                  Center(
-                    child: SizedBox.square(
-                      dimension: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: _recallEdition.accentColor,
-                      ),
-                    ),
-                  )
-                else if (_messageTitle != null)
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          _messageTitle!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _recallEdition.primaryTextColor,
-                            fontFamily: 'NotoSerifJP',
-                            fontSize: 22,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          _messageBody!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: _recallEdition.secondaryTextColor.withValues(
-                              alpha: 0.72,
+                    )
+                  else if (_messageTitle != null)
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            _messageTitle!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _recallEdition.primaryTextColor,
+                              fontFamily: 'NotoSerifJP',
+                              fontSize: 22,
                             ),
-                            fontFamily: 'Figtree',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w300,
                           ),
-                        ),
-                        if (_canRetry) ...[
-                          SizedBox(height: 10),
-                          TextButton(
-                            key: Key('retry-recall'),
-                            onPressed: _retryStartsMatch
-                                ? _startMatch
-                                : _retryStartsEndless
-                                ? _startEndless
-                                : _start,
-                            style: TextButton.styleFrom(
-                              foregroundColor: _recallEdition.accentColor,
+                          SizedBox(height: 8),
+                          Text(
+                            _messageBody!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _recallEdition.secondaryTextColor
+                                  .withValues(alpha: 0.72),
+                              fontFamily: 'Figtree',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w300,
                             ),
-                            child: Text('Retry'),
                           ),
+                          if (_canRetry) ...[
+                            SizedBox(height: 10),
+                            TextButton(
+                              key: Key('retry-recall'),
+                              onPressed: _retryStartsMatch
+                                  ? _startMatch
+                                  : _retryStartsEndless
+                                  ? _startEndless
+                                  : _start,
+                              style: TextButton.styleFrom(
+                                foregroundColor: _recallEdition.accentColor,
+                              ),
+                              child: Text('Retry'),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -650,11 +657,7 @@ class _RecallCard extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.28),
                   border: Border.all(color: _recallEdition.accentColor),
                 ),
-                child: Icon(
-                  icon,
-                  color: _recallEdition.accentColor,
-                  size: 24,
-                ),
+                child: Icon(icon, color: _recallEdition.accentColor, size: 24),
               ),
               SizedBox(width: 18),
               Expanded(
