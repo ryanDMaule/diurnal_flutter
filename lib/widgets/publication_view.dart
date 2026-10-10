@@ -19,6 +19,7 @@ class PublicationView extends StatefulWidget {
     this.isBookmarkUpdating = false,
     this.isLoading = false,
     this.isOffline = false,
+    this.onRefresh,
     this.topLeftControl,
     this.topRightControl,
     super.key,
@@ -31,6 +32,7 @@ class PublicationView extends StatefulWidget {
   final bool isLoading;
   final bool isOffline;
   final VoidCallback? onBookmarkToggle;
+  final Future<void> Function()? onRefresh;
   final Widget? topLeftControl;
   final Widget? topRightControl;
 
@@ -166,8 +168,14 @@ class _PublicationViewState extends State<PublicationView> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Stack(
                 children: [
-                  SingleChildScrollView(
-                    child: Column(
+                  RefreshIndicator(
+                    color: accent,
+                    backgroundColor: Colors.black.withValues(alpha: 0.82),
+                    notificationPredicate: (_) => widget.onRefresh != null,
+                    onRefresh: widget.onRefresh ?? () async {},
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                       SizedBox(height: screenHeight * 0.4),
@@ -356,6 +364,7 @@ class _PublicationViewState extends State<PublicationView> {
                       ),
                         const SizedBox(height: 72),
                       ],
+                      ),
                     ),
                   ),
                   Positioned(

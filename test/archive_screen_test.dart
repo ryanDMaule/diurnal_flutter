@@ -264,9 +264,7 @@ void main() {
     final refreshResponse = Completer<http.Response>();
     final storage = _MemoryArchiveStorage()
       ..values[PublicationApiService.archivePublicationsStorageKey] =
-          jsonEncode([
-            _publication('cached', 1, 'Cached Word', '2026-09-28'),
-          ]);
+          jsonEncode([_publication('cached', 1, 'Cached Word', '2026-09-28')]);
     final service = PublicationApiService(
       client: MockClient((request) => refreshResponse.future),
       archiveStorage: storage,
@@ -301,6 +299,42 @@ void main() {
     expect(find.byKey(const Key('archive-row-cached')), findsOneWidget);
     expect(find.byKey(const Key('archive-row-fresh')), findsOneWidget);
   });
+
+  testWidgets(
+    'fresh cache skips reopen download and pull refreshes deliberately',
+    (tester) async {
+      var requests = 0;
+      final storage = _MemoryArchiveStorage();
+      final service = PublicationApiService(
+        client: MockClient((request) async {
+          requests++;
+          return http.Response(
+            jsonEncode([
+              _publication('cached', 1, 'Cached Word', '2026-09-28'),
+            ]),
+            200,
+          );
+        }),
+        archiveStorage: storage,
+        now: () => DateTime(2026, 10, 10, 12),
+      );
+
+      await _pumpArchive(tester, service, bookmarkService, editionService);
+      expect(requests, 1);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pumpArchive(tester, service, bookmarkService, editionService);
+      expect(find.byKey(const Key('archive-row-cached')), findsOneWidget);
+      expect(requests, 1);
+
+      final refresh = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      await refresh.onRefresh();
+      await tester.pumpAndSettle();
+      expect(requests, 2);
+    },
+  );
 }
 
 Future<void> _pumpArchive(

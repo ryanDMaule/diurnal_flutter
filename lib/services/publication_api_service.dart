@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -13,8 +14,9 @@ abstract interface class TodayPublicationStorage {
 
 class SharedPreferencesTodayPublicationStorage
     implements TodayPublicationStorage {
-  SharedPreferencesTodayPublicationStorage({SharedPreferencesAsync? preferences})
-    : _preferences = preferences ?? SharedPreferencesAsync();
+  SharedPreferencesTodayPublicationStorage({
+    SharedPreferencesAsync? preferences,
+  }) : _preferences = preferences ?? SharedPreferencesAsync();
 
   final SharedPreferencesAsync _preferences;
 
@@ -52,22 +54,29 @@ class TodayPublicationLoad {
   const TodayPublicationLoad({
     required this.publication,
     required this.isOffline,
+    this.failure,
   });
 
   final DailyPublication publication;
   final bool isOffline;
+  final PublicationLoadFailure? failure;
 }
+
+enum PublicationLoadFailure { connectivity, timeout, invalidResponse }
 
 class PublicationApiService {
   PublicationApiService({
     http.Client? client,
     TodayPublicationStorage? todayStorage,
     ArchivePublicationStorage? archiveStorage,
+    this.requestTimeout = const Duration(seconds: 10),
+    DateTime Function()? now,
   }) : _client = client ?? http.Client(),
        _todayStorage =
            todayStorage ?? SharedPreferencesTodayPublicationStorage(),
        _archiveStorage =
-           archiveStorage ?? SharedPreferencesArchivePublicationStorage();
+           archiveStorage ?? SharedPreferencesArchivePublicationStorage(),
+       _now = now ?? DateTime.now;
 
   static final Uri wordOfTheDayUri = Uri.parse(
     'https://diurnal-api-7zz8.onrender.com/word',
@@ -77,14 +86,21 @@ class PublicationApiService {
       'diurnus.todayPublication.lastSuccessful';
   static const archivePublicationsStorageKey =
       'diurnus.archivePublications.lastSuccessful';
+  static const archiveRefreshStorageKey =
+      'diurnus.archivePublications.lastSuccessfulRefresh';
+  static const archiveFreshness = Duration(minutes: 30);
 
   final http.Client _client;
   final TodayPublicationStorage _todayStorage;
   final ArchivePublicationStorage _archiveStorage;
+  final Duration requestTimeout;
+  final DateTime Function() _now;
 
   Future<TodayPublicationLoad> loadTodayPublication() async {
     try {
-      final response = await _client.get(wordOfTheDayUri);
+      final response = await _client
+          .get(wordOfTheDayUri)
+          .timeout(requestTimeout);
       if (response.statusCode != 200) {
         throw PublicationApiException(response.statusCode);
       }
@@ -96,17 +112,27 @@ class PublicationApiService {
       final publication = DailyPublication.fromJson(data);
       await _cacheTodayPublication(publication);
       return TodayPublicationLoad(publication: publication, isOffline: false);
-    } catch (_) {
+    } catch (error) {
       final cached = await _readCachedTodayPublication();
       return TodayPublicationLoad(
         publication: cached ?? DailyPublication.localFallback,
         isOffline: true,
+        failure: _failureFor(error),
       );
     }
   }
 
   Future<List<DailyPublication>> fetchPublications() async {
-    final response = await _client.get(publicationsUri);
+    late final http.Response response;
+    try {
+      response = await _client.get(publicationsUri).timeout(requestTimeout);
+    } on TimeoutException catch (error) {
+      throw PublicationTimeoutException(error.duration ?? requestTimeout);
+    } on http.ClientException catch (error) {
+      throw PublicationConnectivityException(error.message);
+    } catch (error) {
+      throw PublicationConnectivityException(error.toString());
+    }
     if (response.statusCode != 200) {
       throw PublicationApiException(response.statusCode);
     }
@@ -125,16 +151,16 @@ class PublicationApiService {
       }),
     );
     final cached = await readCachedPublications();
-    final merged = _mergePublications(cached ?? const [], fetched);
+    final merged = _visiblePublications(
+      _mergePublications(cached ?? const [], fetched),
+    );
     await _cachePublications(merged);
     return merged;
   }
 
   Future<List<DailyPublication>?> readCachedPublications() async {
     try {
-      final stored = await _archiveStorage.read(
-        archivePublicationsStorageKey,
-      );
+      final stored = await _archiveStorage.read(archivePublicationsStorageKey);
       if (stored == null || stored.isEmpty) return null;
       final decoded = json.decode(stored);
       if (decoded is! List) return null;
@@ -144,9 +170,26 @@ class PublicationApiService {
         }
         return DailyPublication.fromJson(item);
       });
-      return _mergePublications(const [], publications);
+      return _visiblePublications(_mergePublications(const [], publications));
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<bool> isArchiveCacheFresh() async {
+    try {
+      final stored = await _archiveStorage.read(archiveRefreshStorageKey);
+      final refreshedAt = stored == null ? null : DateTime.tryParse(stored);
+      if (refreshedAt == null) return false;
+      final now = _now();
+      final sameDate =
+          refreshedAt.year == now.year &&
+          refreshedAt.month == now.month &&
+          refreshedAt.day == now.day;
+      final age = now.difference(refreshedAt);
+      return sameDate && !age.isNegative && age <= archiveFreshness;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -173,15 +216,17 @@ class PublicationApiService {
     }
   }
 
-  Future<void> _cachePublications(
-    List<DailyPublication> publications,
-  ) async {
+  Future<void> _cachePublications(List<DailyPublication> publications) async {
     try {
       await _archiveStorage.write(
         archivePublicationsStorageKey,
         json.encode(
           publications.map((publication) => publication.toJson()).toList(),
         ),
+      );
+      await _archiveStorage.write(
+        archiveRefreshStorageKey,
+        _now().toIso8601String(),
       );
     } catch (_) {
       // A persistence failure must not discard a valid network response.
@@ -202,11 +247,29 @@ class PublicationApiService {
     final merged = byId.values.toList()
       ..sort((a, b) {
         final sequenceOrder = a.sequence!.compareTo(b.sequence!);
-        return sequenceOrder != 0
-            ? sequenceOrder
-            : a.id!.compareTo(b.id!);
+        return sequenceOrder != 0 ? sequenceOrder : a.id!.compareTo(b.id!);
       });
     return List<DailyPublication>.unmodifiable(merged);
+  }
+
+  List<DailyPublication> _visiblePublications(
+    Iterable<DailyPublication> publications,
+  ) {
+    final now = _now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    return List<DailyPublication>.unmodifiable(
+      publications.where(
+        (publication) => !publication.publicationDate!.isAfter(today),
+      ),
+    );
+  }
+
+  PublicationLoadFailure _failureFor(Object error) {
+    if (error is TimeoutException) return PublicationLoadFailure.timeout;
+    if (error is FormatException || error is PublicationApiException) {
+      return PublicationLoadFailure.invalidResponse;
+    }
+    return PublicationLoadFailure.connectivity;
   }
 }
 
@@ -217,4 +280,22 @@ class PublicationApiException implements Exception {
 
   @override
   String toString() => 'Publication API returned $statusCode.';
+}
+
+class PublicationTimeoutException implements Exception {
+  const PublicationTimeoutException(this.duration);
+
+  final Duration duration;
+
+  @override
+  String toString() => 'Publication request timed out after $duration.';
+}
+
+class PublicationConnectivityException implements Exception {
+  const PublicationConnectivityException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'Publication network request failed: $message';
 }

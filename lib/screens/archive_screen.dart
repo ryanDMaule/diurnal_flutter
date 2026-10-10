@@ -66,6 +66,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   List<DailyPublication> _publications = [];
   bool _isLoading = true;
   Object? _error;
+  Future<void>? _activeLoad;
 
   @override
   void initState() {
@@ -73,7 +74,17 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     _loadPublications();
   }
 
-  Future<void> _loadPublications() async {
+  Future<void> _loadPublications({bool forceRefresh = false}) {
+    final activeLoad = _activeLoad;
+    if (activeLoad != null) return activeLoad;
+    final load = _performLoad(forceRefresh: forceRefresh);
+    _activeLoad = load;
+    return load.whenComplete(() {
+      if (identical(_activeLoad, load)) _activeLoad = null;
+    });
+  }
+
+  Future<void> _performLoad({required bool forceRefresh}) async {
     final loadingTimer = Stopwatch()..start();
     Future<void> waitForMinimumDuration() async {
       final remainingMilliseconds = 850 - loadingTimer.elapsedMilliseconds;
@@ -98,6 +109,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         _isLoading = true;
         _error = null;
       });
+    }
+
+    if (hasCache &&
+        !forceRefresh &&
+        await widget.apiService.isArchiveCacheFresh()) {
+      return;
     }
 
     try {
@@ -275,7 +292,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         title: 'Archive unavailable',
         message: 'Please check your connection and try again.',
         action: TextButton(
-          onPressed: _loadPublications,
+          onPressed: () => _loadPublications(forceRefresh: true),
           style: TextButton.styleFrom(
             foregroundColor: InterfaceThemeScope.maybePaletteOf(context).accent,
           ),
@@ -287,6 +304,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       return _ArchiveMessage(
         title: 'Nothing here yet',
         message: 'Published words will appear here as they become available.',
+        action: TextButton(
+          onPressed: () => _loadPublications(forceRefresh: true),
+          style: TextButton.styleFrom(
+            foregroundColor: InterfaceThemeScope.maybePaletteOf(context).accent,
+          ),
+          child: Text('Refresh'),
+        ),
       );
     }
 
@@ -301,34 +325,40 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       sections.putIfAbsent(heading, () => []).add(publication);
     }
 
-    return ListView(
-      key: Key('archive-list'),
-      padding: EdgeInsets.only(bottom: 24),
-      children: [
-        for (final section in sections.entries) ...[
-          Padding(
-            padding: EdgeInsets.only(top: 12, bottom: 8),
-            child: Text(
-              section.key,
-              key: Key('archive-month-${section.key}'),
-              style: TextStyle(
-                color: InterfaceThemeScope.maybePaletteOf(context).accent,
-                fontFamily: 'Figtree',
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.4,
+    return RefreshIndicator(
+      color: InterfaceThemeScope.maybePaletteOf(context).accent,
+      backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
+      onRefresh: () => _loadPublications(forceRefresh: true),
+      child: ListView(
+        key: Key('archive-list'),
+        physics: AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(bottom: 24),
+        children: [
+          for (final section in sections.entries) ...[
+            Padding(
+              padding: EdgeInsets.only(top: 12, bottom: 8),
+              child: Text(
+                section.key,
+                key: Key('archive-month-${section.key}'),
+                style: TextStyle(
+                  color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                  fontFamily: 'Figtree',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.4,
+                ),
               ),
             ),
-          ),
-          for (final publication in section.value)
-            _ArchiveRow(
-              publication: publication,
-              isLocked: !accessibleIds.contains(publication.id),
-              onTap: () => _openPublication(publication),
-            ),
-          SizedBox(height: 22),
+            for (final publication in section.value)
+              _ArchiveRow(
+                publication: publication,
+                isLocked: !accessibleIds.contains(publication.id),
+                onTap: () => _openPublication(publication),
+              ),
+            SizedBox(height: 22),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
