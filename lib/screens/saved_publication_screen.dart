@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +8,7 @@ import '../models/edition.dart';
 import '../models/edition_access_policy.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
+import '../services/sound_effects_service.dart';
 import '../widgets/publication_view.dart';
 import '../widgets/entitlement_scope.dart';
 
@@ -16,6 +19,7 @@ class SavedPublicationScreen extends StatefulWidget {
     this.editionService,
     this.backTooltip = 'Back to My Lexicon',
     this.initiallyBookmarked = true,
+    this.soundEffectsService,
     super.key,
   });
 
@@ -24,6 +28,7 @@ class SavedPublicationScreen extends StatefulWidget {
   final EditionService? editionService;
   final String backTooltip;
   final bool initiallyBookmarked;
+  final SoundEffectsService? soundEffectsService;
 
   @override
   State<SavedPublicationScreen> createState() => _SavedPublicationScreenState();
@@ -34,12 +39,15 @@ class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
   bool isBookmarkUpdating = false;
   Edition edition = Editions.library;
   late final EditionService _editionService;
+  late final SoundEffectsService _soundEffectsService;
 
   @override
   void initState() {
     super.initState();
     isBookmarked = widget.initiallyBookmarked;
     _editionService = widget.editionService ?? EditionService();
+    _soundEffectsService =
+        widget.soundEffectsService ?? SoundEffectsService.instance;
     _restoreBookmarkState();
     _restoreEditionState();
   }
@@ -73,8 +81,10 @@ class _SavedPublicationScreenState extends State<SavedPublicationScreen> {
     try {
       if (wasBookmarked) {
         await widget.bookmarkService.remove(widget.publication.id!);
+        unawaited(_soundEffectsService.play(SoundEffect.bookmarkRemoved));
       } else {
         await widget.bookmarkService.save(widget.publication);
+        unawaited(_soundEffectsService.play(SoundEffect.bookmarkSaved));
       }
     } catch (error) {
       debugPrint('Error updating saved publication: $error');

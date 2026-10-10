@@ -9,6 +9,7 @@ import '../services/endless_recall_service.dart';
 import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/pronunciation_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,16 +18,20 @@ class SettingsScreen extends StatefulWidget {
     BookmarkService? bookmarkService,
     RecallProgressService? recallProgressService,
     EndlessRecallService? endlessRecallService,
+    SoundEffectsService? soundEffectsService,
     super.key,
   }) : settingsService = settingsService ?? AppSettingsService(),
        bookmarkService = bookmarkService ?? BookmarkService(),
        recallProgressService = recallProgressService ?? RecallProgressService(),
-       endlessRecallService = endlessRecallService ?? EndlessRecallService();
+       endlessRecallService = endlessRecallService ?? EndlessRecallService(),
+       soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final AppSettingsService settingsService;
   final BookmarkService bookmarkService;
   final RecallProgressService recallProgressService;
   final EndlessRecallService endlessRecallService;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -53,6 +58,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final effectiveSettings = resolvedVoice == null
         ? settings
         : settings.copyWith(pronunciationVoice: resolvedVoice);
+    widget.soundEffectsService.setEnabled(
+      effectiveSettings.soundEffectsEnabled,
+    );
+    widget.soundEffectsService.preload();
     setState(() {
       _settings = effectiveSettings;
       _pronunciationVoices = voices;
@@ -78,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _save(AppSettings settings) async {
+  Future<bool> _save(AppSettings settings) async {
     final previous = _settings;
     setState(() => _settings = settings);
     try {
@@ -88,24 +97,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } else {
         await controller.update(settings);
       }
+      return true;
     } catch (error) {
       debugPrint('Error saving app settings: $error');
       if (mounted) setState(() => _settings = previous);
+      return false;
     }
   }
 
-  void _saveToggle({
+  Future<void> _saveToggle({
     required bool currentValue,
     required bool newValue,
     required AppSettings settings,
     bool isHapticToggle = false,
-  }) {
+    bool isSoundEffectsToggle = false,
+  }) async {
     if (currentValue == newValue) return;
     HapticService.selection(
-      enabled:
-          _settings.hapticFeedbackEnabled || (isHapticToggle && newValue),
+      enabled: _settings.hapticFeedbackEnabled || (isHapticToggle && newValue),
     );
-    _save(settings);
+    final saved = await _save(settings);
+    if (!saved || !isSoundEffectsToggle) return;
+    widget.soundEffectsService.setEnabled(newValue);
+    if (newValue) {
+      await widget.soundEffectsService.play(SoundEffect.soundEffectsEnabled);
+    }
   }
 
   void _selectThemeColor(InterfaceColor color) {
@@ -230,7 +246,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: Text(
                           friendlyName,
                           style: TextStyle(
-                            color: selected ? palette.primary : palette.secondary,
+                            color: selected
+                                ? palette.primary
+                                : palette.secondary,
                             fontFamily: 'Figtree',
                             fontWeight: selected
                                 ? FontWeight.w600
@@ -266,7 +284,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   PronunciationService.instance.preview(voice),
                             ),
                           ],
-                          ),
+                        ),
                         onTap: () async {
                           if (voice == _settings.pronunciationVoice) {
                             Navigator.of(sheetContext).pop();
@@ -347,6 +365,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       currentValue: _settings.soundEffectsEnabled,
                       newValue: value,
                       settings: _settings.copyWith(soundEffectsEnabled: value),
+                      isSoundEffectsToggle: true,
                     ),
                   ),
                   _ToggleRow(
@@ -678,11 +697,7 @@ class _ThemeColorSelector extends StatelessWidget {
               ),
             ),
           ),
-          Icon(
-            CupertinoIcons.chevron_down,
-            color: palette.secondary,
-            size: 16,
-          ),
+          Icon(CupertinoIcons.chevron_down, color: palette.secondary, size: 16),
         ],
       ),
     ),

@@ -27,7 +27,10 @@ import 'package:diurnul/services/match_service.dart';
 import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/services/recall_settings_service.dart';
+import 'package:diurnul/services/sound_effects_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
+
+import 'support/fake_sound_effects.dart';
 
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
@@ -850,6 +853,7 @@ void main() {
         _question(archive[0], correct: 'Correct one', wrong: 'Wrong one'),
         _question(archive[1], correct: 'Correct two', wrong: 'Wrong two'),
       ];
+      final playback = FakeSoundEffectsPlayback();
       await _setTestSize(tester);
       await tester.pumpWidget(
         MaterialApp(
@@ -857,6 +861,7 @@ void main() {
             questions: questions,
             progressService: progressService,
             onRecallAgain: (_) async => questions,
+            soundEffectsService: SoundEffectsService(playback: playback),
           ),
         ),
       );
@@ -867,6 +872,8 @@ void main() {
       expect(find.byKey(const Key('correct-feedback')), findsOneWidget);
       expect(find.text(archive[0].word), findsOneWidget);
       expect(find.byType(RecallSessionScreen), findsOneWidget);
+      expect(playback.calls, hasLength(1));
+      expect(playback.calls.single.assetPath, 'sfx/v2/error_02.ogg');
       expect(await progressService.isRecalled(archive[0].id!), isFalse);
       expect(
         await progressService.stateFor(archive[0].id!),
@@ -878,11 +885,75 @@ void main() {
       expect(find.text('02 / 02'), findsOneWidget);
       await tester.tap(find.text('Correct two'));
       await tester.pumpAndSettle();
+      expect(playback.calls.map((call) => call.assetPath), [
+        'sfx/v2/error_02.ogg',
+        'sfx/v2/flower_01.ogg',
+      ]);
       expect(await progressService.isRecalled(archive[1].id!), isTrue);
       expect(await progressService.isRecalled(archive[0].id!), isFalse);
       expect(await progressService.isRecalled(archive[2].id!), isFalse);
     },
   );
+
+  testWidgets('normal Recall emits one completion sound', (tester) async {
+    final playback = FakeSoundEffectsPlayback();
+    final questions = [
+      _question(archive.first, correct: 'Correct', wrong: 'Wrong'),
+    ];
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecallSessionScreen(
+          questions: questions,
+          progressService: progressService,
+          onRecallAgain: (_) async => questions,
+          soundEffectsService: SoundEffectsService(playback: playback),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Correct'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RecallResultScreen), findsOneWidget);
+    expect(playback.calls.map((call) => call.assetPath), [
+      'sfx/v2/flower_01.ogg',
+      'sfx/v2/craft_done.ogg',
+    ]);
+  });
+
+  testWidgets('Endless uses answer and personal-best completion sounds once', (
+    tester,
+  ) async {
+    final playback = FakeSoundEffectsPlayback();
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EndlessRecallSessionScreen(
+          archive: archive,
+          generator: RecallSessionGenerator(random: Random(7)),
+          progressService: progressService,
+          endlessService: EndlessRecallService(
+            storage: _MemoryEndlessRecallStorage(),
+          ),
+          onFinished: () async {},
+          soundEffectsService: SoundEffectsService(playback: playback),
+        ),
+      ),
+    );
+
+    await _answerEndless(tester, correctly: true);
+    await _answerEndless(tester, correctly: false);
+
+    expect(find.byType(EndlessRecallResultScreen), findsOneWidget);
+    expect(playback.calls.map((call) => call.assetPath), [
+      'sfx/v2/flower_01.ogg',
+      'sfx/v2/error_02.ogg',
+      'sfx/v2/level_up.ogg',
+    ]);
+  });
 
   testWidgets('final Continue shows score and Finish returns to landing', (
     tester,

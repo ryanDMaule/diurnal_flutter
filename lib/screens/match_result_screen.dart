@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/match_session.dart';
 import '../services/match_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import 'match_session_screen.dart';
 
@@ -16,8 +17,10 @@ class MatchResultScreen extends StatefulWidget {
     required this.progressService,
     required this.onPlayAgain,
     required this.onFinished,
+    SoundEffectsService? soundEffectsService,
     super.key,
-  });
+  }) : soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final MatchCompletion completion;
   final Set<String> previousSubjectIds;
@@ -25,6 +28,7 @@ class MatchResultScreen extends StatefulWidget {
   final RecallProgressService progressService;
   final Future<MatchSession> Function(Set<String>) onPlayAgain;
   final Future<void> Function() onFinished;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<MatchResultScreen> createState() => _MatchResultScreenState();
@@ -46,6 +50,7 @@ class _MatchResultScreenState extends State<MatchResultScreen> {
           progressService: widget.progressService,
           onPlayAgain: widget.onPlayAgain,
           onFinished: widget.onFinished,
+          soundEffectsService: widget.soundEffectsService,
         ),
       ),
     );

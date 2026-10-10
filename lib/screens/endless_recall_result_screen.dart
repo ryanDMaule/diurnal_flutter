@@ -6,6 +6,7 @@ import '../models/daily_publication.dart';
 import '../models/recall_question.dart';
 import '../services/endless_recall_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import 'endless_recall_session_screen.dart';
 
@@ -17,8 +18,10 @@ class EndlessRecallResultScreen extends StatelessWidget {
     required this.progressService,
     required this.endlessService,
     required this.onFinished,
+    SoundEffectsService? soundEffectsService,
     super.key,
-  });
+  }) : soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final EndlessRecallResult result;
   final List<DailyPublication> archive;
@@ -26,6 +29,7 @@ class EndlessRecallResultScreen extends StatelessWidget {
   final RecallProgressService progressService;
   final EndlessRecallService endlessService;
   final Future<void> Function() onFinished;
+  final SoundEffectsService soundEffectsService;
 
   void _tryAgain(BuildContext context) {
     Navigator.of(context).pushReplacement(
@@ -36,6 +40,7 @@ class EndlessRecallResultScreen extends StatelessWidget {
           progressService: progressService,
           endlessService: endlessService,
           onFinished: onFinished,
+          soundEffectsService: soundEffectsService,
         ),
       ),
     );

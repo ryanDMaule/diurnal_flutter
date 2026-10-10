@@ -11,6 +11,9 @@ import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/endless_recall_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/services/recall_settings_service.dart';
+import 'package:diurnul/services/sound_effects_service.dart';
+
+import 'support/fake_sound_effects.dart';
 
 void main() {
   testWidgets('Settings opens from Menu, persists controls, and returns', (
@@ -134,6 +137,48 @@ void main() {
       RecallProgressState.unseen,
     );
     expect((await recallSettings.load()).questionCount, 20);
+  });
+
+  testWidgets('enabling Sound Effects plays exactly one preview', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(700, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final storage = _AppStorage();
+    final settingsService = AppSettingsService(storage: storage);
+    await settingsService.save(
+      AppSettings.defaults.copyWith(soundEffectsEnabled: false),
+    );
+    final playback = FakeSoundEffectsPlayback();
+    final soundEffectsService = SoundEffectsService(
+      playback: playback,
+      enabled: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsScreen(
+          settingsService: settingsService,
+          soundEffectsService: soundEffectsService,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final soundSwitch = find.descendant(
+      of: find.byKey(const Key('sound-effects-setting')),
+      matching: find.byType(Switch),
+    );
+
+    await tester.tap(soundSwitch);
+    await tester.pumpAndSettle();
+    expect(playback.calls, hasLength(1));
+    expect(playback.calls.single.assetPath, 'sfx/v2/select_01.ogg');
+    expect(playback.calls.single.volume, 0.20);
+
+    await tester.tap(soundSwitch);
+    await tester.pumpAndSettle();
+    expect(playback.calls, hasLength(1));
+    expect(soundEffectsService.enabled, isFalse);
   });
 }
 

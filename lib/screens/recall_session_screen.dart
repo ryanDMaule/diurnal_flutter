@@ -1,11 +1,14 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/recall_question.dart';
 import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import 'recall_result_screen.dart';
 
@@ -14,12 +17,15 @@ class RecallSessionScreen extends StatefulWidget {
     required this.questions,
     required this.progressService,
     required this.onRecallAgain,
+    SoundEffectsService? soundEffectsService,
     super.key,
-  });
+  }) : soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final List<RecallQuestion> questions;
   final RecallProgressService progressService;
   final RecallAgainCallback onRecallAgain;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<RecallSessionScreen> createState() => _RecallSessionScreenState();
@@ -29,6 +35,7 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
   int _questionIndex = 0;
   int _correctAnswers = 0;
   String? _selectedAnswer;
+  bool _isCompleting = false;
 
   RecallQuestion get _question => widget.questions[_questionIndex];
 
@@ -46,8 +53,10 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
         true;
     if (isCorrect) {
       HapticService.success(enabled: hapticsEnabled);
+      unawaited(widget.soundEffectsService.play(SoundEffect.answerCorrect));
     } else {
       HapticService.error(enabled: hapticsEnabled);
+      unawaited(widget.soundEffectsService.play(SoundEffect.answerIncorrect));
     }
     try {
       await widget.progressService.recordAnswer(
@@ -60,7 +69,7 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
   }
 
   Future<void> _continue() async {
-    if (_selectedAnswer == null) return;
+    if (_selectedAnswer == null || _isCompleting) return;
     if (_questionIndex < widget.questions.length - 1) {
       setState(() {
         _questionIndex++;
@@ -69,6 +78,8 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
       return;
     }
 
+    _isCompleting = true;
+    unawaited(widget.soundEffectsService.play(SoundEffect.sessionCompleted));
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => RecallResultScreen(
@@ -79,6 +90,7 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
               .toSet(),
           progressService: widget.progressService,
           onRecallAgain: widget.onRecallAgain,
+          soundEffectsService: widget.soundEffectsService,
         ),
       ),
     );

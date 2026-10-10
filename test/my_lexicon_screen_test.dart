@@ -7,11 +7,15 @@ import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/screens/my_lexicon_screen.dart';
 import 'package:diurnul/screens/pro_screen.dart';
+import 'package:diurnul/screens/saved_publication_screen.dart';
 import 'package:diurnul/services/bookmark_service.dart';
 import 'package:diurnul/services/edition_service.dart';
 import 'package:diurnul/services/entitlement_service.dart';
+import 'package:diurnul/services/sound_effects_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 import 'package:diurnul/widgets/publication_view.dart';
+
+import 'support/fake_sound_effects.dart';
 
 void main() {
   late _MemoryBookmarkStorage storage;
@@ -113,11 +117,13 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
+    final playback = FakeSoundEffectsPlayback();
     await tester.pumpWidget(
       MaterialApp(
         home: MyLexiconScreen(
           bookmarkService: service,
           editionService: editionService,
+          soundEffectsService: SoundEffectsService(playback: playback),
         ),
       ),
     );
@@ -128,6 +134,41 @@ void main() {
     expect(find.text('0 words collected'), findsOneWidget);
     expect(find.text('No words saved yet'), findsOneWidget);
     expect(find.text('Search lexicon...'), findsNothing);
+    expect(playback.calls, hasLength(1));
+    expect(playback.calls.single.assetPath, 'sfx/v2/popup_close.ogg');
+  });
+
+  testWidgets('saved publication chooses save and remove sounds', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(700, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final playback = FakeSoundEffectsPlayback();
+    final sounds = SoundEffectsService(playback: playback);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SavedPublicationScreen(
+          publication: diurnal,
+          bookmarkService: service,
+          editionService: editionService,
+          initiallyBookmarked: false,
+          soundEffectsService: sounds,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(CupertinoIcons.bookmark));
+    await tester.pumpAndSettle();
+    expect(playback.calls.last.assetPath, 'sfx/v2/popup_open.ogg');
+
+    await tester.tap(find.byIcon(CupertinoIcons.bookmark_fill));
+    await tester.pumpAndSettle();
+    expect(playback.calls.map((call) => call.assetPath), [
+      'sfx/v2/popup_open.ogg',
+      'sfx/v2/popup_close.ogg',
+    ]);
   });
 }
 

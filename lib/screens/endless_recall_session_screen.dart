@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -8,6 +10,7 @@ import '../models/recall_question.dart';
 import '../services/endless_recall_service.dart';
 import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import 'endless_recall_result_screen.dart';
 
@@ -18,14 +21,17 @@ class EndlessRecallSessionScreen extends StatefulWidget {
     required this.progressService,
     required this.endlessService,
     required this.onFinished,
+    SoundEffectsService? soundEffectsService,
     super.key,
-  });
+  }) : soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final List<DailyPublication> archive;
   final RecallSessionGenerator generator;
   final RecallProgressService progressService;
   final EndlessRecallService endlessService;
   final Future<void> Function() onFinished;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<EndlessRecallSessionScreen> createState() =>
@@ -40,6 +46,7 @@ class _EndlessRecallSessionScreenState
   int _questionNumber = 1;
   String? _selectedAnswer;
   bool _answerWasCorrect = false;
+  bool _isCompleting = false;
 
   @override
   void initState() {
@@ -66,8 +73,10 @@ class _EndlessRecallSessionScreenState
         true;
     if (isCorrect) {
       HapticService.success(enabled: hapticsEnabled);
+      unawaited(widget.soundEffectsService.play(SoundEffect.answerCorrect));
     } else {
       HapticService.error(enabled: hapticsEnabled);
+      unawaited(widget.soundEffectsService.play(SoundEffect.answerIncorrect));
     }
     try {
       await widget.progressService.recordAnswer(
@@ -80,7 +89,7 @@ class _EndlessRecallSessionScreenState
   }
 
   Future<void> _continue() async {
-    if (_selectedAnswer == null) return;
+    if (_selectedAnswer == null || _isCompleting) return;
     if (_answerWasCorrect) {
       final nextQuestion = _cycle.next();
       if (nextQuestion == null) return;
@@ -93,8 +102,16 @@ class _EndlessRecallSessionScreenState
       return;
     }
 
+    _isCompleting = true;
     final result = await widget.endlessService.completeRun(_score);
     if (!mounted) return;
+    unawaited(
+      widget.soundEffectsService.play(
+        result.isNewBest
+            ? SoundEffect.personalBest
+            : SoundEffect.sessionCompleted,
+      ),
+    );
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => EndlessRecallResultScreen(
@@ -104,6 +121,7 @@ class _EndlessRecallSessionScreenState
           progressService: widget.progressService,
           endlessService: widget.endlessService,
           onFinished: widget.onFinished,
+          soundEffectsService: widget.soundEffectsService,
         ),
       ),
     );

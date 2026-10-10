@@ -9,6 +9,7 @@ import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/haptic_service.dart';
 import '../services/publication_api_service.dart';
+import '../services/sound_effects_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/morphing_menu_button.dart';
@@ -22,6 +23,7 @@ class TodayScreen extends StatefulWidget {
     this.apiService,
     this.widgetSyncService,
     this.now,
+    this.soundEffectsService,
     super.key,
   });
 
@@ -29,6 +31,7 @@ class TodayScreen extends StatefulWidget {
   final PublicationApiService? apiService;
   final WidgetSyncService? widgetSyncService;
   final DateTime Function()? now;
+  final SoundEffectsService? soundEffectsService;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -40,6 +43,7 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
   late final WidgetSyncService _widgetSyncService;
   late final PublicationApiService _apiService;
   late final DateTime Function() _now;
+  late final SoundEffectsService _soundEffectsService;
   Future<void>? _activeLoad;
   Timer? _dateRolloverTimer;
   late DateTime _observedDate;
@@ -58,6 +62,8 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
     _apiService = widget.apiService ?? PublicationApiService();
     _widgetSyncService = widget.widgetSyncService ?? WidgetSyncService();
     _now = widget.now ?? DateTime.now;
+    _soundEffectsService =
+        widget.soundEffectsService ?? SoundEffectsService.instance;
     _observedDate = _dateOnly(_now());
     WidgetsBinding.instance.addObserver(this);
     _scheduleDateRollover();
@@ -204,6 +210,7 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
     try {
       if (wasBookmarked) {
         await _bookmarkService.remove(id);
+        unawaited(_soundEffectsService.play(SoundEffect.bookmarkRemoved));
         if (mounted) {
           HapticService.selection(
             enabled:
@@ -215,6 +222,7 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
         }
       } else {
         await _bookmarkService.save(current);
+        unawaited(_soundEffectsService.play(SoundEffect.bookmarkSaved));
         if (mounted) {
           HapticService.confirmation(
             enabled:

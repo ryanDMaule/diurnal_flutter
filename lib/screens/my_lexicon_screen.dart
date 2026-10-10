@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -7,6 +9,7 @@ import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/haptic_service.dart';
 import '../services/edition_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/diurnus_loading_state.dart';
 import 'saved_publication_screen.dart';
@@ -41,12 +44,16 @@ class MyLexiconScreen extends StatefulWidget {
   MyLexiconScreen({
     BookmarkService? bookmarkService,
     EditionService? editionService,
+    SoundEffectsService? soundEffectsService,
     super.key,
   }) : bookmarkService = bookmarkService ?? BookmarkService(),
-       editionService = editionService ?? EditionService();
+       editionService = editionService ?? EditionService(),
+       soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final BookmarkService bookmarkService;
   final EditionService editionService;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<MyLexiconScreen> createState() => _MyLexiconScreenState();
@@ -95,6 +102,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
     });
     try {
       await widget.bookmarkService.remove(publication.id!);
+      unawaited(widget.soundEffectsService.play(SoundEffect.bookmarkRemoved));
     } catch (error) {
       debugPrint('Error removing publication: $error');
       if (mounted) setState(() => _publications = previous);
@@ -108,6 +116,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
           publication: publication,
           bookmarkService: widget.bookmarkService,
           editionService: widget.editionService,
+          soundEffectsService: widget.soundEffectsService,
         ),
       ),
     );
@@ -117,10 +126,7 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
   void _jumpTo(String letter) {
     final sectionContext = _sectionKeys[letter]?.currentContext;
     if (sectionContext != null) {
-      Scrollable.ensureVisible(
-        sectionContext,
-        duration: Duration.zero,
-      );
+      Scrollable.ensureVisible(sectionContext, duration: Duration.zero);
     }
   }
 
@@ -437,9 +443,10 @@ class _AlphabetRailState extends State<_AlphabetRail> {
   String? _indicatorLetter;
 
   void _selectLetter(Offset localPosition, double railHeight) {
-    final index = (localPosition.dy / railHeight * _letterCount)
-        .floor()
-        .clamp(0, _letterCount - 1);
+    final index = (localPosition.dy / railHeight * _letterCount).floor().clamp(
+      0,
+      _letterCount - 1,
+    );
     final letter = String.fromCharCode(65 + index);
     if (letter == _selectedLetter) return;
     HapticService.selection(
@@ -521,9 +528,10 @@ class _AlphabetRailState extends State<_AlphabetRail> {
                             String.fromCharCode(code),
                             style: TextStyle(
                               color: palette.accent.withValues(
-                                alpha: widget.activeLetters.contains(
-                                  String.fromCharCode(code),
-                                )
+                                alpha:
+                                    widget.activeLetters.contains(
+                                      String.fromCharCode(code),
+                                    )
                                     ? 0.9
                                     : 0.25,
                               ),

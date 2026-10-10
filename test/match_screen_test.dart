@@ -6,6 +6,9 @@ import 'package:diurnul/screens/match_ready_screen.dart';
 import 'package:diurnul/screens/match_session_screen.dart';
 import 'package:diurnul/services/match_service.dart';
 import 'package:diurnul/services/recall_progress_service.dart';
+import 'package:diurnul/services/sound_effects_service.dart';
+
+import 'support/fake_sound_effects.dart';
 
 void main() {
   late _ProgressStorage progressStorage;
@@ -22,20 +25,37 @@ void main() {
     'selection, same-type reselection, and wrong pair are non-punitive',
     (tester) async {
       final elapsedTime = MatchElapsedTime(rawElapsedMilliseconds: () => 250);
+      final playback = FakeSoundEffectsPlayback();
       await _pumpMatch(
         tester,
         progressService,
         matchStorage,
         elapsedTime: elapsedTime,
+        soundEffectsService: SoundEffectsService(playback: playback),
       );
 
       await tester.tap(find.byKey(const Key('match-card-a:word')));
       await tester.pump();
+      expect(playback.calls.single.assetPath, 'sfx/v2/tap_felt_01.ogg');
+      expect(
+        tester
+            .widget<InkWell>(
+              find.descendant(
+                of: find.byKey(const Key('match-card-a:word')),
+                matching: find.byType(InkWell),
+              ),
+            )
+            .enableFeedback,
+        isFalse,
+      );
       await tester.tap(find.byKey(const Key('match-card-b:word')));
       await tester.pump();
+      expect(playback.calls, hasLength(1));
       expect(elapsedTime.penaltyMilliseconds, 0);
       await tester.tap(find.byKey(const Key('match-card-a:definition')));
       await tester.pump(const Duration(milliseconds: 50));
+      expect(playback.calls, hasLength(2));
+      expect(playback.calls.last.assetPath, 'sfx/v2/error_02.ogg');
       expect(elapsedTime.penaltyMilliseconds, 1000);
       expect(find.text('+1 sec'), findsOneWidget);
       expect(find.text('1.2'), findsOneWidget);
@@ -51,11 +71,13 @@ void main() {
     'correct pairs become recalled, disappear, and complete session',
     (tester) async {
       final elapsedTime = MatchElapsedTime(rawElapsedMilliseconds: () => 250);
+      final playback = FakeSoundEffectsPlayback();
       await _pumpMatch(
         tester,
         progressService,
         matchStorage,
         elapsedTime: elapsedTime,
+        soundEffectsService: SoundEffectsService(playback: playback),
       );
 
       await _match(tester, 'a');
@@ -74,12 +96,54 @@ void main() {
       expect(find.text('New personal best'), findsOneWidget);
       expect(await progressService.stateFor('b'), RecallProgressState.recalled);
       expect(matchStorage.value, isNotNull);
+      expect(playback.calls.map((call) => call.assetPath), [
+        'sfx/v2/tap_felt_01.ogg',
+        'sfx/v2/flower_01.ogg',
+        'sfx/v2/tap_felt_01.ogg',
+        'sfx/v2/level_up.ogg',
+      ]);
+      expect(
+        playback.calls.where((call) => call.assetPath == 'sfx/v2/level_up.ogg'),
+        hasLength(1),
+      );
+      expect(
+        playback.calls.where(
+          (call) => call.assetPath == 'sfx/v2/craft_done.ogg',
+        ),
+        isEmpty,
+      );
 
       await tester.tap(find.byKey(const Key('match-play-again')));
       await tester.pumpAndSettle();
       expect(find.byType(MatchSessionScreen), findsOneWidget);
       expect(find.byType(MatchReadyScreen), findsNothing);
       expect(find.byKey(const Key('match-timer')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'normal completion suppresses final correct and plays craft done once',
+    (tester) async {
+      matchStorage.value = 100;
+      final playback = FakeSoundEffectsPlayback();
+      await _pumpMatch(
+        tester,
+        progressService,
+        matchStorage,
+        elapsedTime: MatchElapsedTime(rawElapsedMilliseconds: () => 250),
+        soundEffectsService: SoundEffectsService(playback: playback),
+      );
+
+      await _match(tester, 'a');
+      await _match(tester, 'b');
+
+      expect(find.byType(MatchResultScreen), findsOneWidget);
+      expect(playback.calls.map((call) => call.assetPath), [
+        'sfx/v2/tap_felt_01.ogg',
+        'sfx/v2/flower_01.ogg',
+        'sfx/v2/tap_felt_01.ogg',
+        'sfx/v2/craft_done.ogg',
+      ]);
     },
   );
 
@@ -161,6 +225,7 @@ Future<void> _pumpMatch(
   _MatchStorage matchStorage, {
   bool disableAnimations = false,
   MatchElapsedTime? elapsedTime,
+  SoundEffectsService? soundEffectsService,
 }) async {
   await tester.binding.setSurfaceSize(const Size(430, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -202,6 +267,7 @@ Future<void> _pumpMatch(
               const MatchSession(cards: cards, subjectIds: {'a', 'b'}),
           onFinished: () async {},
           elapsedTime: elapsedTime,
+          soundEffectsService: soundEffectsService,
         ),
       ),
     ),

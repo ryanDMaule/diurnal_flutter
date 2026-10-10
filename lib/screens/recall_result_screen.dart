@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/recall_question.dart';
 import '../services/recall_progress_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import 'recall_session_screen.dart';
 
@@ -14,14 +15,17 @@ class RecallResultScreen extends StatefulWidget {
     required this.previousSubjectIds,
     required this.progressService,
     required this.onRecallAgain,
+    SoundEffectsService? soundEffectsService,
     super.key,
-  });
+  }) : soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final int correctAnswers;
   final int questionCount;
   final Set<String> previousSubjectIds;
   final RecallProgressService progressService;
   final RecallAgainCallback onRecallAgain;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<RecallResultScreen> createState() => _RecallResultScreenState();
@@ -47,6 +51,7 @@ class _RecallResultScreenState extends State<RecallResultScreen> {
             questions: questions,
             progressService: widget.progressService,
             onRecallAgain: widget.onRecallAgain,
+            soundEffectsService: widget.soundEffectsService,
           ),
         ),
       );

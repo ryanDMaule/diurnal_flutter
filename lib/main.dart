@@ -10,6 +10,7 @@ import 'services/entitlement_service.dart';
 import 'services/edition_entitlement_coordinator.dart';
 import 'services/edition_service.dart';
 import 'services/publication_api_service.dart';
+import 'services/sound_effects_service.dart';
 import 'services/widget_sync_service.dart';
 import 'theme/interface_theme.dart';
 import 'widgets/entitlement_scope.dart';
@@ -72,13 +73,15 @@ class _DiurnalAppState extends State<DiurnalApp> {
     } catch (error) {
       debugPrint('Error loading startup state: $error');
     }
+    SoundEffectsService.instance.setEnabled(
+      _controller.settings.soundEffectsEnabled,
+    );
+    SoundEffectsService.instance.preload();
     _editionCoordinator.start();
     unawaited(_editionCoordinator.syncNow());
   }
 
-  Future<void> _initialize(
-    Future<TodayPublicationLoad> publicationLoad,
-  ) async {
+  Future<void> _initialize(Future<TodayPublicationLoad> publicationLoad) async {
     final requiredState = _loadRequiredState();
     final preferredReadiness = Future.wait([
       requiredState,

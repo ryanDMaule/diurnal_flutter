@@ -10,6 +10,7 @@ import '../models/match_session.dart';
 import '../services/haptic_service.dart';
 import '../services/match_service.dart';
 import '../services/recall_progress_service.dart';
+import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import 'match_result_screen.dart';
 
@@ -21,8 +22,10 @@ class MatchSessionScreen extends StatefulWidget {
     required this.onPlayAgain,
     required this.onFinished,
     this.elapsedTime,
+    SoundEffectsService? soundEffectsService,
     super.key,
-  });
+  }) : soundEffectsService =
+           soundEffectsService ?? SoundEffectsService.instance;
 
   final MatchSession session;
   final MatchService matchService;
@@ -30,6 +33,7 @@ class MatchSessionScreen extends StatefulWidget {
   final Future<MatchSession> Function(Set<String>) onPlayAgain;
   final Future<void> Function() onFinished;
   final MatchElapsedTime? elapsedTime;
+  final SoundEffectsService soundEffectsService;
 
   @override
   State<MatchSessionScreen> createState() => _MatchSessionScreenState();
@@ -48,6 +52,7 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
   bool _isResolving = false;
   String? _penaltyFeedbackCardId;
   int _penaltyFeedbackSequence = 0;
+  bool _isCompleting = false;
 
   bool get _reduceAnimations {
     final appSetting = InterfaceThemeScope.maybeControllerOf(
@@ -91,6 +96,7 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     final selectedId = _selectedId;
     if (selectedId == null) {
       setState(() => _selectedId = card.id);
+      unawaited(widget.soundEffectsService.play(SoundEffect.matchCardSelected));
       return;
     }
     if (selectedId == card.id) {
@@ -106,6 +112,8 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     }
 
     final isCorrect = selected.matches(card);
+    final isFinalPair =
+        isCorrect && _resolvedIds.length + 2 == widget.session.cards.length;
     if (!isCorrect) {
       _elapsedTime.addIncorrectMatchPenalty();
       _penaltyFeedbackSequence++;
@@ -119,8 +127,12 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
     });
     if (isCorrect) {
       HapticService.success(enabled: _hapticsEnabled);
+      if (!isFinalPair) {
+        unawaited(widget.soundEffectsService.play(SoundEffect.answerCorrect));
+      }
     } else {
       HapticService.error(enabled: _hapticsEnabled);
+      unawaited(widget.soundEffectsService.play(SoundEffect.answerIncorrect));
     }
     if (isCorrect) {
       try {
@@ -155,12 +167,21 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
   }
 
   Future<void> _complete() async {
+    if (_isCompleting) return;
+    _isCompleting = true;
     _stopwatch.stop();
     _timer?.cancel();
     final elapsed = _elapsedTime.elapsedMilliseconds.clamp(1, 1 << 31);
     final completion = await widget.matchService.complete(elapsed);
     if (!mounted) return;
     HapticService.confirmation(enabled: _hapticsEnabled);
+    unawaited(
+      widget.soundEffectsService.play(
+        completion.isNewBest
+            ? SoundEffect.personalBest
+            : SoundEffect.sessionCompleted,
+      ),
+    );
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => MatchResultScreen(
@@ -170,6 +191,7 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
           progressService: widget.progressService,
           onPlayAgain: widget.onPlayAgain,
           onFinished: widget.onFinished,
+          soundEffectsService: widget.soundEffectsService,
         ),
       ),
     );
@@ -312,6 +334,7 @@ class _MatchCardTile extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
+            enableFeedback: false,
             borderRadius: BorderRadius.circular(9),
             child: AnimatedContainer(
               duration: duration,
