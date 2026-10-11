@@ -50,10 +50,7 @@ class LaunchScreen extends StatelessWidget {
                       maxWidth: 220,
                       minHeight: 75.5,
                       maxHeight: 75.5,
-                      child: DiurnusWordmark(
-                        color: primaryColor,
-                        width: 220,
-                      ),
+                      child: DiurnusWordmark(color: primaryColor, width: 220),
                     ),
                   ),
                 ),
@@ -86,12 +83,14 @@ class LaunchScreen extends StatelessWidget {
 class LaunchGate extends StatelessWidget {
   const LaunchGate({
     required this.initialization,
-    required this.child,
+    this.child,
+    this.builder,
     super.key,
-  });
+  }) : assert(child != null || builder != null);
 
   final Future<void> initialization;
-  final Widget child;
+  final Widget? child;
+  final WidgetBuilder? builder;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +98,7 @@ class LaunchGate extends StatelessWidget {
       future: initialization,
       builder: (context, snapshot) =>
           snapshot.connectionState == ConnectionState.done
-          ? child
+          ? (builder?.call(context) ?? child!)
           : const LaunchScreen(),
     );
   }

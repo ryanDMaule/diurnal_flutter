@@ -36,8 +36,7 @@ class AppSettings {
     PronunciationVoice? pronunciationVoice,
   }) => AppSettings(
     soundEffectsEnabled: soundEffectsEnabled ?? this.soundEffectsEnabled,
-    hapticFeedbackEnabled:
-        hapticFeedbackEnabled ?? this.hapticFeedbackEnabled,
+    hapticFeedbackEnabled: hapticFeedbackEnabled ?? this.hapticFeedbackEnabled,
     reduceAnimations: reduceAnimations ?? this.reduceAnimations,
     interfaceColor: interfaceColor ?? this.interfaceColor,
     textureEnabled: textureEnabled ?? this.textureEnabled,

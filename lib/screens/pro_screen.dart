@@ -295,9 +295,7 @@ class _PricingSelectorState extends State<_PricingSelector> {
               onTap: () => setState(() => _selectedPlan = _ProPlan.yearly),
             );
             if (constraints.maxWidth < 340) {
-              return Column(
-                children: [monthly, SizedBox(height: 12), yearly],
-              );
+              return Column(children: [monthly, SizedBox(height: 12), yearly]);
             }
             return Row(
               children: [

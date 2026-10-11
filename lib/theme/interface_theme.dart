@@ -6,6 +6,7 @@ import '../models/app_settings.dart';
 import '../models/edition.dart';
 import '../services/app_settings_service.dart';
 import '../services/widget_sync_service.dart';
+
 class InterfacePalette {
   const InterfacePalette({
     required this.brightness,
@@ -159,18 +160,16 @@ class InterfaceColorController extends ChangeNotifier {
   }
 }
 
-class InterfaceThemeScope
-    extends InheritedNotifier<InterfaceColorController> {
+class InterfaceThemeScope extends InheritedNotifier<InterfaceColorController> {
   const InterfaceThemeScope({
     required super.notifier,
     required super.child,
     super.key,
   });
 
-  static InterfaceColorController controllerOf(BuildContext context) =>
-      context
-          .dependOnInheritedWidgetOfExactType<InterfaceThemeScope>()!
-          .notifier!;
+  static InterfaceColorController controllerOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<InterfaceThemeScope>()!
+      .notifier!;
 
   static InterfacePalette paletteOf(BuildContext context) {
     return InterfacePalette.forColor(
@@ -178,18 +177,15 @@ class InterfaceThemeScope
     );
   }
 
-  static InterfaceColorController? maybeControllerOf(
-    BuildContext context,
-  ) => context
-      .dependOnInheritedWidgetOfExactType<InterfaceThemeScope>()
-      ?.notifier;
+  static InterfaceColorController? maybeControllerOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<InterfaceThemeScope>()
+          ?.notifier;
 
   static InterfacePalette maybePaletteOf(BuildContext context) {
     final controller = maybeControllerOf(context);
     if (controller == null) return InterfacePalette.evergreen;
-    return InterfacePalette.forColor(
-      controller.settings.interfaceColor,
-    );
+    return InterfacePalette.forColor(controller.settings.interfaceColor);
   }
 }
 
@@ -244,10 +240,26 @@ class InterfaceTextureOverlay extends StatelessWidget {
         colorFilter: ColorFilter.mode(baseColor, BlendMode.modulate),
         child: ColorFiltered(
           colorFilter: const ColorFilter.matrix([
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0, 0, 0, 1, 0,
+            0.2126,
+            0.7152,
+            0.0722,
+            0,
+            0,
+            0.2126,
+            0.7152,
+            0.0722,
+            0,
+            0,
+            0.2126,
+            0.7152,
+            0.0722,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
           ]),
           child: Image.asset(asset, fit: BoxFit.cover),
         ),

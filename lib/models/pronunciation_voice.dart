@@ -16,7 +16,9 @@ class PronunciationVoice {
 
   @override
   bool operator ==(Object other) =>
-      other is PronunciationVoice && name == other.name && locale == other.locale;
+      other is PronunciationVoice &&
+      name == other.name &&
+      locale == other.locale;
 
   @override
   int get hashCode => Object.hash(name, locale);

@@ -58,11 +58,7 @@ class DiurnusSunriseMark extends StatelessWidget {
 }
 
 class DiurnusWordmark extends StatelessWidget {
-  const DiurnusWordmark({
-    required this.color,
-    required this.width,
-    super.key,
-  });
+  const DiurnusWordmark({required this.color, required this.width, super.key});
 
   final Color color;
   final double width;

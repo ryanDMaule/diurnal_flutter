@@ -125,12 +125,11 @@ class MenuScreen extends StatelessWidget {
                       subtitle: 'Diurnus editions',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (context) =>
-                              AppearanceScreen(
-                                editionService: editionService,
-                                bookmarkService: bookmarkService,
-                                previewPublication: currentPublication,
-                              ),
+                          builder: (context) => AppearanceScreen(
+                            editionService: editionService,
+                            bookmarkService: bookmarkService,
+                            previewPublication: currentPublication,
+                          ),
                         ),
                       ),
                     ),

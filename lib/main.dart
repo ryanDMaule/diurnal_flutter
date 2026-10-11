@@ -1,15 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'screens/launch_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/today_screen.dart';
 import 'services/app_settings_service.dart';
 import 'services/entitlement_service.dart';
+import 'services/install_identity_service.dart';
 import 'services/edition_entitlement_coordinator.dart';
 import 'services/edition_service.dart';
 import 'services/publication_api_service.dart';
+import 'services/onboarding_service.dart';
 import 'services/sound_effects_service.dart';
 import 'services/widget_sync_service.dart';
 import 'theme/interface_theme.dart';
@@ -22,7 +26,26 @@ void main() {
 }
 
 class DiurnalApp extends StatefulWidget {
-  const DiurnalApp({super.key});
+  const DiurnalApp({
+    this.appSettingsService,
+    this.entitlementService,
+    this.editionService,
+    this.onboardingService,
+    this.installIdentityService,
+    this.widgetSyncService,
+    this.initialPublicationLoader,
+    this.enableStartupAudio = true,
+    super.key,
+  });
+
+  final AppSettingsService? appSettingsService;
+  final EntitlementService? entitlementService;
+  final EditionService? editionService;
+  final OnboardingService? onboardingService;
+  final InstallIdentityService? installIdentityService;
+  final WidgetSyncService? widgetSyncService;
+  final Future<TodayPublicationLoad> Function()? initialPublicationLoader;
+  final bool enableStartupAudio;
 
   @override
   State<DiurnalApp> createState() => _DiurnalAppState();
@@ -35,26 +58,39 @@ class _DiurnalAppState extends State<DiurnalApp> {
   late final Future<void> _initialization;
   late final Completer<void> _initializationCompleter;
   late final Completer<TodayPublicationLoad> _publicationCompleter;
+  late final OnboardingService _onboardingService;
+  late final InstallIdentityService _installIdentityService;
+  bool _showOnboarding = false;
+  bool _showMenuShimmer = false;
+  int _onboardingInitialStep = 0;
+  bool _useDefaultOnboardingAppearance = false;
 
   @override
   void initState() {
     super.initState();
+    final widgetSyncService = widget.widgetSyncService ?? WidgetSyncService();
     _controller = InterfaceColorController(
-      AppSettingsService(),
-      widgetSyncService: WidgetSyncService(),
+      widget.appSettingsService ?? AppSettingsService(),
+      widgetSyncService: widgetSyncService,
     );
-    _entitlementController = EntitlementController(EntitlementService());
+    _entitlementController = EntitlementController(
+      widget.entitlementService ?? EntitlementService(),
+    );
+    _onboardingService = widget.onboardingService ?? OnboardingService();
+    _installIdentityService =
+        widget.installIdentityService ?? const PlatformInstallIdentityService();
     _editionCoordinator = EditionEntitlementCoordinator(
       entitlementController: _entitlementController,
-      editionService: EditionService(),
-      widgetSyncService: WidgetSyncService(),
+      editionService: widget.editionService ?? EditionService(),
+      widgetSyncService: widgetSyncService,
     );
     _initializationCompleter = Completer<void>();
     _initialization = _initializationCompleter.future;
     _publicationCompleter = Completer<TodayPublicationLoad>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        final publicationLoad = loadTodayPublication();
+        final publicationLoad =
+            widget.initialPublicationLoader?.call() ?? loadTodayPublication();
         unawaited(publicationLoad.then(_publicationCompleter.complete));
         await _initialize(publicationLoad);
         _initializationCompleter.complete();
@@ -71,20 +107,57 @@ class _DiurnalAppState extends State<DiurnalApp> {
         _entitlementController.load(),
       ]);
     } catch (error) {
-      debugPrint('Error loading startup state: $error');
+      debugPrint('Error loading settings or entitlement state: $error');
     }
-    SoundEffectsService.instance.setEnabled(
-      _controller.settings.soundEffectsEnabled,
-    );
-    SoundEffectsService.instance.preload();
+    try {
+      final freshInstallation = await _installIdentityService
+          .isFreshInstallation();
+      final onboarding = await _onboardingService.resolve(
+        isFreshInstallation: freshInstallation,
+      );
+      _showOnboarding = onboarding.shouldShow;
+      _onboardingInitialStep = onboarding.initialStep;
+      _showMenuShimmer = onboarding.shouldShowMenuShimmer;
+      _useDefaultOnboardingAppearance = onboarding.useDefaultAppearance;
+      if (kDebugMode) {
+        final previewEnabled =
+            onboarding.previewTokenStatus != PreviewTokenStatus.disabled;
+        final previewStatus = switch (onboarding.previewTokenStatus) {
+          PreviewTokenStatus.disabled => 'disabled',
+          PreviewTokenStatus.newToken => 'new',
+          PreviewTokenStatus.completedToken => 'completed',
+        };
+        debugPrint(
+          'DiurnusStartup: preview=${previewEnabled ? 'enabled' : 'disabled'} '
+          'previewToken=$previewStatus freshInstall=$freshInstallation '
+          'onboardingComplete=${onboarding.onboardingComplete} '
+          'destination=${onboarding.shouldShow ? 'onboarding' : 'today'}',
+        );
+      }
+    } catch (error) {
+      debugPrint('Error loading onboarding state: $error');
+    }
+    if (widget.enableStartupAudio) {
+      SoundEffectsService.instance.setEnabled(
+        _controller.settings.soundEffectsEnabled,
+      );
+      SoundEffectsService.instance.preload();
+    }
     _editionCoordinator.start();
     unawaited(_editionCoordinator.syncNow());
   }
 
+  Future<void> _completeOnboarding() async {
+    if (!mounted) return;
+    setState(() {
+      _showOnboarding = false;
+      _showMenuShimmer = true;
+    });
+  }
+
   Future<void> _initialize(Future<TodayPublicationLoad> publicationLoad) async {
-    final requiredState = _loadRequiredState();
+    await _loadRequiredState();
     final preferredReadiness = Future.wait([
-      requiredState,
       publicationLoad,
       Future<void>.delayed(const Duration(milliseconds: 850)),
     ]);
@@ -123,9 +196,21 @@ class _DiurnalAppState extends State<DiurnalApp> {
               ),
               home: LaunchGate(
                 initialization: _initialization,
-                child: TodayScreen(
-                  initialPublication: _publicationCompleter.future,
-                ),
+                builder: (context) => _showOnboarding
+                    ? OnboardingScreen(
+                        initialStep: _onboardingInitialStep,
+                        useDefaultAppearance: _useDefaultOnboardingAppearance,
+                        onboardingService: _onboardingService,
+                        onCompleted: _completeOnboarding,
+                      )
+                    : TodayScreen(
+                        initialPublication: _publicationCompleter.future,
+                        showMenuShimmer: _showMenuShimmer,
+                        onMenuShimmerConsumed: () async {
+                          await _onboardingService.consumeMenuShimmer();
+                          _showMenuShimmer = false;
+                        },
+                      ),
               ),
             );
           },

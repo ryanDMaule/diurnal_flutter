@@ -8,6 +8,8 @@ class MorphingMenuButton extends StatelessWidget {
     required this.onPressed,
     required this.tooltip,
     this.color = AppColors.textPrimary,
+    this.highlight = 0,
+    this.highlightColor = AppColors.textSecondary,
     super.key,
   });
 
@@ -17,25 +19,46 @@ class MorphingMenuButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String tooltip;
   final Color color;
+  final double highlight;
+  final Color highlightColor;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Hero(
-        tag: _heroTag,
-        createRectTween: (begin, end) => RectTween(begin: begin, end: end),
-        flightShuttleBuilder:
-            (flightContext, animation, direction, fromContext, toContext) {
-              return AnimatedBuilder(
-                animation: animation,
-                builder: (context, child) {
-                  return _MenuGlyph(progress: animation.value, color: color);
-                },
-              );
-            },
-        child: _MenuGlyph(progress: isOpen ? 1 : 0, color: color),
+    return DecoratedBox(
+      key: const Key('menu-control-highlight'),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: highlightColor.withValues(alpha: 0.08 * highlight),
+        border: Border.all(
+          color: highlightColor.withValues(alpha: 0.42 * highlight),
+        ),
+        boxShadow: highlight <= 0
+            ? null
+            : [
+                BoxShadow(
+                  color: highlightColor.withValues(alpha: 0.18 * highlight),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+      ),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Hero(
+          tag: _heroTag,
+          createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+          flightShuttleBuilder:
+              (flightContext, animation, direction, fromContext, toContext) {
+                return AnimatedBuilder(
+                  animation: animation,
+                  builder: (context, child) {
+                    return _MenuGlyph(progress: animation.value, color: color);
+                  },
+                );
+              },
+          child: _MenuGlyph(progress: isOpen ? 1 : 0, color: color),
+        ),
       ),
     );
   }

@@ -22,6 +22,7 @@ class PublicationView extends StatefulWidget {
     this.onRefresh,
     this.topLeftControl,
     this.topRightControl,
+    this.interfacePaletteOverride,
     super.key,
   });
 
@@ -35,6 +36,7 @@ class PublicationView extends StatefulWidget {
   final Future<void> Function()? onRefresh;
   final Widget? topLeftControl;
   final Widget? topRightControl;
+  final InterfacePalette? interfacePaletteOverride;
 
   @override
   State<PublicationView> createState() => _PublicationViewState();
@@ -126,7 +128,8 @@ class _PublicationViewState extends State<PublicationView> {
     )?.settings;
     final edition = resolveInterfaceColorEdition(
       widget.edition,
-      InterfaceThemeScope.maybePaletteOf(context),
+      widget.interfacePaletteOverride ??
+          InterfaceThemeScope.maybePaletteOf(context),
     );
     final useTactileType =
         widget.edition.id == Editions.evergreen.id &&
@@ -176,60 +179,30 @@ class _PublicationViewState extends State<PublicationView> {
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      SizedBox(height: screenHeight * 0.4),
-                      if (widget.isOffline)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            '⚠️ Offline mode — showing default word',
-                            style: TextStyle(
-                              color: primary,
-                              fontSize: 14,
-                              fontFamily: 'Figtree',
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      Text(
-                        publication.type.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: primary,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: 1,
-                          shadows: _tactileTextShadows(
-                            enabled: useTactileType,
-                            paper: usesPaperTreatment,
-                            supporting: true,
-                          ),
-                        ),
-                      ),
-                      _TodayHeroWord(
-                        word: publication.word,
-                        style: TextStyle(
-                          fontSize: 54,
-                          color: primary,
-                          fontFamily: 'NotoSerifJP',
-                          fontWeight: FontWeight.w400,
-                          shadows: _tactileTextShadows(
-                            enabled: useTactileType,
-                            paper: usesPaperTreatment,
-                          ),
-                        ),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SizedBox(height: screenHeight * 0.4),
+                          if (widget.isOffline)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                '⚠️ Offline mode — showing default word',
+                                style: TextStyle(
+                                  color: primary,
+                                  fontSize: 14,
+                                  fontFamily: 'Figtree',
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
                           Text(
-                            publication.phonetic,
+                            publication.type.toUpperCase(),
                             style: TextStyle(
-                              fontSize: 16,
-                              color: secondary,
-                              fontFamily: 'Figtree',
-                              fontWeight: FontWeight.w400,
+                              fontSize: 12,
+                              color: primary,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w300,
+                              letterSpacing: 1,
                               shadows: _tactileTextShadows(
                                 enabled: useTactileType,
                                 paper: usesPaperTreatment,
@@ -237,133 +210,166 @@ class _PublicationViewState extends State<PublicationView> {
                               ),
                             ),
                           ),
-                          SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: IconButton(
-                              tooltip: 'Hear pronunciation',
-                              padding: EdgeInsets.zero,
-                              iconSize: 19,
-                              color: secondary,
-                              onPressed: () => PronunciationService.instance
-                                  .speak(
-                                    publication.word,
-                                    preferred:
-                                        interfaceSettings?.pronunciationVoice,
-                                  ),
-                              icon: Icon(CupertinoIcons.speaker_2),
+                          _TodayHeroWord(
+                            word: publication.word,
+                            style: TextStyle(
+                              fontSize: 54,
+                              color: primary,
+                              fontFamily: 'NotoSerifJP',
+                              fontWeight: FontWeight.w400,
+                              shadows: _tactileTextShadows(
+                                enabled: useTactileType,
+                                paper: usesPaperTreatment,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          for (final label in [
-                            'definition',
-                            'usage',
-                            'synonyms',
-                          ])
-                            Padding(
-                              padding: const EdgeInsets.only(right: 28),
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {
-                                  if (selectedTab == label) return;
-                                  HapticService.selection(
-                                    enabled:
-                                        interfaceSettings
-                                            ?.hapticFeedbackEnabled ??
-                                        true,
-                                  );
-                                  setState(() => selectedTab = label);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      AnimatedOpacity(
-                                        duration: const Duration(
-                                          milliseconds: 150,
-                                        ),
-                                        opacity: 1,
-                                        child: Text(
-                                          '${label[0].toUpperCase()}${label.substring(1)}',
-                                          style: TextStyle(
-                                            color: selectedTab == label
-                                                ? primary
-                                                : muted,
-                                            fontFamily: 'Figtree',
-                                            fontSize: 16,
-                                            fontWeight: selectedTab == label
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 5),
-                                      AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 150,
-                                        ),
-                                        width: selectedTab == label ? 22 : 0,
-                                        height: 2,
-                                        decoration: BoxDecoration(
-                                          color: accent,
-                                          borderRadius: BorderRadius.circular(
-                                            2,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                publication.phonetic,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: secondary,
+                                  fontFamily: 'Figtree',
+                                  fontWeight: FontWeight.w400,
+                                  shadows: _tactileTextShadows(
+                                    enabled: useTactileType,
+                                    paper: usesPaperTreatment,
+                                    supporting: true,
                                   ),
                                 ),
                               ),
-                            ),
+                              SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: IconButton(
+                                  tooltip: 'Hear pronunciation',
+                                  padding: EdgeInsets.zero,
+                                  iconSize: 19,
+                                  color: secondary,
+                                  onPressed: () =>
+                                      PronunciationService.instance.speak(
+                                        publication.word,
+                                        preferred: interfaceSettings
+                                            ?.pronunciationVoice,
+                                      ),
+                                  icon: Icon(CupertinoIcons.speaker_2),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              for (final label in [
+                                'definition',
+                                'usage',
+                                'synonyms',
+                              ])
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 28),
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      if (selectedTab == label) return;
+                                      HapticService.selection(
+                                        enabled:
+                                            interfaceSettings
+                                                ?.hapticFeedbackEnabled ??
+                                            true,
+                                      );
+                                      setState(() => selectedTab = label);
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          AnimatedOpacity(
+                                            duration: const Duration(
+                                              milliseconds: 150,
+                                            ),
+                                            opacity: 1,
+                                            child: Text(
+                                              '${label[0].toUpperCase()}${label.substring(1)}',
+                                              style: TextStyle(
+                                                color: selectedTab == label
+                                                    ? primary
+                                                    : muted,
+                                                fontFamily: 'Figtree',
+                                                fontSize: 16,
+                                                fontWeight: selectedTab == label
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 5),
+                                          AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 150,
+                                            ),
+                                            width: selectedTab == label
+                                                ? 22
+                                                : 0,
+                                            height: 2,
+                                            decoration: BoxDecoration(
+                                              color: accent,
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation.drive(
+                                    CurveTween(
+                                      curve: const Interval(
+                                        0.5,
+                                        1,
+                                        curve: Curves.easeOut,
+                                      ),
+                                    ),
+                                  ),
+                                  child: ScaleTransition(
+                                    scale: Tween<double>(begin: 0.98, end: 1)
+                                        .animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOutBack,
+                                          ),
+                                        ),
+                                    child: child,
+                                  ),
+                                ),
+                            layoutBuilder: (currentChild, previousChildren) =>
+                                Stack(
+                                  alignment: Alignment.topLeft,
+                                  children: [
+                                    ...previousChildren,
+                                    if (currentChild != null) currentChild,
+                                  ],
+                                ),
+                            child: _content(accent: accent),
+                          ),
+                          const SizedBox(height: 72),
                         ],
-                      ),
-                      const SizedBox(height: 16),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) => FadeTransition(
-                          opacity: animation.drive(
-                            CurveTween(
-                              curve: const Interval(
-                                0.5,
-                                1,
-                                curve: Curves.easeOut,
-                              ),
-                            ),
-                          ),
-                          child: ScaleTransition(
-                            scale: Tween<double>(begin: 0.98, end: 1).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOutBack,
-                              ),
-                            ),
-                            child: child,
-                          ),
-                        ),
-                        layoutBuilder: (currentChild, previousChildren) =>
-                            Stack(
-                              alignment: Alignment.topLeft,
-                              children: [
-                                ...previousChildren,
-                                if (currentChild != null) currentChild,
-                              ],
-                            ),
-                        child: _content(accent: accent),
-                      ),
-                        const SizedBox(height: 72),
-                      ],
                       ),
                     ),
                   ),
@@ -478,7 +484,10 @@ class _TodayHeroWord extends StatelessWidget {
 
         double measuredWidth(double fontSize) {
           final painter = TextPainter(
-            text: TextSpan(text: word, style: style.copyWith(fontSize: fontSize)),
+            text: TextSpan(
+              text: word,
+              style: style.copyWith(fontSize: fontSize),
+            ),
             maxLines: 1,
             textDirection: textDirection,
             textScaler: textScaler,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -24,6 +25,8 @@ class TodayScreen extends StatefulWidget {
     this.widgetSyncService,
     this.now,
     this.soundEffectsService,
+    this.showMenuShimmer = false,
+    this.onMenuShimmerConsumed,
     super.key,
   });
 
@@ -32,12 +35,15 @@ class TodayScreen extends StatefulWidget {
   final WidgetSyncService? widgetSyncService;
   final DateTime Function()? now;
   final SoundEffectsService? soundEffectsService;
+  final bool showMenuShimmer;
+  final Future<void> Function()? onMenuShimmerConsumed;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
 }
 
-class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
+class _TodayScreenState extends State<TodayScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final BookmarkService _bookmarkService = BookmarkService();
   final EditionService _editionService = EditionService();
   late final WidgetSyncService _widgetSyncService;
@@ -46,6 +52,7 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
   late final SoundEffectsService _soundEffectsService;
   Future<void>? _activeLoad;
   Timer? _dateRolloverTimer;
+  Timer? _menuDiscoveryTimer;
   late DateTime _observedDate;
   DateTime? _lastAutomaticRefresh;
   bool _initialPublicationConsumed = false;
@@ -55,6 +62,9 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
   bool isOffline = false;
   bool isBookmarked = false;
   bool isBookmarkUpdating = false;
+  bool _menuDiscoveryCompleted = false;
+  bool _appIsActive = true;
+  late final AnimationController _menuShimmerController;
 
   @override
   void initState() {
@@ -64,24 +74,43 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
     _now = widget.now ?? DateTime.now;
     _soundEffectsService =
         widget.soundEffectsService ?? SoundEffectsService.instance;
+    _menuShimmerController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 1800),
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
     _observedDate = _dateOnly(_now());
     WidgetsBinding.instance.addObserver(this);
     _scheduleDateRollover();
     _restoreEditionState();
     _loadPublication();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scheduleMenuDiscovery(const Duration(seconds: 3)),
+    );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _dateRolloverTimer?.cancel();
+    _menuDiscoveryTimer?.cancel();
+    _menuShimmerController.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _appIsActive = true;
       unawaited(_refreshAfterResume());
+      _scheduleMenuDiscovery(const Duration(seconds: 3));
+    } else {
+      _appIsActive = false;
+      _menuDiscoveryTimer?.cancel();
+      _menuShimmerController.stop();
+      _menuShimmerController.reset();
     }
   }
 
@@ -175,8 +204,55 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
         color: effectiveEdition.primaryTextColor,
         tooltip: 'Open menu',
         onPressed: _openMenu,
+        highlight: _menuShimmerHighlight,
+        highlightColor: effectiveEdition.accentColor,
       ),
     );
+  }
+
+  double get _menuShimmerHighlight {
+    if (!_menuShimmerController.isAnimating) return 0;
+    final wave = math.sin(_menuShimmerController.value * math.pi * 4);
+    return math.max(0, wave);
+  }
+
+  bool get _reduceMenuDiscoveryMotion =>
+      (InterfaceThemeScope.maybeControllerOf(
+            context,
+          )?.settings.reduceAnimations ??
+          false) ||
+      MediaQuery.of(context).disableAnimations;
+
+  void _scheduleMenuDiscovery(Duration delay) {
+    _menuDiscoveryTimer?.cancel();
+    if (!widget.showMenuShimmer ||
+        _menuDiscoveryCompleted ||
+        !_appIsActive ||
+        !mounted ||
+        _reduceMenuDiscoveryMotion) {
+      return;
+    }
+    _menuDiscoveryTimer = Timer(delay, _playMenuDiscoveryHighlight);
+  }
+
+  Future<void> _playMenuDiscoveryHighlight() async {
+    if (!mounted ||
+        !_appIsActive ||
+        _menuDiscoveryCompleted ||
+        _reduceMenuDiscoveryMotion) {
+      return;
+    }
+    _scheduleMenuDiscovery(const Duration(seconds: 10));
+    await _menuShimmerController.forward(from: 0);
+  }
+
+  Future<void> _completeMenuDiscovery() async {
+    if (_menuDiscoveryCompleted || !widget.showMenuShimmer) return;
+    _menuDiscoveryCompleted = true;
+    _menuDiscoveryTimer?.cancel();
+    _menuShimmerController.stop();
+    _menuShimmerController.reset();
+    await widget.onMenuShimmerConsumed?.call();
   }
 
   Future<void> _restoreBookmarkState(DailyPublication current) async {
@@ -246,6 +322,8 @@ class _TodayScreenState extends State<TodayScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _openMenu() async {
+    await _completeMenuDiscovery();
+    if (!mounted) return;
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     await Navigator.of(context).push(
       PageRouteBuilder<void>(

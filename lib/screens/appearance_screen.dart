@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors_in_immutables
+// ignore_for_file: prefer_const_constructors_in_immutables, unused_element
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
@@ -14,6 +14,7 @@ import '../services/haptic_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
+import '../widgets/appearance_selector.dart';
 import '../widgets/entitlement_scope.dart';
 import '../widgets/publication_view.dart';
 import 'pro_screen.dart';
@@ -134,10 +135,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
     }
     if (selectedEdition.id == edition.id) return;
     HapticService.selection(
-      enabled:
-          InterfaceThemeScope.controllerOf(
-            context,
-          ).settings.hapticFeedbackEnabled,
+      enabled: InterfaceThemeScope.controllerOf(
+        context,
+      ).settings.hapticFeedbackEnabled,
     );
     setState(() => selectedEdition = edition);
     try {
@@ -159,9 +159,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   Future<void> _selectInterfaceColor(InterfaceColor color) async {
     final controller = InterfaceThemeScope.controllerOf(context);
     if (controller.settings.interfaceColor == color) return;
-    HapticService.selection(
-      enabled: controller.settings.hapticFeedbackEnabled,
-    );
+    HapticService.selection(enabled: controller.settings.hapticFeedbackEnabled);
     try {
       await controller.update(
         controller.settings.copyWith(interfaceColor: color),
@@ -174,11 +172,6 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   @override
   Widget build(BuildContext context) {
     final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
-    final palette = InterfaceThemeScope.maybePaletteOf(context);
-    final effectiveEdition = EditionAccessPolicy.effectiveFor(
-      selectedEdition,
-      isPro: isPro,
-    );
     return Scaffold(
       backgroundColor: InterfaceThemeScope.maybePaletteOf(context).background,
       body: InterfaceSafeArea(
@@ -242,70 +235,23 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                 key: Key('appearance-edition-list'),
                 padding: EdgeInsets.fromLTRB(24, 0, 24, 30),
                 children: [
-                  _ThemeColorSelector(
-                    selected: InterfaceThemeScope.controllerOf(
+                  AppearanceSelector(
+                    selectedColor: InterfaceThemeScope.controllerOf(
                       context,
                     ).settings.interfaceColor,
-                    onSelected: _selectInterfaceColor,
-                  ),
-                  SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Text(
-                        'Tap to select · Hold to preview',
-                        style: TextStyle(
-                          color: palette.secondary,
-                          fontFamily: 'Figtree',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w300,
-                        ),
+                    selectedEdition: selectedEdition,
+                    isPro: isPro,
+                    previewPublication: widget.previewPublication,
+                    previewIsBookmarked: _previewIsBookmarked,
+                    onColorSelected: _selectInterfaceColor,
+                    onEditionSelected: (edition) =>
+                        _select(edition, isPro: isPro),
+                    onLockedEditionSelected: (_) => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) =>
+                            ProScreen(backTooltip: 'Back to Appearance'),
                       ),
-                      SizedBox(width: 8),
-                      Icon(
-                        Icons.visibility_outlined,
-                        color: palette.accent,
-                        size: 19,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      const spacing = 12.0;
-                      final cardWidth =
-                          (constraints.maxWidth - (spacing * 2)) / 3;
-                      final previewHeight = cardWidth / 0.58;
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: Editions.all.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: spacing,
-                          mainAxisSpacing: 18,
-                          mainAxisExtent: previewHeight + 32,
-                        ),
-                        itemBuilder: (context, index) {
-                          final edition = Editions.all[index];
-                          final previewEdition = resolveInterfaceColorEdition(
-                            edition,
-                            palette,
-                          );
-                          final locked = !EditionAccessPolicy.canSelect(
-                            edition,
-                            isPro: isPro,
-                          );
-                          return _EditionCard(
-                            edition: previewEdition,
-                            selected: effectiveEdition.id == edition.id,
-                            locked: locked,
-                            onTap: () => _select(edition, isPro: isPro),
-                            onPreviewStart: () => _showPreview(previewEdition),
-                            onPreviewEnd: _hidePreview,
-                          );
-                        },
-                      );
-                    },
+                    ),
                   ),
                 ],
               ),
@@ -338,8 +284,7 @@ class _EditionFullScreenPreview extends StatefulWidget {
       _EditionFullScreenPreviewState();
 }
 
-class _EditionFullScreenPreviewState
-    extends State<_EditionFullScreenPreview>
+class _EditionFullScreenPreviewState extends State<_EditionFullScreenPreview>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _opacity;
@@ -483,9 +428,7 @@ class _EditionCard extends StatelessWidget {
                             ).primary.withValues(alpha: 0.6),
                       fontFamily: 'NotoSerifJP',
                       fontSize: 13,
-                      fontWeight: selected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ),
@@ -505,7 +448,9 @@ class _EditionCard extends StatelessWidget {
                     child: Text(
                       'PRO',
                       style: TextStyle(
-                        color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).accent,
                         fontFamily: 'Figtree',
                         fontSize: 7,
                         fontWeight: FontWeight.w600,
@@ -547,7 +492,10 @@ class _EditionPreviewContent extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          Container(height: 1, color: edition.accentColor.withValues(alpha: 0.7)),
+          Container(
+            height: 1,
+            color: edition.accentColor.withValues(alpha: 0.7),
+          ),
           SizedBox(height: 7),
           _PreviewLine(color: edition.secondaryTextColor, widthFactor: 0.92),
           SizedBox(height: 4),
@@ -568,18 +516,12 @@ class _PreviewLine extends StatelessWidget {
   Widget build(BuildContext context) => FractionallySizedBox(
     widthFactor: widthFactor,
     alignment: Alignment.centerLeft,
-    child: Container(
-      height: 1,
-      color: color.withValues(alpha: 0.55),
-    ),
+    child: Container(height: 1, color: color.withValues(alpha: 0.55)),
   );
 }
 
 class _ThemeColorSelector extends StatelessWidget {
-  const _ThemeColorSelector({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _ThemeColorSelector({required this.selected, required this.onSelected});
 
   final InterfaceColor selected;
   final ValueChanged<InterfaceColor> onSelected;
