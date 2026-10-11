@@ -7,6 +7,7 @@ import '../services/app_settings_service.dart';
 import '../services/edition_service.dart';
 import '../services/endless_recall_service.dart';
 import '../services/entitlement_service.dart';
+import '../services/feature_introduction_service.dart';
 import '../services/match_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
@@ -33,6 +34,7 @@ class MenuScreen extends StatelessWidget {
     this.matchService,
     this.appSettingsService,
     this.entitlementController,
+    this.featureIntroductionService,
     this.currentPublication,
     super.key,
   });
@@ -46,6 +48,7 @@ class MenuScreen extends StatelessWidget {
   final MatchService? matchService;
   final AppSettingsService? appSettingsService;
   final EntitlementController? entitlementController;
+  final FeatureIntroductionService? featureIntroductionService;
   final DailyPublication? currentPublication;
 
   @override
@@ -81,7 +84,9 @@ class MenuScreen extends StatelessWidget {
                       subtitle: 'Your saved words',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (context) => MyLexiconScreen(),
+                          builder: (context) => MyLexiconScreen(
+                            introductionService: featureIntroductionService,
+                          ),
                         ),
                       ),
                     ),
@@ -96,6 +101,7 @@ class MenuScreen extends StatelessWidget {
                             apiService: archiveApiService,
                             bookmarkService: bookmarkService,
                             editionService: editionService,
+                            introductionService: featureIntroductionService,
                           ),
                         ),
                       ),
@@ -114,6 +120,7 @@ class MenuScreen extends StatelessWidget {
                             settingsService: recallSettingsService,
                             endlessService: endlessRecallService,
                             matchService: matchService,
+                            introductionService: featureIntroductionService,
                           ),
                         ),
                       ),

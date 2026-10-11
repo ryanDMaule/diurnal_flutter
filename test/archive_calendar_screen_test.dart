@@ -19,6 +19,8 @@ import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
+import 'support/seen_feature_introductions.dart';
+
 void main() {
   late BookmarkService bookmarkService;
   late EditionService editionService;
@@ -54,6 +56,7 @@ void main() {
           apiService: apiService,
           bookmarkService: bookmarkService,
           editionService: editionService,
+          introductionService: seenFeatureIntroductions(),
         ),
       ),
     );

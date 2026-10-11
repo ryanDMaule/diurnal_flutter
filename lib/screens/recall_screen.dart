@@ -11,6 +11,7 @@ import '../models/recall_settings.dart';
 import '../models/recall_settings_policy.dart';
 import '../services/bookmark_service.dart';
 import '../services/endless_recall_service.dart';
+import '../services/feature_introduction_service.dart';
 import '../services/match_service.dart';
 import '../services/publication_api_service.dart';
 import '../services/recall_progress_service.dart';
@@ -18,6 +19,7 @@ import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/edition_background.dart';
 import '../widgets/entitlement_scope.dart';
+import '../widgets/feature_introduction_sheet.dart';
 import 'endless_recall_session_screen.dart';
 import 'match_session_screen.dart';
 import 'match_ready_screen.dart';
@@ -61,6 +63,7 @@ class RecallScreen extends StatefulWidget {
     MatchService? matchService,
     MatchSessionGenerator? matchGenerator,
     RecallSessionGenerator? sessionGenerator,
+    FeatureIntroductionService? introductionService,
     super.key,
   }) : apiService = apiService ?? PublicationApiService(),
        bookmarkService = bookmarkService ?? BookmarkService(),
@@ -69,7 +72,9 @@ class RecallScreen extends StatefulWidget {
        endlessService = endlessService ?? EndlessRecallService(),
        matchService = matchService ?? MatchService(),
        matchGenerator = matchGenerator ?? MatchSessionGenerator(),
-       sessionGenerator = sessionGenerator ?? RecallSessionGenerator();
+       sessionGenerator = sessionGenerator ?? RecallSessionGenerator(),
+       introductionService =
+           introductionService ?? FeatureIntroductionService();
 
   final PublicationApiService apiService;
   final BookmarkService bookmarkService;
@@ -79,6 +84,7 @@ class RecallScreen extends StatefulWidget {
   final MatchService matchService;
   final MatchSessionGenerator matchGenerator;
   final RecallSessionGenerator sessionGenerator;
+  final FeatureIntroductionService introductionService;
 
   @override
   State<RecallScreen> createState() => _RecallScreenState();
@@ -98,6 +104,8 @@ class _RecallScreenState extends State<RecallScreen> {
   int? _matchBestMilliseconds;
   bool _retryStartsEndless = false;
   bool _retryStartsMatch = false;
+  bool _automaticIntroductionChecked = false;
+  bool _isPresentingIntroduction = false;
 
   @override
   void initState() {
@@ -138,6 +146,12 @@ class _RecallScreenState extends State<RecallScreen> {
   }
 
   Future<void> _loadProgress() async {
+    var hasActivity = false;
+    try {
+      hasActivity = await widget.progressService.hasRecordedActivity();
+    } catch (error) {
+      debugPrint('Error checking Recall activity: $error');
+    }
     try {
       final archive = await _getArchive();
       final summary = await widget.progressService.summaryFor(archive);
@@ -147,6 +161,7 @@ class _RecallScreenState extends State<RecallScreen> {
         _isProgressLoading = false;
         _progressUnavailable = false;
       });
+      _scheduleIntroduction(suppressAutomatic: hasActivity);
     } catch (error) {
       debugPrint('Error loading Recall progress: $error');
       if (!mounted) return;
@@ -154,6 +169,45 @@ class _RecallScreenState extends State<RecallScreen> {
         _isProgressLoading = false;
         _progressUnavailable = true;
       });
+      _scheduleIntroduction(suppressAutomatic: hasActivity);
+    }
+  }
+
+  void _scheduleIntroduction({required bool suppressAutomatic}) {
+    if (_automaticIntroductionChecked) return;
+    _automaticIntroductionChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (suppressAutomatic) {
+        await widget.introductionService.markSeen(FeatureIntroduction.recall);
+        return;
+      }
+      await _showIntroduction();
+    });
+  }
+
+  Future<void> _showIntroduction({bool manual = false}) async {
+    if (_isPresentingIntroduction || !mounted) return;
+    if (!manual &&
+        await widget.introductionService.hasSeen(FeatureIntroduction.recall)) {
+      return;
+    }
+    if (!mounted) return;
+    _isPresentingIntroduction = true;
+    try {
+      await showFeatureIntroductionSheet(
+        context: context,
+        heading: 'Remember what you discover.',
+        description:
+            'Practise words from Diurnus and track what you\'ve learned. '
+            'Each new daily publication adds another word to revisit.',
+        actionLabel: 'Explore Recall',
+        visual: _RecallIntroductionProgress(summary: _progressSummary),
+        useRecallPalette: true,
+      );
+      await widget.introductionService.markSeen(FeatureIntroduction.recall);
+    } finally {
+      _isPresentingIntroduction = false;
     }
   }
 
@@ -461,6 +515,17 @@ class _RecallScreenState extends State<RecallScreen> {
                         ),
                       ),
                       Spacer(),
+                      IconButton(
+                        key: Key('recall-introduction-info'),
+                        tooltip: 'About Recall',
+                        onPressed: () => _showIntroduction(manual: true),
+                        icon: Icon(
+                          CupertinoIcons.info_circle,
+                          color: _recallEdition.accentColor,
+                          size: 23,
+                        ),
+                      ),
+                      SizedBox(width: 6),
                       Container(
                         width: 48,
                         height: 48,
@@ -613,6 +678,75 @@ class _RecallScreenState extends State<RecallScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RecallIntroductionProgress extends StatelessWidget {
+  const _RecallIntroductionProgress({required this.summary});
+
+  final RecallProgressSummary? summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = [
+      ('Unseen', 'not yet attempted', summary?.unseen),
+      ('Revisit', 'attempted but not yet recalled', summary?.revisit),
+      ('Recalled', 'answered correctly', summary?.recalled),
+    ];
+    return Container(
+      key: const Key('recall-introduction-progress'),
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      decoration: const BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: Color(0x6656665E)),
+        ),
+      ),
+      child: Column(
+        children: [
+          for (final value in values)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 82,
+                    child: Text(
+                      value.$1,
+                      style: const TextStyle(
+                        color: Color(0xFFC49A52),
+                        fontFamily: 'Figtree',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      value.$2,
+                      style: const TextStyle(
+                        color: Color(0xFFD2C7B5),
+                        fontFamily: 'Figtree',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                  ),
+                  if (value.$3 != null)
+                    Text(
+                      '${value.$3}',
+                      style: const TextStyle(
+                        color: Color(0xFFE7E0D4),
+                        fontFamily: 'Figtree',
+                        fontSize: 13,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

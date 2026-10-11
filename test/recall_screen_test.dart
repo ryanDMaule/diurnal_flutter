@@ -31,6 +31,7 @@ import 'package:diurnul/services/sound_effects_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 
 import 'support/fake_sound_effects.dart';
+import 'support/seen_feature_introductions.dart';
 
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
@@ -75,6 +76,7 @@ void main() {
             archiveApiService: _apiReturning(archive),
             bookmarkService: bookmarkService,
             recallProgressService: progressService,
+            featureIntroductionService: seenFeatureIntroductions(),
             recallSettingsService: RecallSettingsService(
               storage: _MemoryRecallSettingsStorage(),
             ),
@@ -831,6 +833,7 @@ void main() {
             apiService: _apiReturning(archive),
             bookmarkService: bookmarkService,
             progressService: progressService,
+            introductionService: seenFeatureIntroductions(),
             settingsService: revisitSettings,
             endlessService: EndlessRecallService(
               storage: _MemoryEndlessRecallStorage(),
@@ -1317,6 +1320,7 @@ Future<void> _pumpLandingWithApi(
       apiService: apiService,
       bookmarkService: bookmarkService,
       progressService: progressService,
+      introductionService: seenFeatureIntroductions(),
       settingsService: settingsService,
       sessionGenerator: RecallSessionGenerator(random: Random(4)),
       endlessService: EndlessRecallService(

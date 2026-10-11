@@ -57,6 +57,10 @@ class RecallProgressService {
   static const _attemptedStorageKey = 'diurnus.attemptedPublicationIds';
   final RecallProgressStorage _storage;
 
+  Future<bool> hasRecordedActivity() async =>
+      (await _publicationIds(_attemptedStorageKey)).isNotEmpty ||
+      (await recalledPublicationIds()).isNotEmpty;
+
   Future<Set<String>> recalledPublicationIds() async {
     final stored = await _storage.read(_storageKey);
     if (stored == null || stored.isEmpty) return {};

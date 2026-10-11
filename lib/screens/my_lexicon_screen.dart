@@ -9,9 +9,11 @@ import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/haptic_service.dart';
 import '../services/edition_service.dart';
+import '../services/feature_introduction_service.dart';
 import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/diurnus_loading_state.dart';
+import '../widgets/feature_introduction_sheet.dart';
 import 'saved_publication_screen.dart';
 
 List<DailyPublication> sortLexiconPublications(
@@ -45,15 +47,19 @@ class MyLexiconScreen extends StatefulWidget {
     BookmarkService? bookmarkService,
     EditionService? editionService,
     SoundEffectsService? soundEffectsService,
+    FeatureIntroductionService? introductionService,
     super.key,
   }) : bookmarkService = bookmarkService ?? BookmarkService(),
        editionService = editionService ?? EditionService(),
        soundEffectsService =
-           soundEffectsService ?? SoundEffectsService.instance;
+           soundEffectsService ?? SoundEffectsService.instance,
+       introductionService =
+           introductionService ?? FeatureIntroductionService();
 
   final BookmarkService bookmarkService;
   final EditionService editionService;
   final SoundEffectsService soundEffectsService;
+  final FeatureIntroductionService introductionService;
 
   @override
   State<MyLexiconScreen> createState() => _MyLexiconScreenState();
@@ -65,6 +71,8 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
   final Map<String, GlobalKey> _sectionKeys = {};
   List<DailyPublication> _publications = [];
   bool _isLoading = true;
+  bool _automaticIntroductionChecked = false;
+  bool _isPresentingIntroduction = false;
 
   @override
   void initState() {
@@ -87,9 +95,54 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
         _publications = sortLexiconPublications(saved);
         _isLoading = false;
       });
+      _scheduleIntroduction();
     } catch (error) {
       debugPrint('Error loading My Lexicon: $error');
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _scheduleIntroduction() {
+    if (_automaticIntroductionChecked) return;
+    _automaticIntroductionChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_showIntroduction());
+    });
+  }
+
+  Future<void> _showIntroduction({bool manual = false}) async {
+    if (_isPresentingIntroduction || !mounted) return;
+    if (!manual) {
+      if (_publications.isNotEmpty) {
+        await widget.introductionService.markSeen(
+          FeatureIntroduction.myLexicon,
+        );
+        return;
+      }
+      if (await widget.introductionService.hasSeen(
+        FeatureIntroduction.myLexicon,
+      )) {
+        return;
+      }
+    }
+    if (!mounted) return;
+    _isPresentingIntroduction = true;
+    final sample = _publications.firstOrNull;
+    try {
+      await showFeatureIntroductionSheet(
+        context: context,
+        heading: 'Words you choose to keep.',
+        description:
+            'Bookmark words to build your own collection.\n'
+            'Search or browse them alphabetically whenever you like.',
+        actionLabel: sample == null ? 'Start collecting' : 'View my words',
+        visual: sample == null
+            ? const _LexiconBookmarkVisual()
+            : _LexiconIntroductionSample(publication: sample),
+      );
+      await widget.introductionService.markSeen(FeatureIntroduction.myLexicon);
+    } finally {
+      _isPresentingIntroduction = false;
     }
   }
 
@@ -150,14 +203,32 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
                 ),
               ),
               SizedBox(height: 22),
-              Text(
-                'My Lexicon',
-                style: TextStyle(
-                  color: InterfaceThemeScope.maybePaletteOf(context).primary,
-                  fontFamily: 'NotoSerifJP',
-                  fontSize: 40,
-                  fontWeight: FontWeight.w400,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'My Lexicon',
+                      style: TextStyle(
+                        color: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).primary,
+                        fontFamily: 'NotoSerifJP',
+                        fontSize: 40,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: Key('lexicon-introduction-info'),
+                    tooltip: 'About My Lexicon',
+                    onPressed: () => _showIntroduction(manual: true),
+                    icon: Icon(
+                      CupertinoIcons.info_circle,
+                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                      size: 23,
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 5),
               Text(
@@ -341,6 +412,76 @@ class _MyLexiconScreenState extends State<MyLexiconScreen> {
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LexiconBookmarkVisual extends StatelessWidget {
+  const _LexiconBookmarkVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    return Center(
+      child: Container(
+        width: 58,
+        height: 58,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: palette.accent.withValues(alpha: 0.55)),
+        ),
+        child: Icon(CupertinoIcons.bookmark, color: palette.accent, size: 25),
+      ),
+    );
+  }
+}
+
+class _LexiconIntroductionSample extends StatelessWidget {
+  const _LexiconIntroductionSample({required this.publication});
+
+  final DailyPublication publication;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    return Container(
+      key: const Key('lexicon-introduction-sample'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: palette.background.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.divider),
+      ),
+      child: Row(
+        children: [
+          Icon(CupertinoIcons.bookmark_fill, color: palette.accent, size: 21),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  publication.word,
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontFamily: 'NotoSerifJP',
+                    fontSize: 21,
+                  ),
+                ),
+                if (publication.type.isNotEmpty)
+                  Text(
+                    publication.type,
+                    style: TextStyle(
+                      color: palette.secondary,
+                      fontFamily: 'Figtree',
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],

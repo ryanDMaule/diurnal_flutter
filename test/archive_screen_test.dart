@@ -20,6 +20,8 @@ import 'package:diurnul/services/publication_api_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
+import 'support/seen_feature_introductions.dart';
+
 void main() {
   late _MemoryBookmarkStorage bookmarkStorage;
   late BookmarkService bookmarkService;
@@ -41,6 +43,7 @@ void main() {
           archiveApiService: service,
           bookmarkService: bookmarkService,
           editionService: editionService,
+          featureIntroductionService: seenFeatureIntroductions(),
         ),
       ),
     );
@@ -276,6 +279,7 @@ void main() {
           apiService: service,
           bookmarkService: bookmarkService,
           editionService: editionService,
+          introductionService: seenFeatureIntroductions(),
         ),
       ),
     );
@@ -351,6 +355,7 @@ Future<void> _pumpArchive(
       apiService: apiService,
       bookmarkService: bookmarkService,
       editionService: editionService,
+      introductionService: seenFeatureIntroductions(),
     ),
   );
   await tester.pumpWidget(

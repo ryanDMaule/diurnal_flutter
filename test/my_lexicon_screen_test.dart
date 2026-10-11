@@ -16,6 +16,7 @@ import 'package:diurnul/widgets/entitlement_scope.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
 import 'support/fake_sound_effects.dart';
+import 'support/seen_feature_introductions.dart';
 
 void main() {
   late _MemoryBookmarkStorage storage;
@@ -60,6 +61,7 @@ void main() {
             home: MyLexiconScreen(
               bookmarkService: service,
               editionService: editionService,
+              introductionService: seenFeatureIntroductions(),
             ),
           ),
         ),
@@ -94,6 +96,7 @@ void main() {
         home: MyLexiconScreen(
           bookmarkService: service,
           editionService: editionService,
+          introductionService: seenFeatureIntroductions(),
         ),
       ),
     );
@@ -124,6 +127,7 @@ void main() {
           bookmarkService: service,
           editionService: editionService,
           soundEffectsService: SoundEffectsService(playback: playback),
+          introductionService: seenFeatureIntroductions(),
         ),
       ),
     );

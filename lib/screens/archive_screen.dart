@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_const_constructors_in_immutables
 
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -8,10 +10,12 @@ import '../services/archive_access.dart';
 import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/entitlement_service.dart';
+import '../services/feature_introduction_service.dart';
 import '../services/publication_api_service.dart';
 import '../theme/interface_theme.dart';
 import '../widgets/diurnus_loading_state.dart';
 import '../widgets/entitlement_scope.dart';
+import '../widgets/feature_introduction_sheet.dart';
 import 'archive_calendar_screen.dart';
 import 'pro_screen.dart';
 import 'saved_publication_screen.dart';
@@ -47,15 +51,19 @@ class ArchiveScreen extends StatefulWidget {
     PublicationApiService? apiService,
     BookmarkService? bookmarkService,
     EditionService? editionService,
+    FeatureIntroductionService? introductionService,
     this.entitlementController,
     super.key,
   }) : apiService = apiService ?? PublicationApiService(),
        bookmarkService = bookmarkService ?? BookmarkService(),
-       editionService = editionService ?? EditionService();
+       editionService = editionService ?? EditionService(),
+       introductionService =
+           introductionService ?? FeatureIntroductionService();
 
   final PublicationApiService apiService;
   final BookmarkService bookmarkService;
   final EditionService editionService;
+  final FeatureIntroductionService introductionService;
   final EntitlementController? entitlementController;
 
   @override
@@ -67,6 +75,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
   bool _isLoading = true;
   Object? _error;
   Future<void>? _activeLoad;
+  bool _automaticIntroductionChecked = false;
+  bool _isPresentingIntroduction = false;
 
   @override
   void initState() {
@@ -110,6 +120,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
         _error = null;
       });
     }
+    _scheduleIntroduction();
 
     if (hasCache &&
         !forceRefresh &&
@@ -187,6 +198,41 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     );
   }
 
+  void _scheduleIntroduction() {
+    if (_automaticIntroductionChecked) return;
+    _automaticIntroductionChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_showIntroduction());
+    });
+  }
+
+  Future<void> _showIntroduction({bool manual = false}) async {
+    if (_isPresentingIntroduction || !mounted) return;
+    if (!manual &&
+        await widget.introductionService.hasSeen(FeatureIntroduction.archive)) {
+      return;
+    }
+    if (!mounted) return;
+    _isPresentingIntroduction = true;
+    final sample = _publications.firstOrNull;
+    try {
+      await showFeatureIntroductionSheet(
+        context: context,
+        heading: 'Every word, kept.',
+        description:
+            'Each daily publication joins the Archive.\n'
+            'Browse by month or choose a date from the calendar.',
+        actionLabel: 'Explore Archive',
+        visual: sample == null
+            ? null
+            : _ArchiveIntroductionSample(publication: sample),
+      );
+      await widget.introductionService.markSeen(FeatureIntroduction.archive);
+    } finally {
+      _isPresentingIntroduction = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -237,6 +283,16 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  IconButton(
+                    key: Key('archive-introduction-info'),
+                    tooltip: 'About Archive',
+                    onPressed: () => _showIntroduction(manual: true),
+                    icon: Icon(
+                      CupertinoIcons.info_circle,
+                      color: InterfaceThemeScope.maybePaletteOf(context).accent,
+                      size: 23,
                     ),
                   ),
                   if (!_isLoading && _error == null && _publications.isNotEmpty)
@@ -357,6 +413,84 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               ),
             SizedBox(height: 22),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ArchiveIntroductionSample extends StatelessWidget {
+  const _ArchiveIntroductionSample({required this.publication});
+
+  final DailyPublication publication;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = InterfaceThemeScope.maybePaletteOf(context);
+    final date = publication.publicationDate!;
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    return Container(
+      key: const Key('archive-introduction-sample'),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: palette.divider),
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(
+              '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]}',
+              style: TextStyle(
+                color: palette.accent,
+                fontFamily: 'Figtree',
+                fontSize: 12,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  publication.word,
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontFamily: 'NotoSerifJP',
+                    fontSize: 22,
+                  ),
+                ),
+                if (publication.type.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    publication.type.toUpperCase(),
+                    style: TextStyle(
+                      color: palette.secondary,
+                      fontFamily: 'Figtree',
+                      fontSize: 10,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
