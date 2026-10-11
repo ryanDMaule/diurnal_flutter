@@ -547,7 +547,6 @@ void main() {
       final firstContent = tester
           .widget<Text>(find.byKey(const Key('endless-question-content')))
           .data;
-      expect(archive.map((item) => item.word), contains(firstContent));
       expect(find.textContaining('/'), findsNothing);
 
       final session = tester.widget<EndlessRecallSessionScreen>(
@@ -748,6 +747,33 @@ void main() {
         (question) => question.type == RecallQuestionType.definitionToWord,
       ),
       isTrue,
+    );
+  });
+
+  testWidgets('synonym-only mode explains insufficient eligible vocabulary', (
+    tester,
+  ) async {
+    final ineligible = [
+      _publication('none', 1, 'None', synonyms: const []),
+      _publication('one', 2, 'One', synonyms: const ['Single']),
+    ];
+    await _pumpLanding(
+      tester,
+      ineligible,
+      bookmarkService,
+      progressService,
+      settings: RecallSettings.defaults.copyWith(
+        enabledQuestionTypes: {RecallQuestionType.wordToSynonym},
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('normal-recall')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Synonym Recall unavailable'), findsOneWidget);
+    expect(
+      find.text('There are not enough words with eligible synonyms yet.'),
+      findsOneWidget,
     );
   });
 
@@ -1350,7 +1376,12 @@ PublicationApiService _apiReturning(List<DailyPublication> publications) {
   );
 }
 
-DailyPublication _publication(String id, int sequence, String word) {
+DailyPublication _publication(
+  String id,
+  int sequence,
+  String word, {
+  List<String>? synonyms,
+}) {
   return DailyPublication(
     id: id,
     sequence: sequence,
@@ -1360,7 +1391,7 @@ DailyPublication _publication(String id, int sequence, String word) {
     phonetic: word.toLowerCase(),
     definition: 'Definition $word',
     usage: 'Usage $word',
-    synonyms: ['Synonym$word'],
+    synonyms: synonyms ?? ['Synonym$word', 'Alternate$word'],
   );
 }
 

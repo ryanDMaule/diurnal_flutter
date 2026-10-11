@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
@@ -53,6 +55,7 @@ class _TodayScreenState extends State<TodayScreen>
   Future<void>? _activeLoad;
   Timer? _dateRolloverTimer;
   Timer? _menuDiscoveryTimer;
+  Timer? _errorNotificationTimer;
   late DateTime _observedDate;
   DateTime? _lastAutomaticRefresh;
   bool _initialPublicationConsumed = false;
@@ -64,6 +67,8 @@ class _TodayScreenState extends State<TodayScreen>
   bool isBookmarkUpdating = false;
   bool _menuDiscoveryCompleted = false;
   bool _appIsActive = true;
+  _TodayErrorStatus? _errorStatus;
+  bool _showErrorNotification = false;
   late final AnimationController _menuShimmerController;
 
   @override
@@ -96,6 +101,7 @@ class _TodayScreenState extends State<TodayScreen>
     WidgetsBinding.instance.removeObserver(this);
     _dateRolloverTimer?.cancel();
     _menuDiscoveryTimer?.cancel();
+    _errorNotificationTimer?.cancel();
     _menuShimmerController.dispose();
     super.dispose();
   }
@@ -114,17 +120,35 @@ class _TodayScreenState extends State<TodayScreen>
     }
   }
 
-  Future<void> _loadPublication({bool showLoading = false}) {
+  Future<void> _loadPublication({
+    bool showLoading = false,
+    bool manual = false,
+    bool preferCurrentDateCache = false,
+  }) async {
     final activeLoad = _activeLoad;
-    if (activeLoad != null) return activeLoad;
-    final load = _performPublicationLoad(showLoading: showLoading);
+    if (activeLoad != null) {
+      await activeLoad;
+      if (manual && mounted && _errorStatus != null) {
+        _showCurrentErrorNotification();
+      }
+      return;
+    }
+    final load = _performPublicationLoad(
+      showLoading: showLoading,
+      manual: manual,
+      preferCurrentDateCache: preferCurrentDateCache,
+    );
     _activeLoad = load;
-    return load.whenComplete(() {
+    await load.whenComplete(() {
       if (identical(_activeLoad, load)) _activeLoad = null;
     });
   }
 
-  Future<void> _performPublicationLoad({required bool showLoading}) async {
+  Future<void> _performPublicationLoad({
+    required bool showLoading,
+    required bool manual,
+    required bool preferCurrentDateCache,
+  }) async {
     if (showLoading && mounted) setState(() => isLoading = true);
     final initialPublication = widget.initialPublication;
     final Future<TodayPublicationLoad> request;
@@ -132,26 +156,61 @@ class _TodayScreenState extends State<TodayScreen>
       _initialPublicationConsumed = true;
       request = initialPublication;
     } else {
-      request = _apiService.loadTodayPublication();
+      request = _apiService.loadTodayPublication(
+        preferCurrentDateCache: preferCurrentDateCache,
+      );
     }
     try {
       final result = await request;
       if (!mounted) return;
+      final status = result.isOffline
+          ? _TodayErrorStatus.fromLoad(result)
+          : null;
+      final hadUnresolvedError = _errorStatus != null;
       setState(() {
         publication = result.publication;
         isLoading = false;
         isOffline = result.isOffline;
         isBookmarked = false;
+        _errorStatus = status;
+        _showErrorNotification =
+            status != null && (manual || !hadUnresolvedError);
       });
+      if (status == null) {
+        _errorNotificationTimer?.cancel();
+      } else if (_showErrorNotification) {
+        _scheduleErrorNotificationDismissal();
+      }
       await _restoreBookmarkState(result.publication);
       await _widgetSyncService.syncPublication(result.publication);
     } catch (error) {
       debugPrint('Error loading Today publication: $error');
       if (mounted) {
+        final hadUnresolvedError = _errorStatus != null;
         setState(() {
           isLoading = false;
           isOffline = true;
+          _errorStatus = const _TodayErrorStatus(
+            category: 'Refresh',
+            explanation:
+                'Diurnus could not refresh the daily publication. The current word remains available.',
+            supportDetails:
+                'Publication refresh failed. Category: Refresh. The current word remains visible.',
+            bannerMessage: 'Unable to refresh — showing saved word',
+          );
+          if (publication.id == null) {
+            _errorStatus = const _TodayErrorStatus(
+              category: 'Refresh',
+              explanation:
+                  'Diurnus could not refresh the daily publication. The default word remains available.',
+              supportDetails:
+                  'Publication refresh failed. Category: Refresh. Displaying the default word.',
+              bannerMessage: 'Unable to refresh — showing default word',
+            );
+          }
+          _showErrorNotification = manual || !hadUnresolvedError;
         });
+        if (_showErrorNotification) _scheduleErrorNotificationDismissal();
       }
     }
   }
@@ -166,7 +225,7 @@ class _TodayScreenState extends State<TodayScreen>
     if (!dateChanged && !isOffline && recentlyRefreshed) return;
     _observedDate = date;
     _lastAutomaticRefresh = now;
-    await _loadPublication();
+    await _loadPublication(preferCurrentDateCache: !dateChanged);
     _scheduleDateRollover();
   }
 
@@ -198,7 +257,20 @@ class _TodayScreenState extends State<TodayScreen>
       isBookmarked: isBookmarked,
       isBookmarkUpdating: isBookmarkUpdating,
       onBookmarkToggle: publication.id == null ? null : _toggleBookmark,
-      onRefresh: _loadPublication,
+      onRefresh: () => _loadPublication(manual: true),
+      topLeftControl: _errorStatus == null
+          ? null
+          : _TodayErrorButton(
+              color: effectiveEdition.accentColor,
+              onPressed: _showErrorDetails,
+            ),
+      topNotification: _showErrorNotification && _errorStatus != null
+          ? _TodayErrorBanner(
+              key: const Key('today-error-notification'),
+              message: _errorStatus!.bannerMessage,
+              edition: effectiveEdition,
+            )
+          : null,
       topRightControl: MorphingMenuButton(
         isOpen: false,
         color: effectiveEdition.primaryTextColor,
@@ -206,6 +278,51 @@ class _TodayScreenState extends State<TodayScreen>
         onPressed: _openMenu,
         highlight: _menuShimmerHighlight,
         highlightColor: effectiveEdition.accentColor,
+      ),
+    );
+  }
+
+  void _scheduleErrorNotificationDismissal() {
+    _errorNotificationTimer?.cancel();
+    _errorNotificationTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _showErrorNotification = false);
+    });
+  }
+
+  void _showCurrentErrorNotification() {
+    if (_errorStatus == null) return;
+    setState(() => _showErrorNotification = true);
+    _scheduleErrorNotificationDismissal();
+  }
+
+  Future<void> _showErrorDetails() async {
+    final status = _errorStatus;
+    if (status == null) return;
+    final effectiveEdition = EditionAccessPolicy.effectiveFor(
+      edition,
+      isPro: EntitlementScope.maybeControllerOf(context)?.isPro ?? false,
+    );
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      sheetAnimationStyle:
+          (InterfaceThemeScope.maybeControllerOf(
+                    context,
+                  )?.settings.reduceAnimations ??
+                  false) ||
+              MediaQuery.disableAnimationsOf(context)
+          ? AnimationStyle.noAnimation
+          : null,
+      builder: (sheetContext) => _TodayErrorDetailsSheet(
+        status: status,
+        edition: effectiveEdition,
+        onCopy: () async {
+          await Clipboard.setData(ClipboardData(text: status.supportDetails));
+          if (!sheetContext.mounted) return;
+          ScaffoldMessenger.of(
+            sheetContext,
+          ).showSnackBar(const SnackBar(content: Text('Details copied')));
+        },
       ),
     );
   }
@@ -355,4 +472,227 @@ class _TodayScreenState extends State<TodayScreen>
 }
 
 Future<TodayPublicationLoad> loadTodayPublication() =>
-    PublicationApiService().loadTodayPublication();
+    PublicationApiService().loadTodayPublication(preferCurrentDateCache: true);
+
+class _TodayErrorStatus {
+  const _TodayErrorStatus({
+    required this.category,
+    required this.explanation,
+    required this.supportDetails,
+    required this.bannerMessage,
+  });
+
+  factory _TodayErrorStatus.fromLoad(TodayPublicationLoad load) {
+    final showingSavedWord = load.publication.id != null;
+    final contentDescription = showingSavedWord
+        ? 'your last saved daily word remains visible'
+        : 'the default word remains visible';
+    final displayDescription = showingSavedWord
+        ? 'Displaying the last saved daily word.'
+        : 'Displaying the default word.';
+    final bannerMessage = showingSavedWord
+        ? 'Unable to refresh — showing saved word'
+        : 'Unable to refresh — showing default word';
+    final (category, explanation) = switch (load.failure) {
+      PublicationLoadFailure.connectivity => (
+        'Connection',
+        'Diurnus could not connect to refresh the daily publication. $contentDescription.',
+      ),
+      PublicationLoadFailure.timeout => (
+        'Timeout',
+        'The publication refresh took too long. $contentDescription.',
+      ),
+      PublicationLoadFailure.server => (
+        'Service response',
+        'The Diurnus service could not complete the refresh. $contentDescription.',
+      ),
+      PublicationLoadFailure.invalidResponse => (
+        'Invalid response',
+        'Today’s publication could not be read from the service response. $contentDescription.',
+      ),
+      null => (
+        'Refresh',
+        'Diurnus could not refresh the daily publication. $contentDescription.',
+      ),
+    };
+    return _TodayErrorStatus(
+      category: category,
+      explanation: explanation,
+      supportDetails:
+          'Publication refresh failed. Category: $category. $displayDescription',
+      bannerMessage: bannerMessage,
+    );
+  }
+
+  final String category;
+  final String explanation;
+  final String supportDetails;
+  final String bannerMessage;
+}
+
+class _TodayErrorButton extends StatelessWidget {
+  const _TodayErrorButton({required this.color, required this.onPressed});
+
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Publication refresh details',
+    child: SizedBox.square(
+      key: const Key('today-error-details-button'),
+      dimension: 48,
+      child: IconButton(
+        tooltip: 'Publication refresh details',
+        onPressed: onPressed,
+        icon: Icon(
+          CupertinoIcons.exclamationmark_circle,
+          color: color,
+          size: 22,
+        ),
+      ),
+    ),
+  );
+}
+
+class _TodayErrorBanner extends StatelessWidget {
+  const _TodayErrorBanner({
+    required this.message,
+    required this.edition,
+    super.key,
+  });
+
+  final String message;
+  final Edition edition;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    label: message,
+    child: ExcludeSemantics(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.78),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: edition.accentColor.withValues(alpha: 0.48),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.exclamationmark_circle,
+              color: edition.accentColor,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: edition.primaryTextColor,
+                  fontFamily: 'Figtree',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _TodayErrorDetailsSheet extends StatelessWidget {
+  const _TodayErrorDetailsSheet({
+    required this.status,
+    required this.edition,
+    required this.onCopy,
+  });
+
+  final _TodayErrorStatus status;
+  final Edition edition;
+  final Future<void> Function() onCopy;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF102923),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(
+          top: BorderSide(color: edition.accentColor.withValues(alpha: 0.45)),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              tooltip: 'Close publication status',
+              onPressed: () => Navigator.of(context).pop(),
+              icon: Icon(CupertinoIcons.xmark, color: edition.primaryTextColor),
+            ),
+          ),
+          Text(
+            'Publication status',
+            style: TextStyle(
+              color: edition.primaryTextColor,
+              fontFamily: 'NotoSerifJP',
+              fontSize: 27,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            status.explanation,
+            style: TextStyle(
+              color: edition.secondaryTextColor,
+              fontFamily: 'Figtree',
+              fontSize: 15,
+              fontWeight: FontWeight.w300,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'CATEGORY · ${status.category.toUpperCase()}',
+            key: const Key('today-error-category'),
+            style: TextStyle(
+              color: edition.accentColor,
+              fontFamily: 'Figtree',
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const Key('copy-publication-error-details'),
+              onPressed: onCopy,
+              icon: const Icon(CupertinoIcons.doc_on_doc, size: 17),
+              label: const Text('Copy details'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: edition.accentColor,
+                minimumSize: const Size.fromHeight(50),
+                side: BorderSide(
+                  color: edition.accentColor.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}

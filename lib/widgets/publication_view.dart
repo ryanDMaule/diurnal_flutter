@@ -22,6 +22,7 @@ class PublicationView extends StatefulWidget {
     this.onRefresh,
     this.topLeftControl,
     this.topRightControl,
+    this.topNotification,
     this.interfacePaletteOverride,
     super.key,
   });
@@ -36,6 +37,7 @@ class PublicationView extends StatefulWidget {
   final Future<void> Function()? onRefresh;
   final Widget? topLeftControl;
   final Widget? topRightControl;
+  final Widget? topNotification;
   final InterfacePalette? interfacePaletteOverride;
 
   @override
@@ -182,19 +184,6 @@ class _PublicationViewState extends State<PublicationView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(height: screenHeight * 0.4),
-                          if (widget.isOffline)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Text(
-                                '⚠️ Offline mode — showing default word',
-                                style: TextStyle(
-                                  color: primary,
-                                  fontSize: 14,
-                                  fontFamily: 'Figtree',
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
                           Text(
                             publication.type.toUpperCase(),
                             style: TextStyle(
@@ -398,27 +387,31 @@ class _PublicationViewState extends State<PublicationView> {
                                 ? null
                                 : widget.onBookmarkToggle,
                             child: SizedBox.square(
-                              dimension: 30,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 130),
-                                transitionBuilder: (child, animation) =>
-                                    ScaleTransition(
-                                      scale: animation,
-                                      child: child,
-                                    ),
-                                child: Icon(
-                                  widget.isBookmarked
-                                      ? CupertinoIcons.bookmark_fill
-                                      : CupertinoIcons.bookmark,
-                                  key: ValueKey(widget.isBookmarked),
-                                  size: 30,
-                                  color: widget.isBookmarked
-                                      ? accent
-                                      : muted.withValues(
-                                          alpha: widget.onBookmarkToggle == null
-                                              ? 0.45
-                                              : 1,
-                                        ),
+                              key: const Key('publication-bookmark-control'),
+                              dimension: 48,
+                              child: Center(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 130),
+                                  transitionBuilder: (child, animation) =>
+                                      ScaleTransition(
+                                        scale: animation,
+                                        child: child,
+                                      ),
+                                  child: Icon(
+                                    widget.isBookmarked
+                                        ? CupertinoIcons.bookmark_fill
+                                        : CupertinoIcons.bookmark,
+                                    key: ValueKey(widget.isBookmarked),
+                                    size: 30,
+                                    color: widget.isBookmarked
+                                        ? accent
+                                        : muted.withValues(
+                                            alpha:
+                                                widget.onBookmarkToggle == null
+                                                ? 0.45
+                                                : 1,
+                                          ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -442,6 +435,36 @@ class _PublicationViewState extends State<PublicationView> {
                       right: 4,
                       child: widget.topRightControl!,
                     ),
+                  Positioned(
+                    top: 78,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      ignoring: widget.topNotification == null,
+                      child: AnimatedSwitcher(
+                        duration:
+                            (interfaceSettings?.reduceAnimations ?? false) ||
+                                MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 240),
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, -0.25),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                        child:
+                            widget.topNotification ??
+                            const SizedBox(
+                              key: Key('publication-notification-empty'),
+                            ),
+                      ),
+                    ),
+                  ),
                   if (widget.isLoading)
                     Positioned(
                       top: 12,

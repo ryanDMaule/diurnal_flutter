@@ -65,5 +65,5 @@ DailyPublication _publication(int index) => DailyPublication(
   phonetic: 'word',
   definition: 'Definition $index',
   usage: 'Usage $index',
-  synonyms: ['Synonym$index'],
+  synonyms: ['Synonym$index', 'Alternate$index'],
 );

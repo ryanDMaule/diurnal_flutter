@@ -131,6 +131,109 @@ void main() {
     );
   });
 
+  test('synonym eligibility normalizes values and requires valid choices', () {
+    final generator = RecallSessionGenerator(random: Random(2));
+    final distractors = [
+      _publication('d1', 20, 'D1', synonyms: const ['Remote', 'Distant']),
+      _publication('d2', 21, 'D2', synonyms: const ['Quiet', 'Still']),
+    ];
+
+    List<RecallQuestion> questionsFor(List<String> synonyms) =>
+        generator.generate(
+          subjects: [
+            _publication('subject', 19, 'Subject', synonyms: synonyms),
+          ],
+          distractorPool: distractors,
+          enabledTypes: {RecallQuestionType.wordToSynonym},
+        );
+
+    expect(questionsFor(const []), isEmpty);
+    expect(questionsFor(const ['Only']), isEmpty);
+    expect(questionsFor(const ['Same', ' same ']), isEmpty);
+    expect(questionsFor(const ['', '  ', 'Valid']), isEmpty);
+    expect(questionsFor(const ['Brief', 'Concise']), hasLength(1));
+    expect(questionsFor(const ['Brief', 'Concise', 'Terse']), hasLength(1));
+  });
+
+  test('synonym answers exclude ambiguous subject synonyms and duplicates', () {
+    final subject = _publication(
+      'subject',
+      19,
+      'Subject',
+      synonyms: const [' Brief ', 'Concise', 'brief'],
+    );
+    final pool = [
+      subject,
+      _publication(
+        'other',
+        20,
+        'Other',
+        synonyms: const ['concise', 'Remote', ' remote ', 'Distant', 'Quiet'],
+      ),
+    ];
+    final question = RecallSessionGenerator(random: Random(3))
+        .generate(
+          subjects: [subject],
+          distractorPool: pool,
+          enabledTypes: {RecallQuestionType.wordToSynonym},
+        )
+        .single;
+
+    expect(question.answers, hasLength(4));
+    expect(
+      question.answers.map((answer) => answer.trim().toLowerCase()).toSet(),
+      hasLength(4),
+    );
+    expect(question.correctAnswer, 'Brief');
+    expect(
+      question.answers.map((answer) => answer.toLowerCase()),
+      isNot(contains('concise')),
+    );
+  });
+
+  test('synonym-only requires three distinct external alternatives', () {
+    final subject = _publication(
+      'subject',
+      19,
+      'Subject',
+      synonyms: const ['Brief', 'Concise'],
+    );
+    final tooSmallPool = [
+      subject,
+      _publication('other', 20, 'Other', synonyms: const ['Remote', 'Distant']),
+    ];
+
+    expect(
+      RecallSessionGenerator(random: Random(1)).generate(
+        subjects: [subject],
+        distractorPool: tooSmallPool,
+        enabledTypes: {RecallQuestionType.wordToSynonym},
+      ),
+      isEmpty,
+    );
+    expect(
+      RecallSessionGenerator(random: Random(1))
+          .generate(
+            subjects: [subject],
+            distractorPool: tooSmallPool,
+            enabledTypes: {RecallQuestionType.wordToDefinition},
+          )
+          .single
+          .type,
+      RecallQuestionType.wordToDefinition,
+    );
+  });
+
+  test('Endless falls back to a supported definition question', () {
+    final subject = _publication('plain', 19, 'Plain', synonyms: const []);
+    final question = RecallSessionGenerator(
+      random: Random(1),
+    ).generateQuestion(subject: subject, distractorPool: archive);
+
+    expect(question, isNotNull);
+    expect(question!.type, isNot(RecallQuestionType.wordToSynonym));
+  });
+
   test('answer order is shuffled rather than fixed', () {
     final correctPositions = <int>{};
     for (var seed = 0; seed < 12; seed++) {
@@ -227,6 +330,6 @@ DailyPublication _publication(
     phonetic: word.toLowerCase(),
     definition: 'Definition $word',
     usage: 'Usage $word',
-    synonyms: synonyms ?? ['Synonym$word'],
+    synonyms: synonyms ?? ['Synonym$word', 'Alternate$word'],
   );
 }

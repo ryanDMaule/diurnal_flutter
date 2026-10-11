@@ -40,7 +40,7 @@ List<DailyPublication> filterLexiconPublications(
 }
 
 String collectedWordsLabel(int count) =>
-    '$count ${count == 1 ? 'word' : 'words'} collected';
+    '$count ${count == 1 ? 'word' : 'words'} saved';
 
 class MyLexiconScreen extends StatefulWidget {
   MyLexiconScreen({

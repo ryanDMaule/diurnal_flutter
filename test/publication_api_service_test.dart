@@ -102,6 +102,87 @@ void main() {
     );
   });
 
+  test('current-date Today cache skips the automatic request', () async {
+    final storage = _MemoryTodayPublicationStorage()
+      ..values[PublicationApiService.todayPublicationStorageKey] =
+          _todayResponse;
+    var requests = 0;
+    final service = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response('Unavailable', 503);
+      }),
+      todayStorage: storage,
+      now: () => DateTime(2026, 9, 28, 23, 59),
+    );
+
+    final result = await service.loadTodayPublication(
+      preferCurrentDateCache: true,
+    );
+
+    expect(requests, 0);
+    expect(result.publication.id, 'publication-28');
+    expect(result.isOffline, isFalse);
+    expect(result.failure, isNull);
+  });
+
+  test('previous-date Today cache still requests the API', () async {
+    final storage = _MemoryTodayPublicationStorage()
+      ..values[PublicationApiService.todayPublicationStorageKey] =
+          _todayResponse;
+    var requests = 0;
+    final service = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response(_todayResponse, 200);
+      }),
+      todayStorage: storage,
+      now: () => DateTime(2026, 9, 29),
+    );
+
+    await service.loadTodayPublication(preferCurrentDateCache: true);
+
+    expect(requests, 1);
+  });
+
+  test('missing or fallback-only Today state still requests the API', () async {
+    var requests = 0;
+    final service = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response(_todayResponse, 200);
+      }),
+      todayStorage: _MemoryTodayPublicationStorage(),
+      now: () => DateTime(2026, 9, 28),
+    );
+
+    final result = await service.loadTodayPublication(
+      preferCurrentDateCache: true,
+    );
+
+    expect(requests, 1);
+    expect(result.publication.id, 'publication-28');
+  });
+
+  test('manual Today load bypasses a current-date cache', () async {
+    final storage = _MemoryTodayPublicationStorage()
+      ..values[PublicationApiService.todayPublicationStorageKey] =
+          _todayResponse;
+    var requests = 0;
+    final service = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response(_todayResponse, 200);
+      }),
+      todayStorage: storage,
+      now: () => DateTime(2026, 9, 28),
+    );
+
+    await service.loadTodayPublication();
+
+    expect(requests, 1);
+  });
+
   test(
     'Today timeout returns cached publication without replacing it',
     () async {
@@ -149,6 +230,7 @@ void main() {
     final result = await offline.loadTodayPublication();
 
     expect(result.isOffline, isTrue);
+    expect(result.failure, PublicationLoadFailure.connectivity);
     expect(result.publication.id, 'publication-28');
     expect(result.publication.word, 'Liminal');
     expect(
@@ -176,6 +258,7 @@ void main() {
     final result = await service.loadTodayPublication();
 
     expect(result.isOffline, isTrue);
+    expect(result.failure, PublicationLoadFailure.server);
     expect(result.publication.id, 'publication-28');
     expect(result.publication.sequence, 1);
   });

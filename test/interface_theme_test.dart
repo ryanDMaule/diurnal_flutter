@@ -4,12 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:diurnul/models/app_settings.dart';
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/edition.dart';
+import 'package:diurnul/screens/appearance_screen.dart';
 import 'package:diurnul/screens/menu_screen.dart';
-import 'package:diurnul/screens/settings_screen.dart';
 import 'package:diurnul/services/app_settings_service.dart';
-import 'package:diurnul/services/bookmark_service.dart';
-import 'package:diurnul/services/endless_recall_service.dart';
-import 'package:diurnul/services/recall_progress_service.dart';
 import 'package:diurnul/theme/interface_theme.dart';
 import 'package:diurnul/widgets/edition_background.dart';
 import 'package:diurnul/widgets/publication_view.dart';
@@ -55,53 +52,31 @@ void main() {
     );
   });
 
-  testWidgets('Settings selection updates the shared controller immediately', (
-    tester,
-  ) async {
-    final storage = _AppStorage();
-    final service = AppSettingsService(storage: storage);
-    final controller = InterfaceColorController(service);
-    await controller.update(
-      AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.paper),
-    );
-    await tester.pumpWidget(
-      InterfaceThemeScope(
-        notifier: controller,
-        child: MaterialApp(
-          home: SettingsScreen(
-            settingsService: service,
-            bookmarkService: BookmarkService(storage: _BookmarkStorage()),
-            recallProgressService: RecallProgressService(
-              storage: _ProgressStorage(),
-            ),
-            endlessRecallService: EndlessRecallService(
-              storage: _EndlessStorage(),
-            ),
-          ),
+  testWidgets(
+    'Appearance selection updates the shared controller immediately',
+    (tester) async {
+      final storage = _AppStorage();
+      final service = AppSettingsService(storage: storage);
+      final controller = InterfaceColorController(service);
+      await controller.update(
+        AppSettings.defaults.copyWith(interfaceColor: InterfaceColor.paper),
+      );
+      await tester.pumpWidget(
+        InterfaceThemeScope(
+          notifier: controller,
+          child: MaterialApp(home: AppearanceScreen()),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('theme-color-selector')),
-      300,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const Key('settings-list')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.tap(find.byKey(const Key('theme-color-selector')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('interface-color-navy')));
-    await tester.pumpAndSettle();
-    expect(controller.settings.interfaceColor, InterfaceColor.navy);
-    expect(
-      tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-      InterfacePalette.navy.background,
-    );
-  });
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('interface-color-navy')));
+      await tester.pumpAndSettle();
+      expect(controller.settings.interfaceColor, InterfaceColor.navy);
+      expect(
+        tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
+        InterfacePalette.navy.background,
+      );
+    },
+  );
 
   testWidgets(
     'publication detail remains Edition-driven across interface colours',
@@ -170,28 +145,4 @@ class _AppStorage implements AppSettingsStorage {
   Future<String?> read(String key) async => value;
   @override
   Future<void> write(String key, String value) async => this.value = value;
-}
-
-class _BookmarkStorage implements BookmarkStorage {
-  String? value;
-  @override
-  Future<String?> read(String key) async => value;
-  @override
-  Future<void> write(String key, String value) async => this.value = value;
-}
-
-class _ProgressStorage implements RecallProgressStorage {
-  final values = <String, String>{};
-  @override
-  Future<String?> read(String key) async => values[key];
-  @override
-  Future<void> write(String key, String value) async => values[key] = value;
-}
-
-class _EndlessStorage implements EndlessRecallStorage {
-  int? value;
-  @override
-  Future<int?> readBest() async => value;
-  @override
-  Future<void> writeBest(int score) async => value = score;
 }

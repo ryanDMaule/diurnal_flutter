@@ -39,8 +39,8 @@ void main() {
       ['Arcane', 'Diurnal'],
     );
     expect(filterLexiconPublications([diurnal, arcane], 'URN'), [diurnal]);
-    expect(collectedWordsLabel(1), '1 word collected');
-    expect(collectedWordsLabel(2), '2 words collected');
+    expect(collectedWordsLabel(1), '1 word saved');
+    expect(collectedWordsLabel(2), '2 words saved');
   });
 
   testWidgets(
@@ -68,7 +68,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('1 word collected'), findsOneWidget);
+      expect(find.text('1 word saved'), findsOneWidget);
       await tester.tap(find.byKey(const Key('lexicon-row-2')));
       await tester.pumpAndSettle();
 
@@ -108,7 +108,7 @@ void main() {
     await tester.tap(find.byTooltip('Back to My Lexicon'));
     await tester.pumpAndSettle();
 
-    expect(find.text('0 words collected'), findsOneWidget);
+    expect(find.text('0 words saved'), findsOneWidget);
     expect(find.text('No words saved yet'), findsOneWidget);
     expect(await service.isSaved(diurnal.id), isFalse);
   });
@@ -135,7 +135,7 @@ void main() {
     await tester.tap(find.byKey(const Key('remove-bookmark-2')));
     await tester.pumpAndSettle();
 
-    expect(find.text('0 words collected'), findsOneWidget);
+    expect(find.text('0 words saved'), findsOneWidget);
     expect(find.text('No words saved yet'), findsOneWidget);
     expect(find.text('Search lexicon...'), findsNothing);
     expect(playback.calls, hasLength(1));

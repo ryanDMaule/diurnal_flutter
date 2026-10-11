@@ -62,7 +62,7 @@ class TodayPublicationLoad {
   final PublicationLoadFailure? failure;
 }
 
-enum PublicationLoadFailure { connectivity, timeout, invalidResponse }
+enum PublicationLoadFailure { connectivity, timeout, server, invalidResponse }
 
 class PublicationApiService {
   PublicationApiService({
@@ -96,7 +96,16 @@ class PublicationApiService {
   final Duration requestTimeout;
   final DateTime Function() _now;
 
-  Future<TodayPublicationLoad> loadTodayPublication() async {
+  Future<TodayPublicationLoad> loadTodayPublication({
+    bool preferCurrentDateCache = false,
+  }) async {
+    if (preferCurrentDateCache) {
+      final cached = await _readCachedTodayPublication();
+      if (cached != null && _isCurrentLocalDate(cached.publicationDate)) {
+        return TodayPublicationLoad(publication: cached, isOffline: false);
+      }
+    }
+
     try {
       final response = await _client
           .get(wordOfTheDayUri)
@@ -216,6 +225,14 @@ class PublicationApiService {
     }
   }
 
+  bool _isCurrentLocalDate(DateTime? publicationDate) {
+    if (publicationDate == null) return false;
+    final now = _now();
+    return publicationDate.year == now.year &&
+        publicationDate.month == now.month &&
+        publicationDate.day == now.day;
+  }
+
   Future<void> _cachePublications(List<DailyPublication> publications) async {
     try {
       await _archiveStorage.write(
@@ -266,9 +283,8 @@ class PublicationApiService {
 
   PublicationLoadFailure _failureFor(Object error) {
     if (error is TimeoutException) return PublicationLoadFailure.timeout;
-    if (error is FormatException || error is PublicationApiException) {
-      return PublicationLoadFailure.invalidResponse;
-    }
+    if (error is PublicationApiException) return PublicationLoadFailure.server;
+    if (error is FormatException) return PublicationLoadFailure.invalidResponse;
     return PublicationLoadFailure.connectivity;
   }
 }

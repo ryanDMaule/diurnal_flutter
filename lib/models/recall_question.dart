@@ -38,9 +38,12 @@ class RecallSessionGenerator {
     Set<String> avoidSubjectIds = const {},
   }) {
     final activeTypes = enabledTypes ?? RecallQuestionType.values.toSet();
-    final uniqueSubjects = _uniquePublications(
-      subjects,
-    ).where((subject) => _hasCompatibleType(subject, activeTypes)).toList();
+    final distractors = _uniquePublications(distractorPool);
+    final uniqueSubjects = _uniquePublications(subjects)
+        .where(
+          (subject) => _hasCompatibleType(subject, activeTypes, distractors),
+        )
+        .toList();
     final preferredSubjects =
         uniqueSubjects
             .where((publication) => !avoidSubjectIds.contains(publication.id))
@@ -52,14 +55,13 @@ class RecallSessionGenerator {
             .toList()
           ..shuffle(_random);
     final subjectList = [...preferredSubjects, ...previousSubjects];
-    final distractors = _uniquePublications(distractorPool);
     final count = min(questionCount, subjectList.length);
     final questions = <RecallQuestion>[];
 
     for (var index = 0; index < count; index++) {
       final subject = subjectList[index];
       final preferred = RecallQuestionType.values[index % 3];
-      final type = _supportedType(subject, preferred, activeTypes);
+      final type = _supportedType(subject, preferred, activeTypes, distractors);
       if (type == null) continue;
       questions.add(_buildQuestion(subject, type, distractors));
     }
@@ -78,8 +80,11 @@ class RecallSessionGenerator {
             .where(
               (type) =>
                   activeTypes.contains(type) &&
-                  (type != RecallQuestionType.wordToSynonym ||
-                      subject.synonyms.any((value) => value.trim().isNotEmpty)),
+                  _supportsType(
+                    subject,
+                    type,
+                    _uniquePublications(distractorPool),
+                  ),
             )
             .toList()
           ..shuffle(_random);
@@ -94,19 +99,21 @@ class RecallSessionGenerator {
   bool _hasCompatibleType(
     DailyPublication subject,
     Set<RecallQuestionType> enabledTypes,
+    List<DailyPublication> pool,
   ) {
     if (enabledTypes.contains(RecallQuestionType.wordToDefinition) ||
         enabledTypes.contains(RecallQuestionType.definitionToWord)) {
       return true;
     }
     return enabledTypes.contains(RecallQuestionType.wordToSynonym) &&
-        subject.synonyms.any((value) => value.trim().isNotEmpty);
+        _canBuildSynonymQuestion(subject, pool);
   }
 
   RecallQuestionType? _supportedType(
     DailyPublication subject,
     RecallQuestionType preferred,
     Set<RecallQuestionType> enabledTypes,
+    List<DailyPublication> pool,
   ) {
     final ordered = [
       preferred,
@@ -116,12 +123,39 @@ class RecallSessionGenerator {
     ];
     for (final type in ordered) {
       if (!enabledTypes.contains(type)) continue;
-      if (type != RecallQuestionType.wordToSynonym ||
-          subject.synonyms.any((value) => value.trim().isNotEmpty)) {
+      if (_supportsType(subject, type, pool)) {
         return type;
       }
     }
     return null;
+  }
+
+  bool _supportsType(
+    DailyPublication subject,
+    RecallQuestionType type,
+    List<DailyPublication> pool,
+  ) =>
+      type != RecallQuestionType.wordToSynonym ||
+      _canBuildSynonymQuestion(subject, pool);
+
+  bool _canBuildSynonymQuestion(
+    DailyPublication subject,
+    List<DailyPublication> pool,
+  ) {
+    final subjectSynonyms = _validSynonyms(subject);
+    if (subjectSynonyms.length < 2) return false;
+
+    final subjectValues = subjectSynonyms
+        .map((value) => value.toLowerCase())
+        .toSet();
+    final alternatives = <String>{};
+    for (final publication in pool) {
+      for (final synonym in _validSynonyms(publication)) {
+        final normalized = synonym.toLowerCase();
+        if (!subjectValues.contains(normalized)) alternatives.add(normalized);
+      }
+    }
+    return alternatives.length >= 3;
   }
 
   RecallQuestion _buildQuestion(
@@ -148,10 +182,14 @@ class RecallSessionGenerator {
       case RecallQuestionType.wordToSynonym:
         content = subject.word;
         prompt = 'Which word is closest in meaning?';
-        correct = subject.synonyms.firstWhere(
-          (value) => value.trim().isNotEmpty,
-        );
-        candidates = pool.expand((publication) => publication.synonyms);
+        final subjectSynonyms = _validSynonyms(subject);
+        correct = subjectSynonyms.first;
+        final subjectValues = subjectSynonyms
+            .map((value) => value.toLowerCase())
+            .toSet();
+        candidates = pool
+            .expand(_validSynonyms)
+            .where((value) => !subjectValues.contains(value.toLowerCase()));
     }
 
     final answers = <String>[correct];
@@ -160,7 +198,7 @@ class RecallSessionGenerator {
     for (final candidate in shuffledCandidates) {
       final normalized = candidate.trim().toLowerCase();
       if (normalized.isEmpty || !seen.add(normalized)) continue;
-      answers.add(candidate);
+      answers.add(candidate.trim());
       if (answers.length == 4) break;
     }
     answers.shuffle(_random);
@@ -173,6 +211,14 @@ class RecallSessionGenerator {
       answers: List.unmodifiable(answers),
       correctAnswer: correct,
     );
+  }
+
+  List<String> _validSynonyms(DailyPublication publication) {
+    final seen = <String>{};
+    return publication.synonyms
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty && seen.add(value.toLowerCase()))
+        .toList(growable: false);
   }
 }
 

@@ -52,14 +52,12 @@ void main() {
 
     await tester.tap(soundSwitch);
     await tester.tap(reduceAnimationsSwitch);
-    await tester.tap(find.byKey(const Key('theme-color-selector')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('interface-color-charcoal')));
-    await tester.pumpAndSettle();
+    expect(find.text('Theme Colour'), findsNothing);
+    expect(find.byKey(const Key('theme-color-selector')), findsNothing);
     final restored = await AppSettingsService(storage: appStorage).load();
     expect(restored.soundEffectsEnabled, isFalse);
     expect(restored.reduceAnimations, isTrue);
-    expect(restored.interfaceColor, InterfaceColor.charcoal);
+    expect(restored.interfaceColor, InterfaceColor.evergreen);
 
     await tester.tap(find.byTooltip('Back to menu'));
     await tester.pumpAndSettle();

@@ -124,12 +124,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _selectThemeColor(InterfaceColor color) {
-    if (_settings.interfaceColor == color) return;
-    HapticService.selection(enabled: _settings.hapticFeedbackEnabled);
-    _save(_settings.copyWith(interfaceColor: color));
-  }
-
   Future<void> _resetRecall(InterfacePalette palette) async {
     final confirmed = await _confirm(
       palette: palette,
@@ -414,21 +408,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       settings: _settings.copyWith(textureEnabled: value),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Theme Colour',
-                    style: TextStyle(
-                      color: palette.primary,
-                      fontFamily: 'NotoSerifJP',
-                      fontSize: 19,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _ThemeColorSelector(
-                    selected: _settings.interfaceColor,
-                    palette: palette,
-                    onSelected: _selectThemeColor,
-                  ),
                   const SizedBox(height: 44),
                   _SectionLabel('YOUR DATA', color: palette.accent),
                   const SizedBox(height: 12),
@@ -646,113 +625,6 @@ String? _voiceRegionCode(PronunciationVoice voice) {
   }
   return null;
 }
-
-class _ThemeColorSelector extends StatelessWidget {
-  const _ThemeColorSelector({
-    required this.selected,
-    required this.palette,
-    required this.onSelected,
-  });
-  final InterfaceColor selected;
-  final InterfacePalette palette;
-  final ValueChanged<InterfaceColor> onSelected;
-  @override
-  Widget build(BuildContext context) => PopupMenuButton<InterfaceColor>(
-    key: const Key('theme-color-selector'),
-    tooltip: 'Select Theme Colour',
-    color: palette.surface,
-    position: PopupMenuPosition.under,
-    onSelected: onSelected,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-      side: BorderSide(color: palette.divider),
-    ),
-    itemBuilder: (context) => [
-      for (final value in InterfaceColor.values)
-        PopupMenuItem(
-          key: Key('interface-color-${value.name}'),
-          value: value,
-          height: 48,
-          child: _ThemeColorOption(color: value, palette: palette),
-        ),
-    ],
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 48),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        border: Border.all(color: palette.divider),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          _ThemeColorSwatch(color: selected, borderColor: palette.divider),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _interfaceColorLabel(selected),
-              style: TextStyle(
-                color: palette.primary,
-                fontFamily: 'Figtree',
-                fontSize: 15,
-              ),
-            ),
-          ),
-          Icon(CupertinoIcons.chevron_down, color: palette.secondary, size: 16),
-        ],
-      ),
-    ),
-  );
-}
-
-class _ThemeColorOption extends StatelessWidget {
-  const _ThemeColorOption({required this.color, required this.palette});
-
-  final InterfaceColor color;
-  final InterfacePalette palette;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      _ThemeColorSwatch(color: color, borderColor: palette.divider),
-      const SizedBox(width: 12),
-      Text(
-        _interfaceColorLabel(color),
-        style: TextStyle(
-          color: palette.primary,
-          fontFamily: 'Figtree',
-          fontSize: 15,
-        ),
-      ),
-    ],
-  );
-}
-
-class _ThemeColorSwatch extends StatelessWidget {
-  const _ThemeColorSwatch({required this.color, required this.borderColor});
-
-  final InterfaceColor color;
-  final Color borderColor;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 18,
-    height: 18,
-    decoration: BoxDecoration(
-      color: InterfacePalette.forColor(color).background,
-      border: Border.all(color: borderColor),
-      borderRadius: BorderRadius.circular(4),
-    ),
-  );
-}
-
-String _interfaceColorLabel(InterfaceColor color) => switch (color) {
-  InterfaceColor.evergreen => 'Evergreen',
-  InterfaceColor.charcoal => 'Charcoal',
-  InterfaceColor.navy => 'Navy',
-  InterfaceColor.oxblood => 'Oxblood',
-  InterfaceColor.slate => 'Slate',
-  InterfaceColor.paper => 'Paper',
-};
 
 class _ActionRow extends StatelessWidget {
   const _ActionRow({

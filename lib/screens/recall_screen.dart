@@ -307,9 +307,18 @@ class _RecallScreenState extends State<RecallScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (questions.isEmpty) {
+        final synonymOnly =
+            settings.enabledQuestionTypes.length == 1 &&
+            settings.enabledQuestionTypes.contains(
+              RecallQuestionType.wordToSynonym,
+            );
         setState(() {
-          _messageTitle = 'Recall unavailable';
-          _messageBody = 'There are not enough published words yet.';
+          _messageTitle = synonymOnly
+              ? 'Synonym Recall unavailable'
+              : 'Recall unavailable';
+          _messageBody = synonymOnly
+              ? 'There are not enough words with eligible synonyms yet.'
+              : 'There are not enough published words yet.';
         });
         return;
       }
