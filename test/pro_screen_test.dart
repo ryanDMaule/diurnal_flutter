@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/app_settings.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/pro_screen.dart';
@@ -10,6 +12,7 @@ import 'package:diurnul/theme/interface_theme.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
+  useRestrictedProMode();
   testWidgets('opens from Menu, shows value areas, and returns to Menu', (
     tester,
   ) async {

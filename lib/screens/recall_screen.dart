@@ -3,6 +3,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../config/pro_restrictions.dart';
 import '../models/daily_publication.dart';
 import '../models/edition.dart';
 import '../models/match_session.dart';
@@ -241,7 +242,9 @@ class _RecallScreenState extends State<RecallScreen> {
 
   Future<void> _start() async {
     if (_isLoading) return;
-    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
+    final isPro = ProRestrictions.hasAccess(
+      isPro: EntitlementScope.maybeControllerOf(context)?.isPro ?? false,
+    );
     setState(() {
       _isLoading = true;
       _canRetry = false;
@@ -499,7 +502,9 @@ class _RecallScreenState extends State<RecallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
+    final isPro = ProRestrictions.hasAccess(
+      isPro: EntitlementScope.maybeControllerOf(context)?.isPro ?? false,
+    );
     return Scaffold(
       backgroundColor: Colors.black,
       body: EditionBackground(

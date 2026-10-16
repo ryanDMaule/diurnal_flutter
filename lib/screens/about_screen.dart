@@ -2,12 +2,37 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/interface_theme.dart';
 import '../widgets/diurnus_brand_lockup.dart';
 
+typedef ExternalUrlLauncher = Future<bool> Function(Uri url);
+
 class AboutScreen extends StatelessWidget {
-  AboutScreen({super.key});
+  AboutScreen({ExternalUrlLauncher? externalUrlLauncher, super.key})
+    : _externalUrlLauncher = externalUrlLauncher ?? _launchExternally;
+
+  static final supportUrl = Uri.parse('https://buymeacoffee.com/ryanMaule');
+  final ExternalUrlLauncher _externalUrlLauncher;
+
+  static Future<bool> _launchExternally(Uri url) =>
+      launchUrl(url, mode: LaunchMode.externalApplication);
+
+  Future<void> _openSupportPage(BuildContext context) async {
+    var opened = false;
+    try {
+      opened = await _externalUrlLauncher(supportUrl);
+    } catch (_) {
+      opened = false;
+    }
+    if (opened || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Unable to open the support page right now.'),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +153,68 @@ class AboutScreen extends StatelessWidget {
                   _InactiveInformationRow(label: 'Privacy Policy'),
                   _InactiveInformationRow(label: 'Terms of Use'),
                   _InactiveInformationRow(label: 'Acknowledgements'),
+                  SizedBox(height: 40),
+                  Divider(
+                    color: InterfaceThemeScope.maybePaletteOf(context).divider,
+                    height: 1,
+                  ),
+                  SizedBox(height: 28),
+                  Text(
+                    'Support Diurnus',
+                    key: Key('about-support-heading'),
+                    style: TextStyle(
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary,
+                      fontFamily: 'NotoSerifJP',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Diurnus is free for everyone. If you enjoy using it and '
+                    'would like to support its continued development, you can '
+                    'buy me a coffee.',
+                    style: TextStyle(
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary.withValues(alpha: 0.76),
+                      fontFamily: 'Figtree',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w300,
+                      height: 1.55,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Semantics(
+                    button: true,
+                    label: 'Buy me a coffee, opens external browser',
+                    child: OutlinedButton(
+                      key: Key('buy-me-a-coffee'),
+                      onPressed: () => _openSupportPage(context),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: Size.fromHeight(52),
+                        foregroundColor: InterfaceThemeScope.maybePaletteOf(
+                          context,
+                        ).accent,
+                        side: BorderSide(
+                          color: InterfaceThemeScope.maybePaletteOf(
+                            context,
+                          ).accent.withValues(alpha: 0.72),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        textStyle: TextStyle(
+                          fontFamily: 'Figtree',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      child: Text('Buy me a coffee'),
+                    ),
+                  ),
                   SizedBox(height: 48),
                   Text(
                     'Made for the curious.',

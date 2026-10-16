@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/app_settings.dart';
+import 'package:diurnul/config/pro_restrictions.dart';
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/screens/onboarding_screen.dart';
 import 'package:diurnul/services/app_settings_service.dart';
@@ -12,6 +15,7 @@ import 'package:diurnul/theme/interface_theme.dart';
 import 'package:diurnul/widgets/publication_view.dart';
 
 void main() {
+  useRestrictedProMode();
   testWidgets(
     'onboarding retains draft appearance and shows widget carousel layouts',
     (tester) async {
@@ -448,6 +452,65 @@ void main() {
         await tester.pumpAndSettle();
       }
     }
+  });
+
+  testWidgets('free release onboarding can select a premium Edition', (
+    tester,
+  ) async {
+    ProRestrictions.setTestOverride(false);
+    final controller = InterfaceColorController(
+      AppSettingsService(storage: _MemoryAppSettingsStorage()),
+    );
+    final editionStorage = _MemoryEditionStorage();
+    final editionService = EditionService(storage: editionStorage);
+    await tester.binding.setSurfaceSize(const Size(430, 820));
+    addTearDown(() {
+      controller.dispose();
+      tester.binding.setSurfaceSize(null);
+    });
+    await tester.pumpWidget(
+      InterfaceThemeScope(
+        notifier: controller,
+        child: MaterialApp(
+          home: OnboardingScreen(
+            initialStep: 1,
+            onboardingService: OnboardingService(
+              storage: _MemoryOnboardingStorage(),
+            ),
+            editionService: editionService,
+            widgetSyncService: WidgetSyncService(cache: _MemoryWidgetCache()),
+            onCompleted: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('edition-lock-atrium')), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('edition-atrium')),
+      180,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('onboarding-appearance-list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.drag(
+      find.byKey(const Key('onboarding-appearance-list')),
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edition-atrium')));
+    await tester.tap(find.byKey(const Key('onboarding-continue')));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await editionService.loadSelectedEdition()).id,
+      Editions.atrium.id,
+    );
+    expect(find.text('Words beyond the app.'), findsOneWidget);
   });
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../config/pro_restrictions.dart';
 import '../models/daily_publication.dart';
 import '../services/bookmark_service.dart';
 import '../services/app_settings_service.dart';
@@ -127,6 +128,7 @@ class MenuScreen extends StatelessWidget {
                     ),
                     const _MenuDivider(),
                     _MenuItem(
+                      key: const Key('menu-appearance'),
                       icon: CupertinoIcons.circle_grid_hex,
                       title: 'Appearance',
                       subtitle: 'Diurnus editions',
@@ -140,23 +142,26 @@ class MenuScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _MenuItem(
-                      icon: CupertinoIcons.star_circle,
-                      title: 'Diurnus Pro',
-                      subtitle: 'Unlock the full experience',
-                      isPremium: true,
-                      trailing: const _ProBadge(),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (context) => ProScreen(
-                            entitlementController: entitlementController,
+                    if (ProRestrictions.enabled) ...[
+                      const SizedBox(key: Key('menu-pro-spacing'), height: 16),
+                      _MenuItem(
+                        icon: CupertinoIcons.star_circle,
+                        title: 'Diurnus Pro',
+                        subtitle: 'Unlock the full experience',
+                        isPremium: true,
+                        trailing: const _ProBadge(),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (context) => ProScreen(
+                              entitlementController: entitlementController,
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                     const _MenuDivider(),
                     _MenuItem(
+                      key: const Key('menu-settings'),
                       icon: CupertinoIcons.gear,
                       title: 'Settings',
                       onTap: () => Navigator.of(context).push(
@@ -176,6 +181,7 @@ class MenuScreen extends StatelessWidget {
                     ),
                     const _MenuDivider(),
                     _MenuItem(
+                      key: const Key('menu-about'),
                       icon: CupertinoIcons.info_circle,
                       title: 'About Diurnus',
                       onTap: () => Navigator.of(context).push(
@@ -242,6 +248,7 @@ class _MenuItem extends StatelessWidget {
     this.trailing,
     this.isSelected = false,
     this.isPremium = false,
+    super.key,
   });
 
   final IconData icon;

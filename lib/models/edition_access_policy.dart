@@ -1,3 +1,4 @@
+import '../config/pro_restrictions.dart';
 import 'edition.dart';
 
 abstract final class EditionAccessPolicy {
@@ -17,7 +18,7 @@ abstract final class EditionAccessPolicy {
       _proEditionIds.contains(edition.id);
 
   static bool canSelect(Edition edition, {required bool isPro}) =>
-      isPro || !requiresPro(edition);
+      ProRestrictions.hasAccess(isPro: isPro) || !requiresPro(edition);
 
   static Edition effectiveFor(Edition stored, {required bool isPro}) =>
       canSelect(stored, isPro: isPro) ? stored : Editions.library;

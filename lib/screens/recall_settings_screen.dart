@@ -3,6 +3,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../config/pro_restrictions.dart';
 import '../models/recall_question.dart';
 import '../models/recall_settings.dart';
 import '../models/recall_settings_policy.dart';
@@ -72,7 +73,9 @@ class _RecallSettingsScreenState extends State<RecallSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPro = EntitlementScope.maybeControllerOf(context)?.isPro ?? false;
+    final isPro = ProRestrictions.hasAccess(
+      isPro: EntitlementScope.maybeControllerOf(context)?.isPro ?? false,
+    );
     final displayedSettings = RecallSettingsPolicy.effectiveFor(
       _settings,
       isPro: isPro,

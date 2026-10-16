@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/edition_access_policy.dart';
@@ -15,6 +17,7 @@ import 'package:diurnul/widgets/publication_view.dart';
 import 'package:diurnul/widgets/edition_background.dart';
 
 void main() {
+  useRestrictedProMode();
   test('Library is the canonical default', () async {
     final service = EditionService(storage: _MemoryEditionStorage());
     expect(await service.loadSelectedEdition(), same(Editions.library));

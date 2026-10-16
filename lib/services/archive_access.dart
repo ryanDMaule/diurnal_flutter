@@ -1,3 +1,4 @@
+import '../config/pro_restrictions.dart';
 import '../models/daily_publication.dart';
 
 class ArchiveAccess {
@@ -18,7 +19,7 @@ class ArchiveAccess {
             .toList()
           ..sort((a, b) => b.publicationDate!.compareTo(a.publicationDate!));
 
-    final accessible = isPro
+    final accessible = ProRestrictions.hasAccess(isPro: isPro)
         ? datedPublications
         : datedPublications.take(freePublicationLimit);
     return Set<String>.unmodifiable(

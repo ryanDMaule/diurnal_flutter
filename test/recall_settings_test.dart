@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/recall_question.dart';
 import 'package:diurnul/models/recall_settings.dart';
 import 'package:diurnul/models/recall_settings_policy.dart';
 import 'package:diurnul/models/subscription_tier.dart';
+import 'package:diurnul/config/pro_restrictions.dart';
 import 'package:diurnul/screens/pro_screen.dart';
 import 'package:diurnul/screens/recall_settings_screen.dart';
 import 'package:diurnul/services/entitlement_service.dart';
@@ -12,6 +15,7 @@ import 'package:diurnul/services/recall_settings_service.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
+  useRestrictedProMode();
   test(
     'defaults preserve the original Archive five-question behaviour',
     () async {
@@ -118,6 +122,44 @@ void main() {
     await tester.tap(find.byKey(const Key('question-count-5')));
     await tester.pumpAndSettle();
     expect((await service.load()).questionCount, 5);
+  });
+
+  testWidgets('free release exposes and persists every Recall setting', (
+    tester,
+  ) async {
+    ProRestrictions.setTestOverride(false);
+    final service = RecallSettingsService(storage: _MemorySettingsStorage());
+    final controller = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await tester.binding.setSurfaceSize(const Size(700, 1100));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      EntitlementScope(
+        notifier: controller,
+        child: MaterialApp(
+          home: RecallSettingsScreen(settingsService: service),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.isPro, isFalse);
+    expect(find.byKey(const Key('pro-setting-lock')), findsNothing);
+    await tester.tap(find.byKey(const Key('pool-myLexicon')));
+    await tester.ensureVisible(find.byKey(const Key('question-count-20')));
+    await tester.tap(find.byKey(const Key('question-count-20')));
+    await tester.ensureVisible(find.byKey(const Key('type-wordToSynonym')));
+    await tester.pumpAndSettle();
+
+    final settings = await service.load();
+    expect(settings.wordPool, RecallWordPool.myLexicon);
+    expect(settings.questionCount, 20);
+    expect(
+      settings.enabledQuestionTypes,
+      contains(RecallQuestionType.wordToSynonym),
+    );
+    expect(find.byType(ProScreen), findsNothing);
   });
 
   testWidgets(

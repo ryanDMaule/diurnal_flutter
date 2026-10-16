@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
@@ -9,6 +11,7 @@ import 'package:diurnul/services/entitlement_service.dart';
 import 'package:diurnul/services/widget_sync_service.dart';
 
 void main() {
+  useRestrictedProMode();
   test(
     'publication sync preserves the existing widget cache contract',
     () async {

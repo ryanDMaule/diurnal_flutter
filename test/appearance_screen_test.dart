@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
 import 'package:diurnul/services/app_settings_service.dart';
@@ -15,6 +17,7 @@ import 'package:diurnul/widgets/edition_background.dart';
 import 'package:diurnul/widgets/entitlement_scope.dart';
 
 void main() {
+  useRestrictedProMode();
   testWidgets('shows all Editions in order in a vertical scrollable list', (
     tester,
   ) async {

@@ -4,6 +4,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/pro_restrictions.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -11,6 +13,7 @@ import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/recall_question.dart';
 import 'package:diurnul/models/recall_settings.dart';
 import 'package:diurnul/models/subscription_tier.dart';
+import 'package:diurnul/config/pro_restrictions.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 import 'package:diurnul/screens/endless_recall_session_screen.dart';
 import 'package:diurnul/screens/endless_recall_result_screen.dart';
@@ -35,6 +38,7 @@ import 'support/fake_sound_effects.dart';
 import 'support/seen_feature_introductions.dart';
 
 void main() {
+  useRestrictedProMode();
   late _MemoryBookmarkStorage bookmarkStorage;
   late BookmarkService bookmarkService;
   late _MemoryRecallProgressStorage progressStorage;
@@ -217,6 +221,39 @@ void main() {
         RecallProgressState.unseen,
       );
     }
+  });
+
+  testWidgets('free release unlocks Match and Endless without upgrade prompts', (
+    tester,
+  ) async {
+    ProRestrictions.setTestOverride(false);
+    final entitlementController = EntitlementController(
+      EntitlementService(storage: _MemoryEntitlementStorage()),
+    );
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      entitlementController: entitlementController,
+    );
+    await tester.pumpAndSettle();
+
+    expect(entitlementController.isPro, isFalse);
+    expect(find.byKey(const Key('match-pro-lock')), findsNothing);
+    expect(find.byKey(const Key('endless-pro-lock')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('match-recall')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MatchReadyScreen), findsOneWidget);
+    expect(find.byType(ProScreen), findsNothing);
+    await tester.tap(find.byTooltip('Back to Recall'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('endless-recall')));
+    await tester.pumpAndSettle();
+    expect(find.text('Ready to go endless?'), findsOneWidget);
+    expect(find.byType(ProScreen), findsNothing);
   });
 
   testWidgets('Pro opens Match and Endless with locked treatment removed', (

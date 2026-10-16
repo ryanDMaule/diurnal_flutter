@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/models/edition.dart';
 import 'package:diurnul/models/subscription_tier.dart';
@@ -19,6 +21,7 @@ import 'support/fake_sound_effects.dart';
 import 'support/seen_feature_introductions.dart';
 
 void main() {
+  useRestrictedProMode();
   late _MemoryBookmarkStorage storage;
   late BookmarkService service;
   late EditionService editionService;

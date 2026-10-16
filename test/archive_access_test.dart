@@ -1,9 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/pro_restrictions.dart';
+
 import 'package:diurnul/models/daily_publication.dart';
 import 'package:diurnul/services/archive_access.dart';
 
 void main() {
+  useRestrictedProMode();
   test('Free access contains exactly the five newest publications by date', () {
     final publications = [
       _publication('third', 3, 3),

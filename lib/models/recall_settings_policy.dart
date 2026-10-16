@@ -1,3 +1,4 @@
+import '../config/pro_restrictions.dart';
 import 'recall_question.dart';
 import 'recall_settings.dart';
 
@@ -11,5 +12,5 @@ abstract final class RecallSettingsPolicy {
   static RecallSettings effectiveFor(
     RecallSettings stored, {
     required bool isPro,
-  }) => isPro ? stored : freeSettings;
+  }) => ProRestrictions.hasAccess(isPro: isPro) ? stored : freeSettings;
 }
