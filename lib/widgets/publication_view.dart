@@ -8,6 +8,7 @@ import '../models/edition.dart';
 import '../services/haptic_service.dart';
 import '../services/pronunciation_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import 'edition_background.dart';
 
 class PublicationView extends StatefulWidget {
@@ -128,6 +129,10 @@ class _PublicationViewState extends State<PublicationView> {
     final interfaceSettings = InterfaceThemeScope.maybeControllerOf(
       context,
     )?.settings;
+    final transitionDuration = motionDurationOf(
+      context,
+      const Duration(milliseconds: 150),
+    );
     final edition = resolveInterfaceColorEdition(
       widget.edition,
       widget.interfacePaletteOverride ??
@@ -280,9 +285,7 @@ class _PublicationViewState extends State<PublicationView> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           AnimatedOpacity(
-                                            duration: const Duration(
-                                              milliseconds: 150,
-                                            ),
+                                            duration: transitionDuration,
                                             opacity: 1,
                                             child: Text(
                                               '${label[0].toUpperCase()}${label.substring(1)}',
@@ -300,9 +303,7 @@ class _PublicationViewState extends State<PublicationView> {
                                           ),
                                           const SizedBox(height: 5),
                                           AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 150,
-                                            ),
+                                            duration: transitionDuration,
                                             width: selectedTab == label
                                                 ? 22
                                                 : 0,
@@ -322,7 +323,10 @@ class _PublicationViewState extends State<PublicationView> {
                           ),
                           const SizedBox(height: 16),
                           AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
+                            duration: motionDurationOf(
+                              context,
+                              const Duration(milliseconds: 220),
+                            ),
                             switchInCurve: Curves.easeOutCubic,
                             switchOutCurve: Curves.easeInCubic,
                             transitionBuilder: (child, animation) =>
@@ -391,7 +395,10 @@ class _PublicationViewState extends State<PublicationView> {
                               dimension: 48,
                               child: Center(
                                 child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 130),
+                                  duration: motionDurationOf(
+                                    context,
+                                    const Duration(milliseconds: 130),
+                                  ),
                                   transitionBuilder: (child, animation) =>
                                       ScaleTransition(
                                         scale: animation,
@@ -442,11 +449,10 @@ class _PublicationViewState extends State<PublicationView> {
                     child: IgnorePointer(
                       ignoring: widget.topNotification == null,
                       child: AnimatedSwitcher(
-                        duration:
-                            (interfaceSettings?.reduceAnimations ?? false) ||
-                                MediaQuery.disableAnimationsOf(context)
-                            ? Duration.zero
-                            : const Duration(milliseconds: 240),
+                        duration: motionDurationOf(
+                          context,
+                          const Duration(milliseconds: 240),
+                        ),
                         transitionBuilder: (child, animation) => FadeTransition(
                           opacity: animation,
                           child: SlideTransition(

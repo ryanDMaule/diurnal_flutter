@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 
 class DiurnusLoadingState extends StatefulWidget {
   const DiurnusLoadingState({
@@ -32,11 +33,7 @@ class _DiurnusLoadingStateState extends State<DiurnusLoadingState>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final reduceAnimations =
-        InterfaceThemeScope.maybeControllerOf(
-          context,
-        )?.settings.reduceAnimations ??
-        MediaQuery.disableAnimationsOf(context);
+    final reduceAnimations = reduceAnimationsOf(context);
     if (reduceAnimations) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
@@ -53,11 +50,7 @@ class _DiurnusLoadingStateState extends State<DiurnusLoadingState>
   @override
   Widget build(BuildContext context) {
     final palette = InterfaceThemeScope.maybePaletteOf(context);
-    final reduceAnimations =
-        InterfaceThemeScope.maybeControllerOf(
-          context,
-        )?.settings.reduceAnimations ??
-        MediaQuery.disableAnimationsOf(context);
+    final reduceAnimations = reduceAnimationsOf(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

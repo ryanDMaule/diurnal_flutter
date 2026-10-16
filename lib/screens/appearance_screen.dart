@@ -13,6 +13,7 @@ import '../services/edition_service.dart';
 import '../services/haptic_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import '../widgets/edition_background.dart';
 import '../widgets/appearance_selector.dart';
 import '../widgets/entitlement_scope.dart';
@@ -72,9 +73,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   void _showPreview(Edition edition) {
     _removePreviewImmediately();
     final overlay = Overlay.of(context);
-    final reduceAnimations =
-        InterfaceThemeScope.controllerOf(context).settings.reduceAnimations ||
-        MediaQuery.of(context).disableAnimations;
+    final reduceAnimations = reduceAnimationsOf(context);
     final key = GlobalKey<_EditionFullScreenPreviewState>();
     late final OverlayEntry entry;
     entry = OverlayEntry(
@@ -390,7 +389,10 @@ class _EditionCard extends StatelessWidget {
               aspectRatio: 0.58,
               child: AnimatedContainer(
                 key: Key('edition-selection-${edition.id}'),
-                duration: Duration(milliseconds: 150),
+                duration: motionDurationOf(
+                  context,
+                  Duration(milliseconds: 150),
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
@@ -575,7 +577,10 @@ class _ThemeColorSelector extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.all(3),
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 150),
+                    duration: motionDurationOf(
+                      context,
+                      Duration(milliseconds: 150),
+                    ),
                     width: 26,
                     height: 26,
                     decoration: BoxDecoration(

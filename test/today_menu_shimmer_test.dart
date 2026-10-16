@@ -50,7 +50,7 @@ void main() {
       final decoration = highlight.decoration as BoxDecoration;
       expect(decoration.boxShadow, isNull);
 
-      await tester.tap(find.byTooltip('Open menu'));
+      await tester.tap(find.byKey(const Key('open-menu-control')));
       await tester.pumpAndSettle();
       expect(consumed, 1);
     },
@@ -93,10 +93,10 @@ void main() {
     expect(_highlightDecoration(tester).boxShadow, isNotNull);
     expect(consumed, 0);
 
-    await tester.tap(find.byTooltip('Open menu'));
+    await tester.tap(find.byKey(const Key('open-menu-control')));
     await tester.pumpAndSettle();
     expect(consumed, 1);
-    await tester.tap(find.byTooltip('Close menu'));
+    await tester.tap(find.byKey(const Key('close-menu-control')));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 20));
     expect(_highlightDecoration(tester).boxShadow, isNull);
@@ -138,6 +138,48 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   });
+
+  testWidgets('system reduced motion removes the custom menu transition', (
+    tester,
+  ) async {
+    final controller = InterfaceColorController(
+      AppSettingsService(storage: _MemoryAppSettingsStorage()),
+    );
+    await controller.load();
+    addTearDown(controller.dispose);
+    final observer = _RouteObserver();
+    await tester.pumpWidget(
+      InterfaceThemeScope(
+        notifier: controller,
+        child: MaterialApp(
+          navigatorObservers: [observer],
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: TodayScreen(
+              initialPublication: Future.value(
+                const TodayPublicationLoad(
+                  publication: _publication,
+                  isOffline: false,
+                ),
+              ),
+              widgetSyncService: WidgetSyncService(cache: _MemoryWidgetCache()),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byTooltip('Open menu'), findsNothing);
+    await tester.tap(find.byKey(const Key('open-menu-control')));
+    await tester.pump();
+
+    final route = observer.lastPushed as PageRouteBuilder<void>;
+    expect(route.transitionDuration, Duration.zero);
+    expect(route.reverseTransitionDuration, Duration.zero);
+    expect(find.byTooltip('Close menu'), findsNothing);
+    expect(find.byKey(const Key('close-menu-control')), findsOneWidget);
+  });
 }
 
 BoxDecoration _highlightDecoration(WidgetTester tester) =>
@@ -166,6 +208,15 @@ class _MemoryAppSettingsStorage implements AppSettingsStorage {
 
   @override
   Future<void> write(String key, String value) async {}
+}
+
+class _RouteObserver extends NavigatorObserver {
+  Route<dynamic>? lastPushed;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    lastPushed = route;
+  }
 }
 
 class _MemoryWidgetCache implements WidgetCache {

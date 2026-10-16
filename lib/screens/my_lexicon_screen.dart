@@ -12,6 +12,7 @@ import '../services/edition_service.dart';
 import '../services/feature_introduction_service.dart';
 import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import '../widgets/diurnus_loading_state.dart';
 import '../widgets/feature_introduction_sheet.dart';
 import 'saved_publication_screen.dart';
@@ -629,7 +630,10 @@ class _AlphabetRailState extends State<_AlphabetRail> {
                 child: IgnorePointer(
                   child: AnimatedOpacity(
                     opacity: _selectedLetter == null ? 0 : 1,
-                    duration: Duration(milliseconds: 100),
+                    duration: motionDurationOf(
+                      context,
+                      Duration(milliseconds: 100),
+                    ),
                     child: Container(
                       width: 48,
                       height: 48,

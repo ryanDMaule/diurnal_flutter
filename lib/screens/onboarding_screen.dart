@@ -12,6 +12,7 @@ import '../services/edition_service.dart';
 import '../services/onboarding_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import '../widgets/appearance_selector.dart';
 import '../widgets/diurnus_brand_lockup.dart';
 import '../widgets/edition_background.dart';
@@ -536,14 +537,10 @@ class _WidgetsPageState extends State<_WidgetsPage> {
                     _showcases.length,
                     (index) => AnimatedContainer(
                       key: Key('widget-carousel-dot-$index'),
-                      duration:
-                          (InterfaceThemeScope.maybeControllerOf(
-                                    context,
-                                  )?.settings.reduceAnimations ??
-                                  false) ||
-                              MediaQuery.of(context).disableAnimations
-                          ? Duration.zero
-                          : const Duration(milliseconds: 180),
+                      duration: motionDurationOf(
+                        context,
+                        const Duration(milliseconds: 180),
+                      ),
                       width: index == _currentPage ? 8 : 6,
                       height: index == _currentPage ? 8 : 6,
                       margin: const EdgeInsets.symmetric(horizontal: 4),

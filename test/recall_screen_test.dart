@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -396,7 +397,13 @@ void main() {
   testWidgets('Endless is tappable and settings still opens from the header', (
     tester,
   ) async {
-    await _pumpLanding(tester, archive, bookmarkService, progressService);
+    await _pumpLanding(
+      tester,
+      archive,
+      bookmarkService,
+      progressService,
+      systemReduceAnimations: true,
+    );
     await tester.pumpAndSettle();
 
     await _startEndlessRecall(tester);
@@ -406,9 +413,12 @@ void main() {
     await tester.tap(find.byTooltip('Exit Endless Recall'));
     await tester.pumpAndSettle();
 
+    expect(find.byTooltip('Recall Settings'), findsNothing);
+    expect(find.bySemanticsLabel('Recall Settings'), findsOneWidget);
     await tester.tap(find.byKey(const Key('recall-settings')));
     await tester.pumpAndSettle();
     expect(find.byType(RecallSettingsScreen), findsOneWidget);
+    expect(find.byTooltip('Recall Settings'), findsNothing);
   });
 
   testWidgets(
@@ -948,7 +958,6 @@ void main() {
 
     expect(find.byType(RecallResultScreen), findsOneWidget);
     expect(playback.calls.map((call) => call.assetPath), [
-      'sfx/v2/flower_01.ogg',
       'sfx/v2/craft_done.ogg',
     ]);
   });
@@ -979,9 +988,160 @@ void main() {
     expect(find.byType(EndlessRecallResultScreen), findsOneWidget);
     expect(playback.calls.map((call) => call.assetPath), [
       'sfx/v2/flower_01.ogg',
-      'sfx/v2/error_02.ogg',
       'sfx/v2/level_up.ogg',
     ]);
+  });
+
+  testWidgets('Standard Recall waits for one delayed save despite rapid taps', (
+    tester,
+  ) async {
+    final controlled = _ControlledRecallProgressService();
+    final questions = [
+      _question(archive[0], correct: 'Correct one', wrong: 'Wrong one'),
+      _question(archive[1], correct: 'Correct two', wrong: 'Wrong two'),
+    ];
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecallSessionScreen(
+          questions: questions,
+          progressService: controlled,
+          onRecallAgain: (_) async => questions,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Correct one'));
+    await tester.tap(find.text('Correct one'));
+    await tester.pump();
+    expect(controlled.calls, 1);
+
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.pump();
+    expect(find.text('01 / 02'), findsOneWidget);
+
+    controlled.completeNext();
+    await tester.pumpAndSettle();
+    expect(find.text('02 / 02'), findsOneWidget);
+    expect(controlled.calls, 1);
+  });
+
+  testWidgets('Standard Recall retries a failed save before completion', (
+    tester,
+  ) async {
+    final failing = _FailOnceRecallProgressService();
+    final playback = FakeSoundEffectsPlayback();
+    final questions = [
+      _question(archive.first, correct: 'Correct', wrong: 'Wrong'),
+    ];
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecallSessionScreen(
+          questions: questions,
+          progressService: failing,
+          onRecallAgain: (_) async => questions,
+          soundEffectsService: SoundEffectsService(playback: playback),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Correct'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Couldn\'t save Recall progress'),
+      findsOneWidget,
+    );
+    expect(find.byType(RecallResultScreen), findsNothing);
+    ScaffoldMessenger.of(
+      tester.element(find.byType(RecallSessionScreen)),
+    ).hideCurrentSnackBar();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('recall-continue')));
+    await tester.pumpAndSettle();
+    expect(failing.calls, 2);
+    expect(find.byType(RecallResultScreen), findsOneWidget);
+    expect(playback.calls.map((call) => call.assetPath), [
+      'sfx/v2/craft_done.ogg',
+    ]);
+  });
+
+  testWidgets('Endless waits for persistence and completes with one sound', (
+    tester,
+  ) async {
+    final controlled = _ControlledRecallProgressService();
+    final playback = FakeSoundEffectsPlayback();
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EndlessRecallSessionScreen(
+          archive: archive,
+          generator: RecallSessionGenerator(random: Random(7)),
+          progressService: controlled,
+          endlessService: EndlessRecallService(
+            storage: _MemoryEndlessRecallStorage(),
+          ),
+          onFinished: () async {},
+          soundEffectsService: SoundEffectsService(playback: playback),
+        ),
+      ),
+    );
+
+    final incorrect = _findEndlessChoice(tester, correctly: false);
+    await tester.tap(incorrect);
+    await tester.tap(incorrect);
+    await tester.pump();
+    expect(controlled.calls, 1);
+    await tester.tap(find.byKey(const Key('endless-continue')));
+    await tester.tap(find.byKey(const Key('endless-continue')));
+    await tester.pump();
+    expect(find.byType(EndlessRecallSessionScreen), findsOneWidget);
+
+    controlled.completeNext();
+    await tester.pumpAndSettle();
+    expect(find.byType(EndlessRecallResultScreen), findsOneWidget);
+    expect(playback.calls.map((call) => call.assetPath), [
+      'sfx/v2/craft_done.ogg',
+    ]);
+  });
+
+  testWidgets('Endless retries a failed save before ending the run', (
+    tester,
+  ) async {
+    final failing = _FailOnceRecallProgressService();
+    await _setTestSize(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EndlessRecallSessionScreen(
+          archive: archive,
+          generator: RecallSessionGenerator(random: Random(7)),
+          progressService: failing,
+          endlessService: EndlessRecallService(
+            storage: _MemoryEndlessRecallStorage(),
+          ),
+          onFinished: () async {},
+        ),
+      ),
+    );
+
+    await tester.tap(_findEndlessChoice(tester, correctly: false));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Couldn\'t save Recall progress'),
+      findsOneWidget,
+    );
+    expect(find.byType(EndlessRecallResultScreen), findsNothing);
+    ScaffoldMessenger.of(
+      tester.element(find.byType(EndlessRecallSessionScreen)),
+    ).hideCurrentSnackBar();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('endless-continue')));
+    await tester.pumpAndSettle();
+    expect(failing.calls, 2);
+    expect(find.byType(EndlessRecallResultScreen), findsOneWidget);
   });
 
   testWidgets('final Continue shows score and Finish returns to landing', (
@@ -1285,6 +1445,7 @@ Future<void> _pumpLanding(
   _MemoryMatchStorage? matchStorage,
   EntitlementController? entitlementController,
   double height = 1000,
+  bool systemReduceAnimations = false,
 }) => _pumpLandingWithApi(
   tester,
   _apiReturning(archive),
@@ -1295,6 +1456,7 @@ Future<void> _pumpLanding(
   matchStorage: matchStorage,
   entitlementController: entitlementController,
   height: height,
+  systemReduceAnimations: systemReduceAnimations,
 );
 
 Future<void> _startNormalRecall(WidgetTester tester) async {
@@ -1327,6 +1489,7 @@ Future<void> _pumpLandingWithApi(
   _MemoryMatchStorage? matchStorage,
   EntitlementController? entitlementController,
   double height = 1000,
+  bool systemReduceAnimations = false,
 }) async {
   final settingsService = RecallSettingsService(
     storage: _MemoryRecallSettingsStorage(),
@@ -1342,18 +1505,21 @@ Future<void> _pumpLandingWithApi(
     await controller.update(SubscriptionTier.pro);
   }
   final app = MaterialApp(
-    home: RecallScreen(
-      apiService: apiService,
-      bookmarkService: bookmarkService,
-      progressService: progressService,
-      introductionService: seenFeatureIntroductions(),
-      settingsService: settingsService,
-      sessionGenerator: RecallSessionGenerator(random: Random(4)),
-      endlessService: EndlessRecallService(
-        storage: endlessStorage ?? _MemoryEndlessRecallStorage(),
-      ),
-      matchService: MatchService(
-        storage: matchStorage ?? _MemoryMatchStorage(),
+    home: MediaQuery(
+      data: MediaQueryData(disableAnimations: systemReduceAnimations),
+      child: RecallScreen(
+        apiService: apiService,
+        bookmarkService: bookmarkService,
+        progressService: progressService,
+        introductionService: seenFeatureIntroductions(),
+        settingsService: settingsService,
+        sessionGenerator: RecallSessionGenerator(random: Random(4)),
+        endlessService: EndlessRecallService(
+          storage: endlessStorage ?? _MemoryEndlessRecallStorage(),
+        ),
+        matchService: MatchService(
+          storage: matchStorage ?? _MemoryMatchStorage(),
+        ),
       ),
     ),
   );
@@ -1443,6 +1609,40 @@ class _CountingRecallProgressService extends RecallProgressService {
   }
 }
 
+class _ControlledRecallProgressService extends RecallProgressService {
+  _ControlledRecallProgressService()
+    : super(storage: _MemoryRecallProgressStorage());
+
+  final List<Completer<void>> _pending = [];
+  int calls = 0;
+
+  @override
+  Future<void> recordAnswer(String publicationId, {required bool wasCorrect}) {
+    calls++;
+    final completer = Completer<void>();
+    _pending.add(completer);
+    return completer.future;
+  }
+
+  void completeNext() => _pending.removeAt(0).complete();
+}
+
+class _FailOnceRecallProgressService extends RecallProgressService {
+  _FailOnceRecallProgressService()
+    : super(storage: _MemoryRecallProgressStorage());
+
+  int calls = 0;
+
+  @override
+  Future<void> recordAnswer(
+    String publicationId, {
+    required bool wasCorrect,
+  }) async {
+    calls++;
+    if (calls == 1) throw StateError('test persistence failure');
+  }
+}
+
 class _MemoryRecallSettingsStorage implements RecallSettingsStorage {
   final Map<String, String> _values = {};
 
@@ -1481,6 +1681,14 @@ Future<void> _answerEndless(
   WidgetTester tester, {
   required bool correctly,
 }) async {
+  final choice = _findEndlessChoice(tester, correctly: correctly);
+  await tester.tap(choice);
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('endless-continue')));
+  await tester.pumpAndSettle();
+}
+
+Finder _findEndlessChoice(WidgetTester tester, {required bool correctly}) {
   final content = tester
       .widget<Text>(find.byKey(const Key('endless-question-content')))
       .data!;
@@ -1520,8 +1728,5 @@ Future<void> _answerEndless(
     }
   }
   expect(choice, isNotNull);
-  await tester.tap(choice!);
-  await tester.pump();
-  await tester.tap(find.byKey(const Key('endless-continue')));
-  await tester.pumpAndSettle();
+  return choice!;
 }

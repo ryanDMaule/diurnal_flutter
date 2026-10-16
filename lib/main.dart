@@ -17,6 +17,7 @@ import 'services/onboarding_service.dart';
 import 'services/sound_effects_service.dart';
 import 'services/widget_sync_service.dart';
 import 'theme/interface_theme.dart';
+import 'theme/motion_preferences.dart';
 import 'widgets/entitlement_scope.dart';
 
 void main() {
@@ -193,6 +194,7 @@ class _DiurnalAppState extends State<DiurnalApp> {
                 brightness: palette.brightness,
                 primarySwatch: Colors.indigo,
                 fontFamily: 'Inter',
+                pageTransitionsTheme: diurnusPageTransitionsTheme,
               ),
               home: LaunchGate(
                 initialization: _initialization,

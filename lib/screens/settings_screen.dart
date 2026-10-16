@@ -11,6 +11,7 @@ import '../services/recall_progress_service.dart';
 import '../services/pronunciation_service.dart';
 import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   SettingsScreen({
@@ -157,6 +158,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String action,
   }) => showDialog<bool>(
     context: context,
+    animationStyle: reduceAnimationsOf(context)
+        ? AnimationStyle.noAnimation
+        : null,
     builder: (context) => AlertDialog(
       backgroundColor: palette.surface,
       title: Text(title, style: TextStyle(color: palette.primary)),
@@ -187,6 +191,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _choosePronunciationVoice(InterfacePalette palette) async {
     await showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: reduceAnimationsOf(context)
+          ? AnimationStyle.noAnimation
+          : null,
       backgroundColor: palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -382,19 +389,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     voices: _pronunciationVoices,
                     palette: palette,
                     onTap: () => _choosePronunciationVoice(palette),
-                  ),
-                  _ToggleRow(
-                    key: const Key('reduce-animations-setting'),
-                    title: 'Reduce animations',
-                    description:
-                        'Limit decorative movement throughout Diurnus.',
-                    value: _settings.reduceAnimations,
-                    palette: palette,
-                    onChanged: (value) => _saveToggle(
-                      currentValue: _settings.reduceAnimations,
-                      newValue: value,
-                      settings: _settings.copyWith(reduceAnimations: value),
-                    ),
                   ),
                   _ToggleRow(
                     key: const Key('texture-setting'),

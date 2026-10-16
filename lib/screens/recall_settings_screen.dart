@@ -8,6 +8,7 @@ import '../models/recall_settings.dart';
 import '../models/recall_settings_policy.dart';
 import '../services/recall_settings_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import '../widgets/entitlement_scope.dart';
 import 'pro_screen.dart';
 
@@ -430,7 +431,7 @@ class _SelectionMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AnimatedContainer(
-    duration: Duration(milliseconds: 140),
+    duration: motionDurationOf(context, Duration(milliseconds: 140)),
     width: 22,
     height: 22,
     decoration: BoxDecoration(

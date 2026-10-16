@@ -12,6 +12,7 @@ import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import 'endless_recall_result_screen.dart';
 
 class EndlessRecallSessionScreen extends StatefulWidget {
@@ -47,6 +48,9 @@ class _EndlessRecallSessionScreenState
   String? _selectedAnswer;
   bool _answerWasCorrect = false;
   bool _isCompleting = false;
+  bool _isAdvancing = false;
+  bool _answerPersisted = false;
+  Future<bool>? _answerPersistence;
 
   @override
   void initState() {
@@ -64,6 +68,7 @@ class _EndlessRecallSessionScreenState
     setState(() {
       _selectedAnswer = answer;
       _answerWasCorrect = isCorrect;
+      _answerPersisted = false;
       if (isCorrect) _score++;
     });
     final hapticsEnabled =
@@ -76,20 +81,54 @@ class _EndlessRecallSessionScreenState
       unawaited(widget.soundEffectsService.play(SoundEffect.answerCorrect));
     } else {
       HapticService.error(enabled: hapticsEnabled);
-      unawaited(widget.soundEffectsService.play(SoundEffect.answerIncorrect));
     }
+    final persistence = _persistAnswer(_question.subject.id!, isCorrect);
+    _answerPersistence = persistence;
+    final persisted = await persistence;
+    if (!mounted || !identical(_answerPersistence, persistence)) return;
+    setState(() => _answerPersisted = persisted);
+  }
+
+  Future<bool> _persistAnswer(String publicationId, bool wasCorrect) async {
     try {
       await widget.progressService.recordAnswer(
-        _question.subject.id!,
-        wasCorrect: isCorrect,
+        publicationId,
+        wasCorrect: wasCorrect,
       );
+      return true;
     } catch (error) {
       debugPrint('Error saving Endless Recall progress: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Couldn\'t save Recall progress. Try Continue again.',
+            ),
+          ),
+        );
+      }
+      return false;
     }
   }
 
   Future<void> _continue() async {
-    if (_selectedAnswer == null || _isCompleting) return;
+    if (_selectedAnswer == null || _isCompleting || _isAdvancing) return;
+    _isAdvancing = true;
+    var persisted =
+        await (_answerPersistence ?? Future<bool>.value(_answerPersisted));
+    if (!mounted) return;
+    if (!persisted) {
+      persisted = await _persistAnswer(
+        _question.subject.id!,
+        _answerWasCorrect,
+      );
+      if (!mounted) return;
+      _answerPersisted = persisted;
+    }
+    if (!persisted) {
+      _isAdvancing = false;
+      return;
+    }
     if (_answerWasCorrect) {
       final nextQuestion = _cycle.next();
       if (nextQuestion == null) return;
@@ -98,6 +137,9 @@ class _EndlessRecallSessionScreenState
         _questionNumber++;
         _selectedAnswer = null;
         _answerWasCorrect = false;
+        _answerPersistence = null;
+        _answerPersisted = false;
+        _isAdvancing = false;
       });
       return;
     }
@@ -291,7 +333,7 @@ class _EndlessAnswerChoice extends StatelessWidget {
       onTap: hasAnswered ? null : onTap,
       borderRadius: BorderRadius.circular(9),
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 140),
+        duration: motionDurationOf(context, Duration(milliseconds: 140)),
         constraints: BoxConstraints(minHeight: 66),
         padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(

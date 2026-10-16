@@ -140,6 +140,29 @@ void main() {
 
     expect(await service.stateFor('independent'), RecallProgressState.recalled);
   });
+
+  test(
+    'concurrent progress updates are serialized without losing IDs',
+    () async {
+      final delayedStorage = _DelayedRecallProgressStorage();
+      final serializedService = RecallProgressService(storage: delayedStorage);
+
+      await Future.wait([
+        serializedService.recordAnswer('first', wasCorrect: true),
+        serializedService.recordAnswer('second', wasCorrect: false),
+      ]);
+
+      expect(delayedStorage.maximumConcurrentOperations, 1);
+      expect(
+        await serializedService.stateFor('first'),
+        RecallProgressState.recalled,
+      );
+      expect(
+        await serializedService.stateFor('second'),
+        RecallProgressState.revisit,
+      );
+    },
+  );
 }
 
 DailyPublication _publication(String id) => DailyPublication(
@@ -164,6 +187,32 @@ class _MemoryRecallProgressStorage implements RecallProgressStorage {
   Future<void> write(String key, String value) async {
     values[key] = value;
   }
+}
+
+class _DelayedRecallProgressStorage implements RecallProgressStorage {
+  final Map<String, String> _values = {};
+  int _activeOperations = 0;
+  int maximumConcurrentOperations = 0;
+
+  Future<T> _delayed<T>(T Function() operation) async {
+    _activeOperations++;
+    if (_activeOperations > maximumConcurrentOperations) {
+      maximumConcurrentOperations = _activeOperations;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+    try {
+      return operation();
+    } finally {
+      _activeOperations--;
+    }
+  }
+
+  @override
+  Future<String?> read(String key) => _delayed(() => _values[key]);
+
+  @override
+  Future<void> write(String key, String value) =>
+      _delayed(() => _values[key] = value);
 }
 
 class _MemoryBookmarkStorage implements BookmarkStorage {

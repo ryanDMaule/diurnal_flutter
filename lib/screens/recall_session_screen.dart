@@ -10,6 +10,7 @@ import '../services/haptic_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import 'recall_result_screen.dart';
 
 class RecallSessionScreen extends StatefulWidget {
@@ -36,6 +37,9 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
   int _correctAnswers = 0;
   String? _selectedAnswer;
   bool _isCompleting = false;
+  bool _isAdvancing = false;
+  bool _answerPersisted = false;
+  Future<bool>? _answerPersistence;
 
   RecallQuestion get _question => widget.questions[_questionIndex];
 
@@ -44,6 +48,7 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
     final isCorrect = answer == _question.correctAnswer;
     setState(() {
       _selectedAnswer = answer;
+      _answerPersisted = false;
       if (isCorrect) _correctAnswers++;
     });
     final hapticsEnabled =
@@ -51,29 +56,72 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
           context,
         )?.settings.hapticFeedbackEnabled ??
         true;
+    final isFinalQuestion = _questionIndex == widget.questions.length - 1;
     if (isCorrect) {
       HapticService.success(enabled: hapticsEnabled);
-      unawaited(widget.soundEffectsService.play(SoundEffect.answerCorrect));
+      if (!isFinalQuestion) {
+        unawaited(widget.soundEffectsService.play(SoundEffect.answerCorrect));
+      }
     } else {
       HapticService.error(enabled: hapticsEnabled);
-      unawaited(widget.soundEffectsService.play(SoundEffect.answerIncorrect));
+      if (!isFinalQuestion) {
+        unawaited(widget.soundEffectsService.play(SoundEffect.answerIncorrect));
+      }
     }
+    final persistence = _persistAnswer(_question.subject.id!, isCorrect);
+    _answerPersistence = persistence;
+    final persisted = await persistence;
+    if (!mounted || !identical(_answerPersistence, persistence)) return;
+    setState(() => _answerPersisted = persisted);
+  }
+
+  Future<bool> _persistAnswer(String publicationId, bool wasCorrect) async {
     try {
       await widget.progressService.recordAnswer(
-        _question.subject.id!,
-        wasCorrect: isCorrect,
+        publicationId,
+        wasCorrect: wasCorrect,
       );
+      return true;
     } catch (error) {
       debugPrint('Error saving Recall progress: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Couldn\'t save Recall progress. Try Continue again.',
+            ),
+          ),
+        );
+      }
+      return false;
     }
   }
 
   Future<void> _continue() async {
-    if (_selectedAnswer == null || _isCompleting) return;
+    if (_selectedAnswer == null || _isCompleting || _isAdvancing) return;
+    _isAdvancing = true;
+    var persisted =
+        await (_answerPersistence ?? Future<bool>.value(_answerPersisted));
+    if (!mounted) return;
+    if (!persisted) {
+      persisted = await _persistAnswer(
+        _question.subject.id!,
+        _selectedAnswer == _question.correctAnswer,
+      );
+      if (!mounted) return;
+      _answerPersisted = persisted;
+    }
+    if (!persisted) {
+      _isAdvancing = false;
+      return;
+    }
     if (_questionIndex < widget.questions.length - 1) {
       setState(() {
         _questionIndex++;
         _selectedAnswer = null;
+        _answerPersistence = null;
+        _answerPersisted = false;
+        _isAdvancing = false;
       });
       return;
     }
@@ -144,9 +192,10 @@ class _RecallSessionScreenState extends State<RecallSessionScreen> {
               ),
               SizedBox(height: 12),
               TweenAnimationBuilder<double>(
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : Duration(milliseconds: 250),
+                duration: motionDurationOf(
+                  context,
+                  Duration(milliseconds: 250),
+                ),
                 curve: Curves.easeInOut,
                 tween: Tween(end: recallProgressValue(questionNumber, total)),
                 builder: (context, value, child) => ClipRRect(
@@ -295,7 +344,7 @@ class _AnswerChoice extends StatelessWidget {
         onTap: hasAnswered ? null : onTap,
         borderRadius: BorderRadius.circular(9),
         child: AnimatedContainer(
-          duration: Duration(milliseconds: 140),
+          duration: motionDurationOf(context, Duration(milliseconds: 140)),
           constraints: BoxConstraints(minHeight: 66),
           padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
@@ -319,7 +368,10 @@ class _AnswerChoice extends StatelessWidget {
               ),
               SizedBox(width: 12),
               AnimatedSwitcher(
-                duration: Duration(milliseconds: 140),
+                duration: motionDurationOf(
+                  context,
+                  Duration(milliseconds: 140),
+                ),
                 child: showCorrect
                     ? Icon(
                         CupertinoIcons.check_mark_circled_solid,

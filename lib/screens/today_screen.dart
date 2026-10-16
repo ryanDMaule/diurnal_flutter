@@ -15,6 +15,7 @@ import '../services/publication_api_service.dart';
 import '../services/sound_effects_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import '../widgets/morphing_menu_button.dart';
 import '../widgets/publication_view.dart';
 import '../widgets/entitlement_scope.dart';
@@ -305,12 +306,7 @@ class _TodayScreenState extends State<TodayScreen>
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      sheetAnimationStyle:
-          (InterfaceThemeScope.maybeControllerOf(
-                    context,
-                  )?.settings.reduceAnimations ??
-                  false) ||
-              MediaQuery.disableAnimationsOf(context)
+      sheetAnimationStyle: reduceAnimationsOf(context)
           ? AnimationStyle.noAnimation
           : null,
       builder: (sheetContext) => _TodayErrorDetailsSheet(
@@ -333,12 +329,7 @@ class _TodayScreenState extends State<TodayScreen>
     return math.max(0, wave);
   }
 
-  bool get _reduceMenuDiscoveryMotion =>
-      (InterfaceThemeScope.maybeControllerOf(
-            context,
-          )?.settings.reduceAnimations ??
-          false) ||
-      MediaQuery.of(context).disableAnimations;
+  bool get _reduceMenuDiscoveryMotion => reduceAnimationsOf(context);
 
   void _scheduleMenuDiscovery(Duration delay) {
     _menuDiscoveryTimer?.cancel();
@@ -441,7 +432,7 @@ class _TodayScreenState extends State<TodayScreen>
   Future<void> _openMenu() async {
     await _completeMenuDiscovery();
     if (!mounted) return;
-    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final reduceMotion = reduceAnimationsOf(context);
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
         transitionDuration: reduceMotion

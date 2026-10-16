@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 
 Future<void> showFeatureIntroductionSheet({
   required BuildContext context,
@@ -23,11 +24,7 @@ Future<void> showFeatureIntroductionSheet({
           accent: Color(0xFFC49A52),
         )
       : interfacePalette;
-  final reduceAnimations =
-      InterfaceThemeScope.maybeControllerOf(
-        context,
-      )?.settings.reduceAnimations ??
-      MediaQuery.disableAnimationsOf(context);
+  final reduceAnimations = reduceAnimationsOf(context);
 
   return showModalBottomSheet<void>(
     context: context,

@@ -6,6 +6,7 @@ import '../models/daily_publication.dart';
 import '../models/edition.dart';
 import '../models/edition_access_policy.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import 'edition_background.dart';
 import 'publication_view.dart';
 
@@ -47,12 +48,7 @@ class _AppearanceSelectorState extends State<AppearanceSelector> {
 
   void _showPreview(Edition edition, InterfacePalette palette) {
     _removePreviewImmediately();
-    final reduceAnimations =
-        (InterfaceThemeScope.maybeControllerOf(
-              context,
-            )?.settings.reduceAnimations ??
-            false) ||
-        MediaQuery.of(context).disableAnimations;
+    final reduceAnimations = reduceAnimationsOf(context);
     final key = GlobalKey<_EditionFullScreenPreviewState>();
     late final OverlayEntry entry;
     entry = OverlayEntry(
@@ -237,7 +233,10 @@ class ThemeColorSelector extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(3),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
+                  duration: motionDurationOf(
+                    context,
+                    const Duration(milliseconds: 150),
+                  ),
                   width: 26,
                   height: 26,
                   decoration: BoxDecoration(
@@ -398,7 +397,10 @@ class _EditionCard extends StatelessWidget {
               aspectRatio: 0.58,
               child: AnimatedContainer(
                 key: Key('edition-selection-${edition.id}'),
-                duration: const Duration(milliseconds: 150),
+                duration: motionDurationOf(
+                  context,
+                  const Duration(milliseconds: 150),
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(

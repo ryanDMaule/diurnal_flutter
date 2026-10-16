@@ -209,6 +209,137 @@ void main() {
       0,
     );
   });
+
+  for (final configuration in <({String name, Size size, double textScale})>[
+    (name: '320px at 1.3x text', size: const Size(320, 700), textScale: 1.3),
+    (name: '360px at 1.6x text', size: const Size(360, 760), textScale: 1.6),
+    (name: '320px at 2.0x text', size: const Size(320, 700), textScale: 2.0),
+  ]) {
+    testWidgets(
+      'long Match cards remain readable and reachable on ${configuration.name}',
+      (tester) async {
+        await _pumpMatch(
+          tester,
+          progressService,
+          matchStorage,
+          size: configuration.size,
+          textScale: configuration.textScale,
+          cards: _longCards,
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(
+          _longCards[1].text.length,
+          MatchSessionGenerator.maximumDefinitionLength,
+        );
+        final delegate =
+            tester
+                    .widget<GridView>(find.byKey(const Key('match-card-grid')))
+                    .gridDelegate
+                as SliverGridDelegateWithFixedCrossAxisCount;
+        expect(delegate.crossAxisCount, 2);
+        expect(delegate.mainAxisExtent, greaterThan(140));
+        await _scrollToLastCard(tester);
+        expect(
+          find.byKey(const Key('match-card-d:definition')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('landscape Match keeps header and every card accessible', (
+    tester,
+  ) async {
+    await _pumpMatch(
+      tester,
+      progressService,
+      matchStorage,
+      size: const Size(700, 320),
+      textScale: 1.6,
+      cards: _longCards,
+      elapsedTime: MatchElapsedTime(rawElapsedMilliseconds: () => 3900000),
+    );
+
+    expect(find.text('Match'), findsOneWidget);
+    expect(find.text('65:00.0'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _scrollToLastCard(tester);
+    expect(find.byKey(const Key('match-card-d:definition')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+final _longCards = [
+  const MatchCard(
+    id: 'a:word',
+    subjectId: 'a',
+    type: MatchCardType.word,
+    text: 'Pneumonoultramicroscopicsilicovolcanoconiosis',
+  ),
+  MatchCard(
+    id: 'a:definition',
+    subjectId: 'a',
+    type: MatchCardType.definition,
+    text: List.filled(
+      24,
+      'literary',
+    ).join(' ').substring(0, MatchSessionGenerator.maximumDefinitionLength),
+  ),
+  const MatchCard(
+    id: 'b:word',
+    subjectId: 'b',
+    type: MatchCardType.word,
+    text: 'Circumlocution',
+  ),
+  const MatchCard(
+    id: 'b:definition',
+    subjectId: 'b',
+    type: MatchCardType.definition,
+    text:
+        'The use of many words where fewer would do, especially in a deliberate attempt to remain indirect or pleasantly evasive.',
+  ),
+  const MatchCard(
+    id: 'c:word',
+    subjectId: 'c',
+    type: MatchCardType.word,
+    text: 'Sesquipedalian',
+  ),
+  const MatchCard(
+    id: 'c:definition',
+    subjectId: 'c',
+    type: MatchCardType.definition,
+    text: 'Characterised by the use of long words; polysyllabic.',
+  ),
+  const MatchCard(
+    id: 'd:word',
+    subjectId: 'd',
+    type: MatchCardType.word,
+    text: 'Incomprehensibility',
+  ),
+  const MatchCard(
+    id: 'd:definition',
+    subjectId: 'd',
+    type: MatchCardType.definition,
+    text:
+        'The quality of being exceptionally difficult to understand while still retaining all of the information required for recognition.',
+  ),
+];
+
+Future<void> _scrollToLastCard(WidgetTester tester) async {
+  final grid = find.byKey(const Key('match-card-grid'));
+  for (
+    var attempt = 0;
+    attempt < 12 &&
+        find.byKey(const Key('match-card-d:definition')).evaluate().isEmpty;
+    attempt++
+  ) {
+    await tester.drag(grid, const Offset(0, -400));
+    await tester.pump();
+  }
+  await tester.ensureVisible(find.byKey(const Key('match-card-d:definition')));
+  await tester.pump();
 }
 
 Future<void> _match(WidgetTester tester, String id) async {
@@ -226,10 +357,13 @@ Future<void> _pumpMatch(
   bool disableAnimations = false,
   MatchElapsedTime? elapsedTime,
   SoundEffectsService? soundEffectsService,
+  Size size = const Size(430, 900),
+  double textScale = 1,
+  List<MatchCard>? cards,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(430, 900));
+  await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  const cards = [
+  const defaultCards = [
     MatchCard(
       id: 'a:word',
       subjectId: 'a',
@@ -255,16 +389,21 @@ Future<void> _pumpMatch(
       text: 'The first exact definition.',
     ),
   ];
+  final sessionCards = cards ?? defaultCards;
+  final subjectIds = sessionCards.map((card) => card.subjectId).toSet();
   await tester.pumpWidget(
     MaterialApp(
       home: MediaQuery(
-        data: MediaQueryData(disableAnimations: disableAnimations),
+        data: MediaQueryData(
+          disableAnimations: disableAnimations,
+          textScaler: TextScaler.linear(textScale),
+        ),
         child: MatchSessionScreen(
-          session: const MatchSession(cards: cards, subjectIds: {'a', 'b'}),
+          session: MatchSession(cards: sessionCards, subjectIds: subjectIds),
           matchService: MatchService(storage: matchStorage),
           progressService: progressService,
           onPlayAgain: (_) async =>
-              const MatchSession(cards: cards, subjectIds: {'a', 'b'}),
+              MatchSession(cards: sessionCards, subjectIds: subjectIds),
           onFinished: () async {},
           elapsedTime: elapsedTime,
           soundEffectsService: soundEffectsService,

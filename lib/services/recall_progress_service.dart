@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,6 +57,7 @@ class RecallProgressService {
   static const _storageKey = 'diurnus.recalledPublicationIds';
   static const _attemptedStorageKey = 'diurnus.attemptedPublicationIds';
   final RecallProgressStorage _storage;
+  Future<void>? _activeWrite;
 
   Future<bool> hasRecordedActivity() async =>
       (await _publicationIds(_attemptedStorageKey)).isNotEmpty ||
@@ -83,7 +85,12 @@ class RecallProgressService {
         : RecallProgressState.unseen;
   }
 
-  Future<void> recordAnswer(
+  Future<void> recordAnswer(String publicationId, {required bool wasCorrect}) =>
+      _serializeWrite(
+        () => _recordAnswer(publicationId, wasCorrect: wasCorrect),
+      );
+
+  Future<void> _recordAnswer(
     String publicationId, {
     required bool wasCorrect,
   }) async {
@@ -91,10 +98,13 @@ class RecallProgressService {
     if (attempted.add(publicationId)) {
       await _writeIds(_attemptedStorageKey, attempted);
     }
-    if (wasCorrect) await markRecalled(publicationId);
+    if (wasCorrect) await _markRecalled(publicationId);
   }
 
-  Future<void> markRecalled(String publicationId) async {
+  Future<void> markRecalled(String publicationId) =>
+      _serializeWrite(() => _markRecalled(publicationId));
+
+  Future<void> _markRecalled(String publicationId) async {
     final attempted = await _publicationIds(_attemptedStorageKey);
     if (attempted.add(publicationId)) {
       await _writeIds(_attemptedStorageKey, attempted);
@@ -105,10 +115,10 @@ class RecallProgressService {
     }
   }
 
-  Future<void> clear() async {
+  Future<void> clear() => _serializeWrite(() async {
     await _writeIds(_attemptedStorageKey, {});
     await _writeIds(_storageKey, {});
-  }
+  });
 
   Future<RecallProgressSummary> summaryFor(
     Iterable<DailyPublication> publications,
@@ -172,5 +182,27 @@ class RecallProgressService {
   Future<void> _writeIds(String key, Set<String> ids) async {
     final sorted = ids.toList()..sort();
     await _storage.write(key, json.encode(sorted));
+  }
+
+  Future<void> _serializeWrite(Future<void> Function() operation) {
+    final previous = _activeWrite;
+    final Future<void> next;
+    if (previous == null) {
+      next = operation();
+    } else {
+      next = previous
+          .then<void>((_) {}, onError: (Object _, StackTrace __) {})
+          .then((_) => operation());
+    }
+    _activeWrite = next;
+    next.then<void>(
+      (_) {
+        if (identical(_activeWrite, next)) _activeWrite = null;
+      },
+      onError: (Object _, StackTrace __) {
+        if (identical(_activeWrite, next)) _activeWrite = null;
+      },
+    );
+    return next;
   }
 }

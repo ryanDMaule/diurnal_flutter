@@ -42,22 +42,29 @@ class MorphingMenuButton extends StatelessWidget {
                 ),
               ],
       ),
-      child: IconButton(
-        tooltip: tooltip,
-        onPressed: onPressed,
-        icon: Hero(
-          tag: _heroTag,
-          createRectTween: (begin, end) => RectTween(begin: begin, end: end),
-          flightShuttleBuilder:
-              (flightContext, animation, direction, fromContext, toContext) {
-                return AnimatedBuilder(
-                  animation: animation,
-                  builder: (context, child) {
-                    return _MenuGlyph(progress: animation.value, color: color);
-                  },
-                );
-              },
-          child: _MenuGlyph(progress: isOpen ? 1 : 0, color: color),
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: IconButton(
+          key: Key(isOpen ? 'close-menu-control' : 'open-menu-control'),
+          onPressed: onPressed,
+          icon: Hero(
+            tag: _heroTag,
+            createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+            flightShuttleBuilder:
+                (flightContext, animation, direction, fromContext, toContext) {
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (context, child) {
+                      return _MenuGlyph(
+                        progress: animation.value,
+                        color: color,
+                      );
+                    },
+                  );
+                },
+            child: _MenuGlyph(progress: isOpen ? 1 : 0, color: color),
+          ),
         ),
       ),
     );

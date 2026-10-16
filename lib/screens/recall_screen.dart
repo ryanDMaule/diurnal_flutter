@@ -547,19 +547,22 @@ class _RecallScreenState extends State<RecallScreen> {
                             ),
                           ),
                         ),
-                        child: IconButton(
-                          key: Key('recall-settings'),
-                          tooltip: 'Recall Settings',
-                          onPressed: _openSettings,
-                          padding: EdgeInsets.zero,
-                          constraints: BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
-                          ),
-                          icon: Icon(
-                            CupertinoIcons.slider_horizontal_3,
-                            color: _recallEdition.accentColor,
-                            size: 24,
+                        child: Semantics(
+                          button: true,
+                          label: 'Recall Settings',
+                          child: IconButton(
+                            key: Key('recall-settings'),
+                            onPressed: _openSettings,
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
+                            icon: Icon(
+                              CupertinoIcons.slider_horizontal_3,
+                              color: _recallEdition.accentColor,
+                              size: 24,
+                            ),
                           ),
                         ),
                       ),

@@ -14,21 +14,40 @@ void main() {
       expect(await service.load(), isA<AppSettings>());
       final defaults = await service.load();
       expect(defaults.soundEffectsEnabled, isTrue);
-      expect(defaults.reduceAnimations, isFalse);
       expect(defaults.interfaceColor, InterfaceColor.evergreen);
 
       await service.save(
         const AppSettings(
           soundEffectsEnabled: false,
-          reduceAnimations: true,
           interfaceColor: InterfaceColor.navy,
           textureEnabled: false,
         ),
       );
       final restored = await AppSettingsService(storage: storage).load();
       expect(restored.soundEffectsEnabled, isFalse);
-      expect(restored.reduceAnimations, isTrue);
       expect(restored.interfaceColor, InterfaceColor.navy);
+    },
+  );
+
+  test(
+    'legacy reduceAnimations value is ignored without losing settings',
+    () async {
+      final storage = _MemoryAppSettingsStorage()
+        ..value =
+            '{"soundEffectsEnabled":false,"hapticFeedbackEnabled":false,'
+            '"reduceAnimations":true,"interfaceColor":"navy",'
+            '"textureEnabled":false}';
+
+      final service = AppSettingsService(storage: storage);
+      final restored = await service.load();
+
+      expect(restored.soundEffectsEnabled, isFalse);
+      expect(restored.hapticFeedbackEnabled, isFalse);
+      expect(restored.interfaceColor, InterfaceColor.navy);
+      expect(restored.textureEnabled, isFalse);
+
+      await service.save(restored);
+      expect(storage.value, isNot(contains('reduceAnimations')));
     },
   );
 

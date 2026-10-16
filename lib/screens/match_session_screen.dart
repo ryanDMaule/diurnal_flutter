@@ -12,6 +12,7 @@ import '../services/match_service.dart';
 import '../services/recall_progress_service.dart';
 import '../services/sound_effects_service.dart';
 import '../theme/interface_theme.dart';
+import '../theme/motion_preferences.dart';
 import 'match_result_screen.dart';
 
 class MatchSessionScreen extends StatefulWidget {
@@ -54,18 +55,43 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
   int _penaltyFeedbackSequence = 0;
   bool _isCompleting = false;
 
-  bool get _reduceAnimations {
-    final appSetting = InterfaceThemeScope.maybeControllerOf(
-      context,
-    )?.settings.reduceAnimations;
-    return appSetting == true || MediaQuery.disableAnimationsOf(context);
-  }
+  bool get _reduceAnimations => reduceAnimationsOf(context);
 
   bool get _hapticsEnabled =>
       InterfaceThemeScope.maybeControllerOf(
         context,
       )?.settings.hapticFeedbackEnabled ??
       true;
+
+  double _cardExtent(BuildContext context, double gridWidth) {
+    const crossAxisSpacing = 10.0;
+    const horizontalCardPadding = 28.0;
+    const verticalCardPadding = 28.0;
+    final cardWidth = (gridWidth - crossAxisSpacing) / 2;
+    final contentWidth = math.max(1.0, cardWidth - horizontalCardPadding);
+    final textScaler = MediaQuery.textScalerOf(context);
+    final textDirection = Directionality.of(context);
+    var tallestText = 0.0;
+    for (final card in widget.session.cards) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: card.text,
+          style: TextStyle(
+            fontFamily: card.type == MatchCardType.word
+                ? 'NotoSerifJP'
+                : 'Figtree',
+            fontSize: card.type == MatchCardType.word ? 19 : 13,
+            fontWeight: FontWeight.w300,
+            height: 1.35,
+          ),
+        ),
+        textDirection: textDirection,
+        textScaler: textScaler,
+      )..layout(maxWidth: contentWidth);
+      tallestText = math.max(tallestText, painter.height);
+    }
+    return math.max(140.0, tallestText + verticalCardPadding + 2);
+  }
 
   @override
   void initState() {
@@ -232,8 +258,8 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(
-                    width: 56,
+                  ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: 56),
                     child: Text(
                       formatMatchTimer(_elapsedTime.elapsedMilliseconds),
                       key: Key('match-timer'),
@@ -250,38 +276,47 @@ class _MatchSessionScreenState extends State<MatchSessionScreen> {
               ),
               SizedBox(height: 18),
               Expanded(
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    mainAxisExtent: 140,
-                  ),
-                  itemCount: widget.session.cards.length,
-                  itemBuilder: (context, index) {
-                    final card = widget.session.cards[index];
-                    final isResolved = _resolvedIds.contains(card.id);
-                    return AnimatedOpacity(
-                      key: Key('match-card-${card.id}'),
-                      duration: duration,
-                      opacity: isResolved ? 0 : 1,
-                      child: IgnorePointer(
-                        ignoring: isResolved,
-                        child: _MatchCardTile(
-                          card: card,
-                          isSelected: _selectedId == card.id,
-                          feedback: _feedbackIds.contains(card.id)
-                              ? (_feedbackIsCorrect
-                                    ? _MatchFeedback.correct
-                                    : _MatchFeedback.incorrect)
-                              : _MatchFeedback.none,
-                          duration: duration,
-                          showPenalty: _penaltyFeedbackCardId == card.id,
-                          penaltyFeedbackSequence: _penaltyFeedbackSequence,
-                          reduceAnimations: _reduceAnimations,
-                          onTap: () => _tapCard(card),
-                        ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cardExtent = _cardExtent(
+                      context,
+                      constraints.maxWidth,
+                    );
+                    return GridView.builder(
+                      key: Key('match-card-grid'),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        mainAxisExtent: cardExtent,
                       ),
+                      itemCount: widget.session.cards.length,
+                      itemBuilder: (context, index) {
+                        final card = widget.session.cards[index];
+                        final isResolved = _resolvedIds.contains(card.id);
+                        return AnimatedOpacity(
+                          key: Key('match-card-${card.id}'),
+                          duration: duration,
+                          opacity: isResolved ? 0 : 1,
+                          child: IgnorePointer(
+                            ignoring: isResolved,
+                            child: _MatchCardTile(
+                              card: card,
+                              isSelected: _selectedId == card.id,
+                              feedback: _feedbackIds.contains(card.id)
+                                  ? (_feedbackIsCorrect
+                                        ? _MatchFeedback.correct
+                                        : _MatchFeedback.incorrect)
+                                  : _MatchFeedback.none,
+                              duration: duration,
+                              showPenalty: _penaltyFeedbackCardId == card.id,
+                              penaltyFeedbackSequence: _penaltyFeedbackSequence,
+                              reduceAnimations: _reduceAnimations,
+                              onTap: () => _tapCard(card),
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

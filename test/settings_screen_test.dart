@@ -43,20 +43,15 @@ void main() {
       of: find.byKey(const Key('sound-effects-setting')),
       matching: find.byType(Switch),
     );
-    final reduceAnimationsSwitch = find.descendant(
-      of: find.byKey(const Key('reduce-animations-setting')),
-      matching: find.byType(Switch),
-    );
     expect(tester.widget<Switch>(soundSwitch).value, isTrue);
-    expect(tester.widget<Switch>(reduceAnimationsSwitch).value, isFalse);
+    expect(find.byKey(const Key('reduce-animations-setting')), findsNothing);
+    expect(find.text('Reduce animations'), findsNothing);
 
     await tester.tap(soundSwitch);
-    await tester.tap(reduceAnimationsSwitch);
     expect(find.text('Theme Colour'), findsNothing);
     expect(find.byKey(const Key('theme-color-selector')), findsNothing);
     final restored = await AppSettingsService(storage: appStorage).load();
     expect(restored.soundEffectsEnabled, isFalse);
-    expect(restored.reduceAnimations, isTrue);
     expect(restored.interfaceColor, InterfaceColor.evergreen);
 
     await tester.tap(find.byTooltip('Back to menu'));
