@@ -126,6 +126,28 @@ void main() {
     expect(result.failure, isNull);
   });
 
+  test('Today cache uses the London date rather than the device date', () async {
+    final storage = _MemoryTodayPublicationStorage()
+      ..values[PublicationApiService.todayPublicationStorageKey] =
+          _todayResponse;
+    var requests = 0;
+    final service = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response('Unavailable', 503);
+      }),
+      todayStorage: storage,
+      now: () => DateTime.parse('2026-09-29T00:30:00+09:00'),
+    );
+
+    final result = await service.loadTodayPublication(
+      preferCurrentDateCache: true,
+    );
+
+    expect(requests, 0);
+    expect(result.publication.id, 'publication-28');
+  });
+
   test('previous-date Today cache still requests the API', () async {
     final storage = _MemoryTodayPublicationStorage()
       ..values[PublicationApiService.todayPublicationStorageKey] =
@@ -377,6 +399,60 @@ void main() {
     expect((await service.readCachedPublications())!.map((item) => item.id), [
       'today',
     ]);
+  });
+
+  test('Archive future filtering follows the London publication day', () async {
+    final service = PublicationApiService(
+      client: MockClient(
+        (request) async => http.Response(
+          jsonEncode([
+            _archivePublication('today', 1, 'Today'),
+            {
+              ..._archivePublication('future', 2, 'Future'),
+              'publicationDate': '2026-09-29',
+            },
+          ]),
+          200,
+        ),
+      ),
+      archiveStorage: _MemoryArchivePublicationStorage(),
+      now: () => DateTime.parse('2026-09-29T00:30:00+09:00'),
+    );
+
+    expect(
+      (await service.fetchPublications()).map((item) => item.id),
+      ['today'],
+    );
+  });
+
+  test('default timeout allows a Render cold start', () {
+    expect(
+      PublicationApiService().requestTimeout,
+      const Duration(seconds: 60),
+    );
+  });
+
+  test('clean install accepts the canonical catalogue response metadata', () async {
+    final service = PublicationApiService(
+      client: MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            ..._archivePublication('canonical-1', 1, 'Canonical'),
+            'publicationDate': '2026-10-16',
+            'generation': 'diurnus-canonical-2026-10-16-v1',
+          }),
+          200,
+        ),
+      ),
+      todayStorage: _MemoryTodayPublicationStorage(),
+    );
+
+    final result = await service.loadTodayPublication();
+
+    expect(result.isOffline, isFalse);
+    expect(result.publication.id, 'canonical-1');
+    expect(result.publication.sequence, 1);
+    expect(result.publication.publicationDate, DateTime.utc(2026, 10, 16));
   });
 
   test(

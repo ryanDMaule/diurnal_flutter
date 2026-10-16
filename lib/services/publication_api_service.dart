@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/daily_publication.dart';
+import 'publication_clock.dart';
 
 abstract interface class TodayPublicationStorage {
   Future<String?> read(String key);
@@ -69,7 +70,7 @@ class PublicationApiService {
     http.Client? client,
     TodayPublicationStorage? todayStorage,
     ArchivePublicationStorage? archiveStorage,
-    this.requestTimeout = const Duration(seconds: 10),
+    this.requestTimeout = const Duration(seconds: 60),
     DateTime Function()? now,
   }) : _client = client ?? http.Client(),
        _todayStorage =
@@ -101,7 +102,7 @@ class PublicationApiService {
   }) async {
     if (preferCurrentDateCache) {
       final cached = await _readCachedTodayPublication();
-      if (cached != null && _isCurrentLocalDate(cached.publicationDate)) {
+      if (cached != null && _isCurrentPublicationDate(cached.publicationDate)) {
         return TodayPublicationLoad(publication: cached, isOffline: false);
       }
     }
@@ -191,11 +192,13 @@ class PublicationApiService {
       final refreshedAt = stored == null ? null : DateTime.tryParse(stored);
       if (refreshedAt == null) return false;
       final now = _now();
+      final refreshedDate = PublicationClock.londonDate(refreshedAt);
+      final currentDate = PublicationClock.londonDate(now);
       final sameDate =
-          refreshedAt.year == now.year &&
-          refreshedAt.month == now.month &&
-          refreshedAt.day == now.day;
-      final age = now.difference(refreshedAt);
+          refreshedDate.year == currentDate.year &&
+          refreshedDate.month == currentDate.month &&
+          refreshedDate.day == currentDate.day;
+      final age = now.toUtc().difference(refreshedAt.toUtc());
       return sameDate && !age.isNegative && age <= archiveFreshness;
     } catch (_) {
       return false;
@@ -225,12 +228,12 @@ class PublicationApiService {
     }
   }
 
-  bool _isCurrentLocalDate(DateTime? publicationDate) {
+  bool _isCurrentPublicationDate(DateTime? publicationDate) {
     if (publicationDate == null) return false;
-    final now = _now();
-    return publicationDate.year == now.year &&
-        publicationDate.month == now.month &&
-        publicationDate.day == now.day;
+    final today = PublicationClock.londonDate(_now());
+    return publicationDate.year == today.year &&
+        publicationDate.month == today.month &&
+        publicationDate.day == today.day;
   }
 
   Future<void> _cachePublications(List<DailyPublication> publications) async {
@@ -272,8 +275,7 @@ class PublicationApiService {
   List<DailyPublication> _visiblePublications(
     Iterable<DailyPublication> publications,
   ) {
-    final now = _now();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final today = PublicationClock.londonDate(_now());
     return List<DailyPublication>.unmodifiable(
       publications.where(
         (publication) => !publication.publicationDate!.isAfter(today),

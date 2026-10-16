@@ -346,6 +346,49 @@ void main() {
     expect(find.text('Fresh'), findsOneWidget);
     expect(requests, 1);
   });
+
+  testWidgets('resume detects London rollover before the UTC date changes', (
+    tester,
+  ) async {
+    var now = DateTime.utc(2026, 10, 15, 22, 50);
+    var requests = 0;
+    final londonToday = _publication(
+      id: 'october-15',
+      sequence: 1,
+      date: DateTime.utc(2026, 10, 15),
+      word: 'Earlier',
+    );
+    final londonTomorrow = _publication(
+      id: 'october-16',
+      sequence: 2,
+      date: DateTime.utc(2026, 10, 16),
+      word: 'Canonical',
+    );
+    final service = PublicationApiService(
+      client: MockClient((request) async {
+        requests++;
+        return http.Response(jsonEncode(londonTomorrow.toJson()), 200);
+      }),
+      now: () => now,
+    );
+    await _pumpToday(
+      tester,
+      service: service,
+      initial: TodayPublicationLoad(
+        publication: londonToday,
+        isOffline: false,
+      ),
+      now: () => now,
+    );
+
+    now = DateTime.utc(2026, 10, 15, 23, 5);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(requests, 1);
+    expect(find.text('Canonical'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpToday(
@@ -408,6 +451,23 @@ final _fresh = DailyPublication(
   definition: 'Newly retrieved.',
   usage: 'A fresh publication arrived.',
   synonyms: const ['New'],
+);
+
+DailyPublication _publication({
+  required String id,
+  required int sequence,
+  required DateTime date,
+  required String word,
+}) => DailyPublication(
+  id: id,
+  sequence: sequence,
+  publicationDate: date,
+  word: word,
+  type: 'Adjective',
+  phonetic: word.toLowerCase(),
+  definition: 'Definition for $word.',
+  usage: '$word appeared in a sentence.',
+  synonyms: const ['Literary'],
 );
 
 class _MemoryWidgetCache implements WidgetCache {

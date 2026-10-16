@@ -6,20 +6,21 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
@@ -29,7 +30,8 @@ class WidgetRefreshWorker(
 ) : Worker(appContext, workerParams) {
     override fun doWork(): Result {
         Log.i(LOG_TAG, "Refresh started")
-        return when (val fetched = WidgetPublicationFetcher.fetch()) {
+        var scheduleFollowingRefresh = false
+        val result = when (val fetched = WidgetPublicationFetcher.fetch()) {
             is FetchResult.Success -> {
                 val widgetData = es.antonborri.home_widget.HomeWidgetPlugin.getData(applicationContext)
                 if (!WidgetPublicationCache.write(widgetData, fetched.publication)) {
@@ -38,6 +40,7 @@ class WidgetRefreshWorker(
                 } else {
                     redrawWidgets(applicationContext, widgetData)
                     Log.i(LOG_TAG, "Refresh succeeded")
+                    scheduleFollowingRefresh = true
                     Result.success()
                 }
             }
@@ -49,9 +52,14 @@ class WidgetRefreshWorker(
 
             is FetchResult.PermanentFailure -> {
                 Log.w(LOG_TAG, "${fetched.reason}; keeping cached publication")
+                scheduleFollowingRefresh = true
                 Result.success()
             }
         }
+        if (scheduleFollowingRefresh && inputData.getBoolean(DAILY_WORK_INPUT_KEY, false)) {
+            WidgetRefreshScheduler.scheduleFollowing(applicationContext)
+        }
+        return result
     }
 
     private fun redrawWidgets(context: Context, widgetData: SharedPreferences) {
@@ -66,13 +74,13 @@ class WidgetRefreshWorker(
 
     companion object {
         const val LOG_TAG = "DiurnusWidgetRefresh"
+        const val DAILY_WORK_INPUT_KEY = "diurnus_widget_daily_work"
     }
 }
 
 internal object WidgetRefreshScheduler {
     const val PERIODIC_WORK_NAME = "diurnus_widget_daily_refresh"
     const val MANUAL_WORK_NAME = "diurnus_widget_manual_refresh"
-    private const val PERIOD_HOURS = 24L
     private const val BACKOFF_MINUTES = 30L
     private const val PUBLICATION_MINUTE = 15
     private val networkConstraint = Constraints.Builder()
@@ -80,14 +88,23 @@ internal object WidgetRefreshScheduler {
         .build()
 
     fun schedulePeriodic(context: Context, nowMillis: Long = System.currentTimeMillis()) {
-        val request = PeriodicWorkRequestBuilder<WidgetRefreshWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+        enqueueDaily(context, nowMillis, ExistingWorkPolicy.KEEP)
+    }
+
+    fun scheduleFollowing(context: Context, nowMillis: Long = System.currentTimeMillis()) {
+        enqueueDaily(context, nowMillis, ExistingWorkPolicy.APPEND_OR_REPLACE)
+    }
+
+    private fun enqueueDaily(context: Context, nowMillis: Long, policy: ExistingWorkPolicy) {
+        val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>()
             .setConstraints(networkConstraint)
+            .setInputData(workDataOf(WidgetRefreshWorker.DAILY_WORK_INPUT_KEY to true))
             .setInitialDelay(initialDelayMillis(nowMillis), TimeUnit.MILLISECONDS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
             .build()
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+        WorkManager.getInstance(context).enqueueUniqueWork(
             PERIODIC_WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            policy,
             request,
         )
     }
@@ -124,8 +141,8 @@ internal object WidgetRefreshScheduler {
 
 internal object WidgetPublicationFetcher {
     const val CURRENT_PUBLICATION_URL = "https://diurnal-api-7zz8.onrender.com/word"
-    private const val CONNECT_TIMEOUT_MILLIS = 10_000
-    private const val READ_TIMEOUT_MILLIS = 10_000
+    const val CONNECT_TIMEOUT_MILLIS = 60_000
+    const val READ_TIMEOUT_MILLIS = 60_000
 
     fun fetch(): FetchResult {
         var connection: HttpURLConnection? = null
@@ -142,6 +159,8 @@ internal object WidgetPublicationFetcher {
                     val publication = WidgetPublication.fromJson(body)
                     if (publication == null) {
                         FetchResult.PermanentFailure("Invalid publication payload")
+                    } else if (!publication.isForLondonDate()) {
+                        FetchResult.RetryableFailure("Publication date is not current in Europe/London")
                     } else {
                         FetchResult.Success(publication)
                     }
@@ -176,6 +195,7 @@ internal data class WidgetPublication(
     val phonetic: String,
     val definition: String,
     val sequence: String,
+    val publicationDate: String,
 ) {
     fun cacheValues(): Map<String, String> = linkedMapOf(
         WidgetCacheKeys.WORD to word,
@@ -190,7 +210,10 @@ internal data class WidgetPublication(
             val data = JSONObject(json)
             val word = data.optionalString("word")
             val definition = data.optionalString("definition")
-            if (word.isEmpty() || definition.isEmpty()) return null
+            val publicationDate = data.optionalString("publicationDate")
+            if (word.isEmpty() || definition.isEmpty() ||
+                !WidgetPublicationDate.isValid(publicationDate)
+            ) return null
             return WidgetPublication(
                 word = word,
                 type = data.optionalString("type"),
@@ -200,11 +223,33 @@ internal data class WidgetPublication(
                     .takeIf { it > 0 }
                     ?.toString()
                     .orEmpty(),
+                publicationDate = publicationDate,
             )
         }
 
         private fun JSONObject.optionalString(key: String): String =
             (opt(key) as? String)?.trim().orEmpty()
+    }
+
+    fun isForLondonDate(nowMillis: Long = System.currentTimeMillis()): Boolean =
+        publicationDate == WidgetPublicationDate.londonDate(nowMillis)
+}
+
+internal object WidgetPublicationDate {
+    private val london = TimeZone.getTimeZone("Europe/London")
+
+    fun londonDate(nowMillis: Long): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply {
+            timeZone = london
+        }.format(nowMillis)
+
+    fun isValid(value: String): Boolean = try {
+        SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply {
+            isLenient = false
+            timeZone = london
+        }.parse(value)?.let { londonDate(it.time) == value } == true
+    } catch (_: java.text.ParseException) {
+        false
     }
 }
 

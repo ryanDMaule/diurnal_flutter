@@ -12,6 +12,7 @@ import '../services/bookmark_service.dart';
 import '../services/edition_service.dart';
 import '../services/haptic_service.dart';
 import '../services/publication_api_service.dart';
+import '../services/publication_clock.dart';
 import '../services/sound_effects_service.dart';
 import '../services/widget_sync_service.dart';
 import '../theme/interface_theme.dart';
@@ -87,7 +88,7 @@ class _TodayScreenState extends State<TodayScreen>
         )..addListener(() {
           if (mounted) setState(() {});
         });
-    _observedDate = _dateOnly(_now());
+    _observedDate = PublicationClock.londonDate(_now());
     WidgetsBinding.instance.addObserver(this);
     _scheduleDateRollover();
     _restoreEditionState();
@@ -218,7 +219,7 @@ class _TodayScreenState extends State<TodayScreen>
 
   Future<void> _refreshAfterResume() async {
     final now = _now();
-    final date = _dateOnly(now);
+    final date = PublicationClock.londonDate(now);
     final dateChanged = date != _observedDate;
     final recentlyRefreshed =
         _lastAutomaticRefresh != null &&
@@ -233,16 +234,12 @@ class _TodayScreenState extends State<TodayScreen>
   void _scheduleDateRollover() {
     _dateRolloverTimer?.cancel();
     final now = _now();
-    final nextDate = DateTime(now.year, now.month, now.day + 1);
-    _dateRolloverTimer = Timer(nextDate.difference(now), () {
-      _observedDate = _dateOnly(_now());
+    _dateRolloverTimer = Timer(PublicationClock.untilNextLondonMidnight(now), () {
+      _observedDate = PublicationClock.londonDate(_now());
       _lastAutomaticRefresh = _now();
       unawaited(_loadPublication().whenComplete(_scheduleDateRollover));
     });
   }
-
-  DateTime _dateOnly(DateTime value) =>
-      DateTime(value.year, value.month, value.day);
 
   @override
   Widget build(BuildContext context) {
