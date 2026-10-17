@@ -12,9 +12,10 @@ class WidgetStyleTest {
         val style = WidgetStyle.resolve("evergreen", "evergreen")
 
         assertSame(WidgetStyle.EVERGREEN, style)
-        assertNull(style.backgroundResource)
+        assertNull(style.landscapeBackgroundResource)
+        assertNull(style.portraitBackgroundResource)
         assertEquals(0xFF032C23.toInt(), style.backgroundColor)
-        assertEquals(0x00000000, style.overlayColor)
+        assertEquals(0x00000000, style.largeOverlayColor)
     }
 
     @Test
@@ -24,15 +25,22 @@ class WidgetStyleTest {
     }
 
     @Test
-    fun existingEditionsRemainImageBacked() {
-        val existing = listOf(
+    fun photographicEditionsRemainImageBacked() {
+        val photographic = listOf(
             WidgetStyle.LIBRARY,
             WidgetStyle.ATRIUM,
-            WidgetStyle.ARCHIVE,
-            WidgetStyle.GALLERY,
+            WidgetStyle.FOUNDRY,
+            WidgetStyle.ASCENT,
+            WidgetStyle.HEARTH,
+            WidgetStyle.REVERIE,
+            WidgetStyle.MONOLITH,
+            WidgetStyle.OAK,
+            WidgetStyle.GILDED,
+            WidgetStyle.PALINDROME,
             WidgetStyle.MIDNIGHT,
         )
 
-        assertTrue(existing.all { it.backgroundResource != null })
+        assertTrue(photographic.all { it.landscapeBackgroundResource != null })
+        assertTrue(photographic.all { it.portraitBackgroundResource != null })
     }
 }

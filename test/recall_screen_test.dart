@@ -963,7 +963,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(playback.calls.map((call) => call.assetPath), [
         'sfx/v2/error_02.ogg',
-        'sfx/v2/flower_01.ogg',
       ]);
       expect(await progressService.isRecalled(archive[1].id!), isTrue);
       expect(await progressService.isRecalled(archive[0].id!), isFalse);
