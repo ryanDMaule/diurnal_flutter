@@ -7,7 +7,9 @@ abstract interface class InstallIdentityService {
 class PlatformInstallIdentityService implements InstallIdentityService {
   const PlatformInstallIdentityService();
 
-  static const _channel = MethodChannel('com.example.diurnul/install');
+  static const _channel = MethodChannel(
+    'com.mauleapplications.diurnus/install',
+  );
 
   @override
   Future<bool> isFreshInstallation() async {

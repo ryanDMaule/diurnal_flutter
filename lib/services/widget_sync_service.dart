@@ -27,27 +27,28 @@ class HomeWidgetCache implements WidgetCache {
       name: 'HomeWidgetProvider',
       androidName: 'HomeWidgetProvider',
       iOSName: 'HomeWidget',
-      qualifiedAndroidName: 'com.example.diurnul.HomeWidgetProvider',
+      qualifiedAndroidName: 'com.mauleapplications.diurnus.HomeWidgetProvider',
     );
     await HomeWidget.updateWidget(
       name: 'MediumWidgetProvider',
       androidName: 'MediumWidgetProvider',
-      qualifiedAndroidName: 'com.example.diurnul.MediumWidgetProvider',
+      qualifiedAndroidName:
+          'com.mauleapplications.diurnus.MediumWidgetProvider',
     );
     await HomeWidget.updateWidget(
       name: 'LargeWidgetProvider',
       androidName: 'LargeWidgetProvider',
-      qualifiedAndroidName: 'com.example.diurnul.LargeWidgetProvider',
+      qualifiedAndroidName: 'com.mauleapplications.diurnus.LargeWidgetProvider',
     );
     await HomeWidget.updateWidget(
       name: 'MarkWidgetProvider',
       androidName: 'MarkWidgetProvider',
-      qualifiedAndroidName: 'com.example.diurnul.MarkWidgetProvider',
+      qualifiedAndroidName: 'com.mauleapplications.diurnus.MarkWidgetProvider',
     );
     await HomeWidget.updateWidget(
       name: 'BrandWidgetProvider',
       androidName: 'BrandWidgetProvider',
-      qualifiedAndroidName: 'com.example.diurnul.BrandWidgetProvider',
+      qualifiedAndroidName: 'com.mauleapplications.diurnus.BrandWidgetProvider',
     );
   }
 }

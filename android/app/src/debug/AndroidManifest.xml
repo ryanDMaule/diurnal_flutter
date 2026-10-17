@@ -9,7 +9,7 @@
             android:name=".WidgetRefreshDebugReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.example.diurnul.DEBUG_REFRESH_WIDGET" />
+                <action android:name="com.mauleapplications.diurnus.DEBUG_REFRESH_WIDGET" />
             </intent-filter>
         </receiver>
     </application>

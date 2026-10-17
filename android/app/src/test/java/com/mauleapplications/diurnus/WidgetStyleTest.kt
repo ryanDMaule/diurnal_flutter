@@ -1,4 +1,4 @@
-package com.example.diurnul
+package com.mauleapplications.diurnus
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

@@ -1,4 +1,4 @@
-package com.example.diurnul
+package com.mauleapplications.diurnus
 
 import java.io.File
 import kotlin.math.abs
@@ -11,7 +11,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "com.example.diurnul/install",
+            "com.mauleapplications.diurnus/install",
         ).setMethodCallHandler { call, result ->
             if (call.method == "isFreshInstallation") {
                 result.success(consumeFreshInstallationSignal())

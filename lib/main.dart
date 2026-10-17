@@ -189,7 +189,7 @@ class _DiurnalAppState extends State<DiurnalApp> {
               _controller.settings.interfaceColor,
             );
             return MaterialApp(
-              title: 'Diurnal',
+              title: 'Diurnus',
               theme: ThemeData(
                 brightness: palette.brightness,
                 primarySwatch: Colors.indigo,

@@ -1,4 +1,4 @@
-package com.example.diurnul
+package com.mauleapplications.diurnus
 
 import android.content.BroadcastReceiver
 import android.content.Context
