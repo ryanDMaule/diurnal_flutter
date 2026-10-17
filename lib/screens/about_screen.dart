@@ -2,35 +2,78 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/interface_theme.dart';
 import '../widgets/diurnus_brand_lockup.dart';
 
 typedef ExternalUrlLauncher = Future<bool> Function(Uri url);
+typedef AppVersionLoader = Future<String> Function();
 
-class AboutScreen extends StatelessWidget {
-  AboutScreen({ExternalUrlLauncher? externalUrlLauncher, super.key})
-    : _externalUrlLauncher = externalUrlLauncher ?? _launchExternally;
+class AboutScreen extends StatefulWidget {
+  AboutScreen({
+    ExternalUrlLauncher? externalUrlLauncher,
+    AppVersionLoader? appVersionLoader,
+    super.key,
+  }) : _externalUrlLauncher = externalUrlLauncher ?? _launchExternally,
+       _appVersionLoader = appVersionLoader ?? _loadAppVersion;
 
   static final supportUrl = Uri.parse('https://buymeacoffee.com/ryanMaule');
+  static final privacyPolicyUrl = Uri.parse(
+    'https://sites.google.com/view/mauleapplications',
+  );
   final ExternalUrlLauncher _externalUrlLauncher;
+  final AppVersionLoader _appVersionLoader;
 
   static Future<bool> _launchExternally(Uri url) =>
       launchUrl(url, mode: LaunchMode.externalApplication);
 
-  Future<void> _openSupportPage(BuildContext context) async {
+  static Future<String> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return '${packageInfo.version} (${packageInfo.buildNumber})';
+  }
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  String _appVersion = 'Loading…';
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveAppVersion();
+  }
+
+  Future<void> _resolveAppVersion() async {
+    try {
+      final version = await widget._appVersionLoader();
+      if (mounted) setState(() => _appVersion = version);
+    } catch (_) {
+      if (mounted) setState(() => _appVersion = 'Information unavailable');
+    }
+  }
+
+  Future<void> _openExternalPage(Uri url, String failureMessage) async {
     var opened = false;
     try {
-      opened = await _externalUrlLauncher(supportUrl);
+      opened = await widget._externalUrlLauncher(url);
     } catch (_) {
       opened = false;
     }
-    if (opened || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Unable to open the support page right now.'),
-      ),
+    if (opened || !mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(failureMessage)));
+  }
+
+  void _openAcknowledgements() {
+    showLicensePage(
+      context: context,
+      applicationName: 'Diurnus',
+      applicationVersion: _appVersion == 'Loading…' ? null : _appVersion,
     );
   }
 
@@ -138,8 +181,9 @@ class AboutScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 7),
                   Text(
-                    'Version unavailable',
-                    semanticsLabel: 'Application version unavailable',
+                    'Version $_appVersion',
+                    key: Key('about-app-version'),
+                    semanticsLabel: 'Application version $_appVersion',
                     style: TextStyle(
                       color: InterfaceThemeScope.maybePaletteOf(
                         context,
@@ -150,9 +194,21 @@ class AboutScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 28),
-                  _InactiveInformationRow(label: 'Privacy Policy'),
-                  _InactiveInformationRow(label: 'Terms of Use'),
-                  _InactiveInformationRow(label: 'Acknowledgements'),
+                  _InformationRow(
+                    key: Key('privacy-policy'),
+                    label: 'Privacy Policy',
+                    semanticsLabel: 'Privacy Policy, opens external browser',
+                    onTap: () => _openExternalPage(
+                      AboutScreen.privacyPolicyUrl,
+                      'Unable to open the privacy policy right now.',
+                    ),
+                  ),
+                  _InformationRow(
+                    key: Key('acknowledgements'),
+                    label: 'Acknowledgements',
+                    semanticsLabel: 'Acknowledgements and software licences',
+                    onTap: _openAcknowledgements,
+                  ),
                   SizedBox(height: 40),
                   Divider(
                     color: InterfaceThemeScope.maybePaletteOf(context).divider,
@@ -192,7 +248,10 @@ class AboutScreen extends StatelessWidget {
                     label: 'Buy me a coffee, opens external browser',
                     child: OutlinedButton(
                       key: Key('buy-me-a-coffee'),
-                      onPressed: () => _openSupportPage(context),
+                      onPressed: () => _openExternalPage(
+                        AboutScreen.supportUrl,
+                        'Unable to open the support page right now.',
+                      ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: Size.fromHeight(52),
                         foregroundColor: InterfaceThemeScope.maybePaletteOf(
@@ -237,54 +296,59 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-class _InactiveInformationRow extends StatelessWidget {
-  _InactiveInformationRow({required this.label});
+class _InformationRow extends StatelessWidget {
+  const _InformationRow({
+    required this.label,
+    required this.semanticsLabel,
+    required this.onTap,
+    super.key,
+  });
 
   final String label;
+  final String semanticsLabel;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '$label, not yet available',
+      label: semanticsLabel,
       button: true,
-      enabled: false,
       child: ExcludeSemantics(
-        child: Container(
-          constraints: BoxConstraints(minHeight: 58),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: InterfaceThemeScope.maybePaletteOf(context).divider,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: InterfaceThemeScope.maybePaletteOf(
-                      context,
-                    ).primary.withValues(alpha: 0.72),
-                    fontFamily: 'Figtree',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w300,
-                  ),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            constraints: BoxConstraints(minHeight: 58),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: InterfaceThemeScope.maybePaletteOf(context).divider,
                 ),
               ),
-              Text(
-                'Not yet available',
-                style: TextStyle(
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: InterfaceThemeScope.maybePaletteOf(
+                        context,
+                      ).primary.withValues(alpha: 0.72),
+                      fontFamily: 'Figtree',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+                Icon(
+                  CupertinoIcons.chevron_right,
                   color: InterfaceThemeScope.maybePaletteOf(
                     context,
                   ).primary.withValues(alpha: 0.36),
-                  fontFamily: 'Figtree',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w300,
+                  size: 16,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

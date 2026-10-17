@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:diurnul/screens/about_screen.dart';
 import 'package:diurnul/screens/menu_screen.dart';
 
 void main() {
+  setUp(() {
+    PackageInfo.setMockInitialValues(
+      appName: 'Diurnus',
+      packageName: 'com.mauleapplications.diurnus',
+      version: '1.0.0',
+      buildNumber: '1',
+      buildSignature: '',
+    );
+  });
+
   testWidgets('About opens from Menu and presents the approved colophon', (
     tester,
   ) async {
@@ -20,9 +31,9 @@ void main() {
     expect(find.text('One remarkable word, every day.'), findsOneWidget);
     expect(find.byKey(const Key('about-main-copy')), findsOneWidget);
     expect(find.text('Diurnus'), findsOneWidget);
-    expect(find.text('Version unavailable'), findsOneWidget);
+    expect(find.text('Version 1.0.0 (1)'), findsOneWidget);
     expect(find.text('Privacy Policy'), findsOneWidget);
-    expect(find.text('Terms of Use'), findsOneWidget);
+    expect(find.text('Terms of Use'), findsNothing);
     expect(find.text('Acknowledgements'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to menu'));
@@ -113,5 +124,55 @@ void main() {
       find.text('Unable to open the support page right now.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('privacy policy opens the release URL externally', (
+    tester,
+  ) async {
+    Uri? openedUrl;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AboutScreen(
+          externalUrlLauncher: (url) async {
+            openedUrl = url;
+            return true;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('privacy-policy')),
+      250,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.tap(find.byKey(const Key('privacy-policy')));
+    await tester.pump();
+
+    expect(openedUrl, AboutScreen.privacyPolicyUrl);
+    expect(
+      openedUrl.toString(),
+      'https://sites.google.com/view/mauleapplications',
+    );
+  });
+
+  testWidgets('Acknowledgements opens Flutter licence information', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp(home: AboutScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('acknowledgements')),
+      250,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.tap(find.byKey(const Key('acknowledgements')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(find.text('Diurnus'), findsWidgets);
+    expect(find.text('1.0.0 (1)'), findsOneWidget);
   });
 }
